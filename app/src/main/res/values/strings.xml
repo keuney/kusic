@@ -12,5 +12,9 @@
     <string name="player_play">재생</string>
     <string name="player_pause">일시정지</string>
     <string name="player_retry">다시 연결</string>
-    <string name="player_play_remote">원격 트랙 재생</string>
+    <string name="search_hint">검색어</string>
+    <string name="search_action">검색</string>
+    <string name="search_searching">검색 중</string>
+    <string name="search_empty">결과가 없습니다.</string>
+    <string name="search_failed">검색에 실패했습니다. 다시 시도해 주세요.</string>
 </resources>

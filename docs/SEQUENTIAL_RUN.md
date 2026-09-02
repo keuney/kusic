@@ -257,3 +257,17 @@
 - 신규 파일: `core/player/TrackUri.kt`, `StreamResolver.kt`, `TrackStreamResolver.kt`, `ChunkedHttpDataSource.kt`, `data/source/providerA/ProviderAMusicSource.kt`, `di/SourceModule.kt`, `app/src/test/.../TrackUriTest.kt`, `ProviderAMusicSourceTest.kt`, `app/src/androidTest/.../ChunkedHttpDataSourceTest.kt`, `RemoteTrackPlaybackTest.kt`. 변경: `MusicService.kt`, `PlayerConnection.kt`, `PlayerViewModel.kt`, `TestPlaybackScreen.kt`, `core/model/PlayableStream.kt`, `ProviderAStreamResolver.kt`, `ProviderAStreamSourceContractTest.kt`, `res/values/strings.xml`, `TASKS.md`, `README.md`, `docs/DECISIONS.md`, 이 기록. 결정 ADR-033, 신규 의존성 없음.
 - 진단용으로 만든 기기 테스트는 결과를 ADR에 남기고 삭제했다. 대신 상위 소스를 흉내 낸 `ChunkedHttpDataSourceTest`로 청크 경계·시작 위치·명시 길이를 검증한다.
 - 한계: 단일 트랙·단일 기기·WiFi 조건이다. 청크 상한 512KB는 관찰값이며 공급자가 바꾸면 조정해야 한다. 화면의 원격 재생 버튼과 고정 Track ID는 KM-058에서 대체한다. push는 하지 않았다.
+
+## KM-058 완료 — 검색에서 재생까지 수직 슬라이스
+
+- 브랜치 `codex/KM-058-search-to-play`. POC 화면에 검색어 입력·검색 버튼·결과 목록을 추가하고 결과를 탭하면 재생하도록 연결했다. 검색 상태는 Idle/Searching/Results/Empty/Failed 다섯 가지이며 원문 오류는 노출하지 않는다.
+- 검색은 ViewModel이 MusicSource를 직접 호출하는 임시 구조다. KM-070 SearchRepository와 KM-071 SearchViewModel이 이 자리를 대체한다. 신규 의존성은 목록 표시를 위한 `androidx.compose.foundation` 하나이며 Compose BOM 버전을 따른다.
+- KM-057에서 넣었던 고정 Track ID의 원격 재생 버튼과 문자열은 제거했다.
+- **검증 중 결함 발견**: 수동 재생이 약 34초(첫 512KB 직후) 지점에서 403으로 멈췄다. KM-057의 실기기 검증이 10초 미만이라 첫 청크 안에서 끝나 이 결함을 놓쳤다.
+- 진단(실기기, 매번 새 URL): 오디오 전용 adaptive 주소는 헤더 `Range: bytes=524288-1048575` 403, 쿼리 `range=524288-1048575` 403, 두 방식 혼합 403, 다음 청크 403이었다. 이후 재확인에서는 오프셋 0 요청도 403이 되었다. 같은 응답의 progressive 형식(video/mp4 306kbps)은 닫힌 Range·열린 Range·Range 없음·4MB 구간이 모두 200/206이었다.
+- 조치: mapper가 progressive 형식만 재생 가능한 스트림으로 인정하고, 없으면 실패해 다음 클라이언트로 넘어간다. 후보 순서를 ANDROID 우선으로 바꿨다(progressive를 제공하는 유일한 종류). 영상 트랙은 ExoPlayer track selection에서 끈다. 필요 없어진 `ChunkedHttpDataSource`와 그 계측 검사를 제거했다. 결정 ADR-034, ADR-033은 해당 부분 대체 표시.
+- 회귀 방지: 실기기 계측에 길이 - 60초 지점으로 탐색해 이어 재생하는 검사를 추가했다. 파일 앞부분만 받아도 통과하던 구멍을 막는다.
+- 수동 검증: 앱 실행 → 검색어 "BTS Dynamite" 입력 → 검색 → 결과 10건 이상 표시 → 첫 결과 탭 → 재생 시작. 20초 14.8초, 45초 41.8초, 70초 66.9초, 100초 94.9초 위치로 연속 진행했다. Home 이동 후에도 115.2초 → 130.2초로 계속 재생했고 미디어 키 일시정지가 동작했다. 증거는 Git 제외된 `captures/km-058/`에 보관했다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 7초). 단위 38개·실제 계약 4개·실기기 계측 16개, 실패/오류 0. 린트 오류 0·경고 19. 계약 검사 요약은 ANDROID만 해석 성공(video/mp4, 306098bps)이고 나머지 네 종류는 실패다.
+- 변경: `feature/player/PlayerViewModel.kt`, `TestPlaybackScreen.kt`, `data/source/providerA/mapper/ProviderAStreamMapper.kt`, `ProviderAConfig.kt`, `core/player/MusicService.kt`, `res/values/strings.xml`, `app/build.gradle.kts`, `gradle/libs.versions.toml`, 관련 단위/계측 테스트, `TASKS.md`, `README.md`, `docs/DECISIONS.md`, 이 기록. 삭제: `core/player/ChunkedHttpDataSource.kt`와 그 계측 검사.
+- 한계와 대가: progressive는 영상이 포함된 다중화 스트림이라 오디오 전용보다 대역폭을 5~6배 쓴다. 단일 트랙·단일 기기·WiFi 조건이며 여러 곡 연속 재생, 재생 중 URL 만료, 네트워크 전환은 KM-061·KM-132·KM-136 대상이다. 공급자 접근 제한을 우회하는 수단은 도입하지 않았다. push는 하지 않았다.

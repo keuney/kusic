@@ -265,7 +265,19 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
-### ADR-033 — MusicSource와 재생 연결, 청크 Range 요청 (KM-057)
+### ADR-034 — progressive 형식만 재생 스트림으로 인정 (KM-058)
+
+- KM-058 수동 검증에서 재생이 약 34초 지점(첫 512KB 직후)에 403으로 멈췄다. KM-057의 실기기 검증이 10초 미만이라 첫 청크 안에서 끝나 이 결함을 놓쳤다.
+- 실기기 진단 결과, 오디오 전용 adaptive 주소는 **0에서 시작하지 않는 모든 요청을 거부**한다. 헤더 `Range: bytes=524288-1048575` 403, 쿼리 `range=524288-1048575` 403, 둘을 섞어도 403, 다음 청크도 403이다. 즉 첫 512KB만 받을 수 있어 이어 재생이 불가능하다. 이후 재확인에서는 오프셋 0 요청도 403이 되어 이 경로 자체를 신뢰할 수 없다.
+- 같은 응답의 progressive 형식(`streamingData.formats`, video/mp4 306kbps 다중화)은 임의 구간 요청을 모두 허용한다. 닫힌 Range, 열린 Range, Range 없음, 4MB 구간이 모두 200/206이다.
+- 따라서 mapper는 **progressive 형식만 재생 가능한 스트림으로 인정**한다. 재생할 수 없는 전송 방식을 성공 값으로 포장하지 않는다는 ADR-031의 원칙을 그대로 적용한다. progressive가 없으면 실패를 반환해 다음 클라이언트 후보로 넘어간다.
+- 후보 순서를 ANDROID 우선으로 바꿨다. ANDROID만 직접 URL이 있는 progressive 형식을 제공하며 IOS는 오디오 전용 adaptive만 준다.
+- 대가: progressive는 영상이 함께 들어 있는 다중화 스트림이라 오디오 전용(약 50~60kbps)보다 대역폭을 5~6배 쓴다. 음악만 필요하므로 ExoPlayer의 track selection에서 영상 트랙을 끈다. 데이터 사용량이 중요한 환경에서는 재검토가 필요하며 KM-059 Gate의 판단 요소다.
+- ADR-033의 `ChunkedHttpDataSource`는 제거했다. progressive 주소가 열린 Range와 큰 구간 요청을 그대로 받으므로 청크 분할이 필요 없고, 청크로 나눠도 adaptive 주소의 403은 해결되지 않는다. 쓰이지 않는 복잡도를 남기지 않는다.
+- 회귀 방지: 실기기 계측에 먼 지점(길이 - 60초)으로 탐색해 이어 재생하는 검사를 추가했다. 파일 앞부분만 받아도 통과하던 구멍을 막는다. 수동으로도 95초 연속 재생과 Home 이후 130초까지 유지를 확인했다.
+- PO token 등 공급자의 접근 제한을 우회하는 수단은 도입하지 않았다. 공개 응답이 그대로 제공하는 형식만 사용한다.
+
+### ADR-033 — MusicSource와 재생 연결 (KM-057, 청크 Range 부분은 ADR-034로 대체)
 
 - `ProviderAMusicSource`가 검색과 스트림 해석을 MusicSource 계약 뒤에 묶고 Hilt `SourceModule`이 이를 바인딩한다. `getTrack`/`getRelated`는 구현한 작업이 없어 고정 메시지의 안전한 실패를 반환한다. `core/player/StreamResolver`는 MusicSource만 호출하는 얇은 seam이며 KM-061의 만료 재해석이 여기에 붙는다.
 - MediaItem에는 실제 주소 대신 `keuney://track/<id>` 자리표시 URI만 넣는다. 컨트롤러가 보낸 MediaItem은 URI를 잃으므로 `MediaLibrarySession.Callback.onAddMediaItems`에서 mediaId로 자리표시 URI를 복원한다. Track ID는 `[A-Za-z0-9_-]{1,64}`만 허용해 요청 대상이 바뀌지 않게 한다. 대기열과 컨트롤러는 스트림 주소를 알지 못하며 어디에도 저장하지 않는다(AGENTS.md 8).

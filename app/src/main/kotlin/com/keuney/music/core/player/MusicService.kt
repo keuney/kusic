@@ -43,6 +43,11 @@ class MusicService : MediaLibraryService() {
             )
             .build()
         player = servicePlayer
+        // progressive 스트림에는 영상 트랙이 함께 들어 있다. 음악 재생에는 필요하지 않으므로 끈다.
+        servicePlayer.trackSelectionParameters = servicePlayer.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true)
+            .build()
         servicePlayer.setMediaItem(localTestTone())
         session = MediaLibrarySession.Builder(
             this,
@@ -74,13 +79,10 @@ class MusicService : MediaLibraryService() {
         }.getOrDefault(item)
     }
 
-    /** http(s)만 청크 요청으로 감싼다. 내장 테스트 음원 같은 로컬 스킴은 기본 경로를 쓴다. */
     private fun resolvingDataSourceFactory() = ResolvingDataSource.Factory(
         DefaultDataSource.Factory(
             this,
-            ChunkedHttpDataSource.Factory(
-                DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true),
-            ),
+            DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true),
         ),
         trackStreamResolver,
     )

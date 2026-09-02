@@ -99,10 +99,11 @@ internal object ProviderAConfig {
     )
 
     /**
-     * 재생 요청에 사용할 후보 순서. 실제 계약 검사에서 직접 오디오 URL을 제공한 종류를 먼저 두고,
-     * 나머지는 대체 경로로 남긴다. WEB은 직접 URL 없이 별도 전송 주소만 반환하므로 마지막이다.
+     * 재생 요청에 사용할 후보 순서. 재생 가능한 progressive 형식을 제공하는 ANDROID를 먼저 둔다.
+     * IOS는 오디오 전용 adaptive 형식만 주고 그 주소는 재생에 쓸 수 없어 뒤로 보낸다.
+     * WEB은 직접 URL 없이 별도 전송 주소만 반환하므로 마지막이다.
      */
-    val streamCandidates = listOf(ios, android, androidVr, tvEmbedded, search)
+    val streamCandidates = listOf(android, ios, androidVr, tvEmbedded, search)
 
     val clientId: String get() = search.clientId
     val clientVersion: String get() = search.clientVersion

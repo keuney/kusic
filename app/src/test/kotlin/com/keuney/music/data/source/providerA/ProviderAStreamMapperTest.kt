@@ -12,17 +12,32 @@ class ProviderAStreamMapperTest {
     private val now = Instant.parse("2026-09-02T00:00:00Z")
 
     @Test
-    fun selectsDirectAudioAndMapsExpiryWithoutSelectingVideo() {
-        val stream = mapStreamResponse(response(), now)
-        assertEquals("https://example.invalid/audio-high", stream.url)
-        assertEquals("audio/webm", stream.mimeType)
-        assertEquals(128000, stream.bitrate)
+    fun prefersTheProgressiveStreamBecauseOnlyItAllowsRangedPlayback() {
+        val stream = mapStreamResponse(progressiveAndAdaptive(), now)
+        assertEquals("https://example.invalid/progressive", stream.url)
+        assertEquals("video/mp4", stream.mimeType)
+        assertEquals(306098, stream.bitrate)
         assertEquals(now.plusSeconds(3600), stream.expiresAt)
+    }
+
+    @Test(expected = ProviderAStreamException::class)
+    fun audioOnlyAdaptiveFormatsAreNotAcceptedBecauseTheyCannotBePlayed() {
+        mapStreamResponse(response(), now)
+    }
+
+    @Test(expected = ProviderAStreamException::class)
+    fun aProgressiveEntryWithoutADirectUrlIsNotAccepted() {
+        mapStreamResponse(Json.parseToJsonElement("""
+            {"playabilityStatus":{"status":"OK"},"streamingData":{
+              "formats":[{"mimeType":"video/mp4","signatureCipher":"opaque-value","bitrate":999999}],
+              "adaptiveFormats":[{"mimeType":"audio/webm","url":"https://example.invalid/audio","bitrate":128000}]
+            }}
+        """).jsonObject, now)
     }
 
     @Test
     fun missingExpiryRemainsUnknown() {
-        assertNull(mapStreamResponse(response("null"), now).expiresAt)
+        assertNull(mapStreamResponse(progressiveAndAdaptive("null"), now).expiresAt)
     }
 
     @Test(expected = ProviderAStreamException::class)
@@ -43,12 +58,24 @@ class ProviderAStreamMapperTest {
     @Test(expected = ProviderAStreamException::class)
     fun nonHttpsAndCredentialBearingUrlsAreRejected() {
         mapStreamResponse(Json.parseToJsonElement("""
-            {"playabilityStatus":{"status":"OK"},"streamingData":{"adaptiveFormats":[
-              {"mimeType":"audio/mp4","url":"http://example.invalid/audio"},
-              {"mimeType":"audio/mp4","url":"https://user:secret@example.invalid/audio"}
+            {"playabilityStatus":{"status":"OK"},"streamingData":{"formats":[
+              {"mimeType":"video/mp4","url":"http://example.invalid/progressive"},
+              {"mimeType":"video/mp4","url":"https://user:secret@example.invalid/progressive"}
             ]}}
         """).jsonObject, now)
     }
+
+    private fun progressiveAndAdaptive(expiry: String = "\"3600\"") = Json.parseToJsonElement("""
+        {"playabilityStatus":{"status":"OK"},"streamingData":{
+          "expiresInSeconds":$expiry,
+          "formats":[
+            {"mimeType":"video/mp4; codecs=\"avc1, mp4a\"","url":"https://example.invalid/progressive","bitrate":306098}
+          ],
+          "adaptiveFormats":[
+            {"mimeType":"audio/webm; codecs=opus","url":"https://example.invalid/audio-high","bitrate":128000}
+          ]
+        }}
+    """).jsonObject
 
     private fun response(expiry: String = "\"3600\"") = Json.parseToJsonElement("""
         {"playabilityStatus":{"status":"OK"},"streamingData":{

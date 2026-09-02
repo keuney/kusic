@@ -741,7 +741,8 @@ Status: [x]
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(2분 50초). 단위 36개·실제 계약 4개·실기기 계측 14개 전부 통과, 실패/오류 0. 린트 오류 0·경고 19.
 - 진단 결과: 열린 Range 403, 닫힌 512KB 206, 닫힌 1MB 이상 403, 같은 URL 반복 요청 정상. 청크 상한은 관찰값이다.
 - 결정은 ADR-033에 기록했다. 신규 의존성 없음. 화면의 원격 재생 버튼과 고정 Track ID는 확인용이며 KM-058에서 대체한다.
-- 남은 검증: 여러 곡 연속 재생·장시간 재생 중 만료·탐색 반복·네트워크 전환은 KM-058·KM-061·KM-132·KM-136 대상이다.
+- 보정 (KM-058에서 확인): 당시 실기기 검증이 10초 미만이라 첫 512KB 안에서 끝났고, 실제로는 약 34초 지점에서 403으로 멈추는 결함이 남아 있었다. 원인은 오디오 전용 adaptive 주소가 오프셋 요청을 거부하는 것이며 KM-058에서 progressive 형식만 사용하도록 고쳤다(ADR-034). ChunkedHttpDataSource는 필요 없어져 제거했다.
+- 남은 검증: 여러 곡 연속 재생·장시간 재생 중 만료·네트워크 전환은 KM-061·KM-132·KM-136 대상이다.
 
 Goal:
 
@@ -756,7 +757,16 @@ Track ID
 
 KM-058 — Search-to-play vertical slice
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): 최소 UI에 검색어 입력·결과 목록·결과 선택 재생을 붙여 실제 음악 검색에서 재생까지 이었다. 검증 중 재생이 약 34초에 멈추는 결함을 발견해 progressive 형식만 사용하도록 고쳤다(ADR-034).
+
+- 인수 조건: query 입력 PASS, results 표시 PASS, result tap PASS, playback 시작 PASS, Home 후 playback 유지 PASS. 모두 Samsung SM-T220에서 확인했다.
+- 수동 검증: "BTS Dynamite" 검색 → 결과 10건 이상 표시 → 첫 결과 탭 → 재생 시작. 95초 연속 재생 후 Home 이동, 115초 → 130초까지 재생 유지. 증거는 Git 제외된 captures/km-058/에 보관했다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 7초). 단위 38개·실제 계약 4개·실기기 계측 16개 전부 통과. 린트 오류 0·경고 19.
+- 발견한 결함: 오디오 전용 adaptive 주소는 오프셋 요청을 전부 거부한다(헤더/쿼리 모두 403). 같은 응답의 progressive 형식은 임의 구간 요청을 허용한다. progressive만 인정하도록 바꾸고 후보 순서를 ANDROID 우선으로 조정했다. 회귀 방지로 먼 지점 탐색 재생 계측을 추가했다.
+- 대가: progressive는 영상이 포함된 다중화 스트림이라 대역폭을 5~6배 쓴다. 영상 트랙은 재생에서 끈다. KM-059 Gate의 판단 요소다.
+- 검색은 MusicSource를 직접 호출하는 임시 구조이며 KM-070 SearchRepository·KM-071 SearchViewModel·KM-072~073 화면이 대체한다. 신규 의존성은 androidx.compose.foundation 하나다.
 
 Goal:
 

@@ -27,7 +27,7 @@ class ProviderAMusicSourceTest {
             )
             val tracks = source.search("아이유").getOrThrow()
             assertEquals(listOf("track-1"), tracks.map { it.id })
-            assertEquals("audio/mp4", source.resolveStream("track-1").getOrThrow().mimeType)
+            assertEquals("video/mp4", source.resolveStream("track-1").getOrThrow().mimeType)
             assertEquals(listOf("/youtubei/v1/search", "/youtubei/v1/player"), paths)
         } finally {
             http.close()
@@ -72,8 +72,8 @@ class ProviderAMusicSourceTest {
     """.trimIndent()
 
     private val streamResponse = """
-        {"playabilityStatus":{"status":"OK"},"streamingData":{"adaptiveFormats":[
-          {"mimeType":"audio/mp4","url":"https://example.invalid/audio"}
+        {"playabilityStatus":{"status":"OK"},"streamingData":{"formats":[
+          {"mimeType":"video/mp4","url":"https://example.invalid/progressive","bitrate":306098}
         ]}}
     """.trimIndent()
 }

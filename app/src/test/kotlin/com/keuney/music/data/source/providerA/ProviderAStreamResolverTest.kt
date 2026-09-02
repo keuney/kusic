@@ -36,7 +36,7 @@ class ProviderAStreamResolverTest {
         try {
             val stream = ProviderAStreamResolver(ProviderAClient(http))
                 .resolveWith("test-track", ProviderAConfig.search).getOrThrow()
-            assertEquals("audio/mp4", stream.mimeType)
+            assertEquals("video/mp4", stream.mimeType)
         } finally {
             http.close()
             engine.close()
@@ -76,7 +76,7 @@ class ProviderAStreamResolverTest {
         val http = createMusicHttpClient(engine)
         try {
             val stream = ProviderAStreamResolver(ProviderAClient(http)).resolveStream("test-track").getOrThrow()
-            assertEquals("audio/mp4", stream.mimeType)
+            assertEquals("video/mp4", stream.mimeType)
             assertEquals(2, calls)
         } finally {
             http.close()
@@ -136,8 +136,8 @@ class ProviderAStreamResolverTest {
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
 
     private val directAudioResponse = """
-        {"playabilityStatus":{"status":"OK"},"streamingData":{"adaptiveFormats":[
-          {"mimeType":"audio/mp4","url":"https://example.invalid/audio"}
+        {"playabilityStatus":{"status":"OK"},"streamingData":{"formats":[
+          {"mimeType":"video/mp4","url":"https://example.invalid/progressive","bitrate":306098}
         ]}}
     """.trimIndent()
 
