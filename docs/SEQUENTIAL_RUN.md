@@ -223,3 +223,12 @@
 - 변경: `app/src/main/kotlin/com/keuney/music/data/source/providerA/ProviderAConfig.kt`, `ProviderAStreamResolver.kt`, `mapper/ProviderAStreamMapper.kt`, `app/src/test/kotlin/com/keuney/music/data/source/providerA/ProviderAStreamMapperTest.kt`, `ProviderAStreamResolverTest.kt`, `ProviderAStreamSourceContractTest.kt`, `README.md`, `TASKS.md`, `docs/DECISIONS.md`, `docs/DEVICE_RESUME_REPORT.md`, 이 기록. 결정 ADR-031. 신규 의존성 없음.
 - 종료 전 실제 기기 get-state=device, `adb install -r app/build/outputs/apk/debug/app-debug.apk` Success, `adb shell am start -W -n com.keuney.music/.MainActivity` Status ok를 확인했다. 내장 테스트 음원 화면을 열었고 음원을 자동 재생하지 않았다.
 - 종합 결과와 전체 변경 파일·명령·인수 조건·위험은 `docs/DEVICE_RESUME_REPORT.md`에 정리했다. 추가 전송 방식 검증 또는 Provider B 평가 순서 조정이 필요하며 아직 어떤 대안도 채택하지 않았다. commit/push는 하지 않았다.
+
+## 저장소 베이스라인 커밋과 M0 보류 재판정 (2026-09-02)
+
+- 저장소에 커밋이 하나도 없어 KM-001~056의 결과 전체가 버전 관리 밖에 있었다. 추적 대상 80개 파일을 최초 커밋 `87aecb0 feat: KM-001~KM-056 구현 베이스라인`으로 보존했다. `.gitignore`가 `build/`, `.gradle/`, `.kotlin/`, `captures/`, `*.apk`, `*.hprof`, 서명키·시크릿 패턴을 정상 제외함을 스테이징 목록으로 확인했다. 커밋 시 `.gitattributes`의 `* text=auto`가 저장소 내용을 LF로 정규화했다.
+- 루트에 남아 있던 힙 덤프 `java_pid31588.hprof`(424MB)를 삭제했다. ADR-012의 메타스페이스 부족 진단 잔해이며 `gradle.properties`의 `-Xmx1g -XX:MaxMetaspaceSize=1g`로 원인이 해소된 상태다. Git 추적 대상이 아니었고 다른 `.hprof` 파일은 없다.
+- KM-001·002·003·010의 보류 사유는 모두 "당시 Gradle Wrapper 또는 앱 모듈이 없어 AGENTS.md 18/27의 필수 검증을 실행할 수 없음" 하나였고 KM-010·011 완료로 해소됐다. 각 작업의 인수 조건을 재확인한 뒤 완료로 전환했다.
+- 재판정 근거: `gradlew.bat test lint assembleDebug --offline --continue --no-daemon --console=plain` BUILD SUCCESSFUL(29초). `gradlew.bat tasks --offline` BUILD SUCCESSFUL(8초). `java -version` OpenJDK 17.0.18 Temurin, `adb version` 1.0.41 / 35.0.2, `adb devices` R9PRB0PNLVT device, `emulator -list-avds` Medium_Phone_API_36.0. 루트 문서 4종·docs/DECISIONS.md·.gitignore·Wrapper 4개 파일·settings/build/libs.versions.toml 존재 확인.
+- 변경: `TASKS.md`(상태 4개와 재판정 기록), `README.md`, 이 기록. 앱 코드·의존성·기술 결정 변경 없음. 신규 테스트 대상 없음.
+- 현재 상태: 완료 30개, 보류 1개(KM-056), 미착수 44개. 보류는 KM-056 하나뿐이며 KM-057 이후는 이 Gate에 막혀 있다. 원격 push와 작업 브랜치 생성은 하지 않았다.

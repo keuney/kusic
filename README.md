@@ -10,7 +10,7 @@ Hilt, Room, DataStore, Media3, Ktor, Coil 및 GitHub Actions 기본 구성을 �
 
 KM-056은 실제 응답에서 직접 재생할 오디오 URL을 얻지 못해 보류했다. 일반 빌드와 단위 검사는 통과하지만 실제 스트림 계약 검사는 실패한다. 앱은 현재 내장 테스트 음원을 재생한다. 실기기 연결 이후의 변경 파일·실행 명령·인수 조건과 제한은 [종합 보고서](docs/DEVICE_RESUME_REPORT.md)에 정리했다.
 
-Samsung SM-T220 / Android 14 실기기에서 Home 이동·Activity 종료 후 32초 재생, 62초 화면 꺼짐 재생, 알림·잠금화면 재생 제어와 오디오 포커스를 검증했다. USB 충전 상태의 단기 검사이며 Bluetooth·장시간 절전·다른 OEM은 아직 검증하지 않았다. 기존 환경 작업의 보류 상태는 유지한다. 작업별 상태는 TASKS.md, 변경 파일·실행 명령·검증 결과는 docs/SEQUENTIAL_RUN.md에서 확인한다.
+Samsung SM-T220 / Android 14 실기기에서 Home 이동·Activity 종료 후 32초 재생, 62초 화면 꺼짐 재생, 알림·잠금화면 재생 제어와 오디오 포커스를 검증했다. USB 충전 상태의 단기 검사이며 Bluetooth·장시간 절전·다른 OEM은 아직 검증하지 않았다. KM-001·002·003·010은 Wrapper와 앱 모듈 부재로 필수 Gradle 검증을 실행할 수 없어 보류했던 작업이며, KM-011 이후 검증이 통과하므로 인수 조건을 재확인하고 완료로 전환했다. 현재 보류는 KM-056 하나다. 작업별 상태는 TASKS.md, 변경 파일·실행 명령·검증 결과는 docs/SEQUENTIAL_RUN.md에서 확인한다.
 
 ## 프로젝트 문서
 

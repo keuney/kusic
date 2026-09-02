@@ -16,7 +16,9 @@ M0 — Environment Verification
 
 KM-001 — Repository baseline
 
-Status: [!]
+Status: [x]
+
+재판정 (2026-09-02): 보류 사유였던 필수 Gradle 검증을 KM-010·KM-011 완료 후 재실행해 통과했다. `gradlew test lint assembleDebug` PASS(오프라인 29초). 인수 조건 3개는 최초 진행 시 이미 충족했고 현재도 유지된다. 최초 커밋 87aecb0으로 저장소 기반을 확정했다. 완료로 전환한다.
 
 진행 기록 (2026-09-02):
 
@@ -63,7 +65,9 @@ git status
 
 KM-002 — Android toolchain verification
 
-Status: [!]
+Status: [x]
+
+재판정 (2026-09-02): 보류 사유는 당시 Wrapper 부재로 인한 필수 Gradle 검증 실패였으며 KM-010·KM-011 이후 해소됐다. 인수 조건 재확인 — `java -version` OpenJDK 17.0.18 Temurin PASS, `adb version` 1.0.41 / 35.0.2 PASS, `adb devices` R9PRB0PNLVT device PASS. 기록은 docs/ENVIRONMENT.md에 유지된다. 완료로 전환한다.
 
 진행 기록 (2026-09-02):
 
@@ -103,7 +107,9 @@ adb devices
 
 KM-003 — Emulator boot verification
 
-Status: [!]
+Status: [x]
+
+재판정 (2026-09-02): 보류 사유는 당시 Wrapper 부재로 인한 필수 Gradle 검증 실패였으며 KM-010·KM-011 이후 해소됐다. 인수 조건 3개는 Medium_Phone_API_36.0 AVD 부팅·`adb devices` device·screencap으로 이미 충족했고 docs/EMULATOR.md에 기록돼 있다. AVD는 현재도 등록돼 있으며 이후 KM-011~040에서 에뮬레이터·실기기 설치와 실행을 반복 확인했다. 완료로 전환한다.
 
 진행 기록 (2026-09-02):
 
@@ -132,7 +138,9 @@ M1 — Project Bootstrap
 
 KM-010 — Gradle wrapper and settings
 
-Status: [!]
+Status: [x]
+
+재판정 (2026-09-02): 보류 사유였던 "앱 모듈 부재로 test/lint/assembleDebug 작업 없음"이 KM-011 완료로 해소됐다. 인수 조건 재확인 — Wrapper 4개 파일·settings.gradle.kts·build.gradle.kts·gradle/libs.versions.toml 존재 PASS, `gradlew tasks` BUILD SUCCESSFUL(8초) PASS. 필수 검증 `gradlew test lint assembleDebug` PASS. 완료로 전환한다.
 
 진행 기록 (2026-09-02):
 
