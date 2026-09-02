@@ -1,0 +1,1538 @@
+Keuney Music — Codex Execution Backlog
+
+Status legend:
+
+[ ] Not started
+
+[-] In progress
+
+[x] Done
+
+[!] Blocked
+
+Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행한다.
+
+M0 — Environment Verification
+
+KM-001 — Repository baseline
+
+Status: [!]
+
+진행 기록 (2026-09-02):
+
+저장소 기반 구현 및 아래 인수 조건 3개 충족. AGENTS.md 18/27의 필수 Gradle 검증을 통과할 수 없어 완료 처리는 보류한다.
+
+- Git 저장소 초기화 완료. git status 성공.
+- 기존 필수 문서 4개 확인, README 초안 및 docs/DECISIONS.md 추가.
+- .gitignore 추가. git check-ignore로 제외 대상 18개 및 추적 가능 대상 8개 확인.
+- ./gradlew test: 실패 — Gradle Wrapper 실행 파일 없음.
+- ./gradlew lint: 실패 — Gradle Wrapper 실행 파일 없음.
+- ./gradlew assembleDebug: 실패 — Gradle Wrapper 실행 파일 없음.
+- 원인: 초기 폴더에는 문서 4개만 있었으며 Gradle 구성은 KM-010, 앱 모듈은 KM-011 범위다. 이번 작업에서 후속 작업을 구현하지 않는다.
+- Git 명령은 성공했으나 사용자 전역 제외 파일 접근 권한 경고가 발생했다. 확인 결과는 저장소의 .gitignore 기준이다.
+- 최종 확인 중 실행 계정과 .git 소유자가 달라 일반 git status가 거부되었다. 현재 경로만 지정한 git -c safe.directory=D:/uuh_workspace/keuney_music status는 성공했다. 전역 Git 설정은 변경하지 않았다.
+- 비즈니스 로직 변경 없음. 단위 테스트 추가 및 실기기 검증 대상 없음.
+
+Goal:
+
+프로젝트 저장소의 기본 문서와 디렉터리 구조를 준비한다.
+
+Work:
+
+git repository 상태 확인
+
+root 문서 확인
+
+docs/ 생성
+
+.gitignore 준비
+
+README skeleton
+
+Acceptance Criteria:
+
+repository root에 AGENTS.md, PRD.md, ARCHITECTURE.md, TASKS.md 존재
+
+docs/DECISIONS.md 존재
+
+.gitignore에 Android/Gradle/IDE secret 및 build output 포함
+
+Verification:
+
+git status
+
+KM-002 — Android toolchain verification
+
+Status: [!]
+
+진행 기록 (2026-09-02):
+
+- 사용자 지시에 따라 KM-001은 보류하고 KM-002만 수행했다.
+- JDK 17.0.18, Android SDK, Platform Tools 35.0.2, Emulator 35.5.10 및 등록된 AVD 1개 확인.
+- 기본 JAVA_HOME은 JDK 11이며 adb는 PATH에 없었다. 현재 검증 프로세스에만 JDK 17, SDK, AVD 경로를 지정해 재검증했다. 사용자·시스템 환경 변수는 변경하지 않았다.
+- java -version, adb version, adb devices 성공. 연결된 기기는 없으며 에뮬레이터 부팅은 수행하지 않았다.
+- 인수 조건과 상세 명령·결과를 docs/ENVIRONMENT.md에 기록했다.
+- ./gradlew test, ./gradlew lint, ./gradlew assembleDebug는 Wrapper가 없어 모두 실행 실패. AGENTS.md 18/27에 따라 전체 완료 처리는 보류한다.
+- KM-003 및 이후 작업은 진행하지 않았다.
+
+Goal:
+
+Android 개발 환경을 확인한다.
+
+Check:
+
+JDK 17+
+
+Android SDK
+
+platform-tools
+
+adb
+
+emulator
+
+available AVD
+
+Acceptance Criteria:
+
+java -version
+adb version
+adb devices
+
+결과를 docs/ENVIRONMENT.md에 기록.
+
+KM-003 — Emulator boot verification
+
+Status: [!]
+
+진행 기록 (2026-09-02):
+
+- KM-001·KM-002의 Gradle 검증 보류 상태를 유지하고 KM-003만 수행했다.
+- 기존 Medium_Phone_API_36.0 AVD를 사용자 계정 권한으로 부팅했다. WHPX 사용 가능, sys.boot_completed=1, bootanim=stopped 확인.
+- adb devices에서 emulator-5554가 device 상태인 것을 확인했다.
+- screencap 및 pull 성공. 1080×2400 PNG를 직접 열어 Android 홈 화면을 확인했다.
+- 인수 조건 3개 모두 통과. 명령·결과·재현 절차는 docs/EMULATOR.md에 기록했다.
+- 검증용 에뮬레이터는 정상 종료했고 로컬 캡처는 captures/km-003/boot.png에 유지했다.
+- ./gradlew test, ./gradlew lint, ./gradlew assembleDebug는 Wrapper 부재로 실행 실패. AGENTS.md 18/27에 따라 전체 완료 처리는 보류한다.
+- 앱 설치·실행 및 실기기 재생은 미검증이며 KM-010 이후 작업은 진행하지 않았다.
+
+Goal:
+
+개발용 emulator에서 앱 설치/실행 가능한 상태를 만든다.
+
+Acceptance Criteria:
+
+AVD boot 성공
+
+adb devices에서 device 확인
+
+screen capture 명령 동작
+
+M1 — Project Bootstrap
+
+KM-010 — Gradle wrapper and settings
+
+Status: [!]
+
+진행 기록 (2026-09-02):
+
+- Gradle 9.7.1 공식 Wrapper 4개 파일, settings.gradle.kts, build.gradle.kts, gradle/libs.versions.toml 추가. 인수 조건 4개 충족.
+- Kotlin DSL과 Version Catalog를 연결하고 저장소 선언을 settings.gradle.kts로 중앙화했다. 앱 모듈과 외부 플러그인·라이브러리는 추가하지 않았다.
+- 배포 ZIP 체크섬을 고정했고 Wrapper JAR SHA-256이 공식 값과 일치함을 확인했다. .gitattributes에 줄바꿈 규칙을 추가했다.
+- gradlew의 Git 실행 권한 100755를 기록하기 위해 해당 파일만 스테이징했다. 커밋·업로드는 수행하지 않았다.
+- 설치된 Gradle 8.14.1로 wrapper 실행: 최초 배포 URL 접근 실패 후 네트워크 권한을 허용한 재실행에서 성공.
+- .\gradlew.bat wrapper --no-daemon --console=plain: Gradle 9.7.1을 내려받아 Wrapper 재생성 성공. 배치 파일 자체 교체 중 일시적 명령 해석 메시지가 있었으나 종료 코드 0이며, 생성 완료 후 아래 명령으로 최종 파일을 재검증했다.
+- .\gradlew.bat --version: 통과, Gradle 9.7.1 및 JDK 17.0.18 확인.
+- .\gradlew.bat tasks --no-daemon --offline --console=plain: 통과, 종료 코드 0.
+- .\gradlew.bat test --no-daemon --offline --console=plain: 실패, 종료 코드 1, test 작업 없음.
+- .\gradlew.bat lint --no-daemon --offline --console=plain: 실패, 종료 코드 1, lint 작업 없음.
+- .\gradlew.bat assembleDebug --no-daemon --offline --console=plain: 실패, 종료 코드 1, assembleDebug 작업 없음.
+- 모든 Gradle 검증은 현재 프로세스의 JAVA_HOME을 설치된 JDK 17로, GRADLE_USER_HOME을 프로젝트의 .gradle/user-home으로 지정했다. 전역 설정은 변경하지 않았다.
+- 공통 필수 검증은 KM-011의 앱 모듈 구성이 필요하므로 AGENTS.md 18/27에 따라 최종 완료 처리는 보류한다. 빈 대체 작업을 만들지 않았다.
+- 결정은 docs/DECISIONS.md의 ADR-009에 기록했고 README의 실행 방법을 갱신했다. KM-011 이후 작업은 진행하지 않았다.
+
+Goal:
+
+Android project Gradle baseline 생성.
+
+Acceptance Criteria:
+
+Gradle wrapper 존재
+
+settings.gradle.kts
+
+root build.gradle.kts
+
+gradle/libs.versions.toml
+
+Verification:
+
+./gradlew tasks
+
+KM-011 — Android app module
+
+Status: [x]
+
+완료 기록 (2026-09-02):
+
+- :app Android 애플리케이션 모듈, Kotlin MainActivity, Manifest 런처 등록 및 앱 이름 리소스를 추가했다.
+- applicationId/namespace com.keuney.music, minSdk 26, 안정 compileSdk 37.2 및 targetSdk 37 설정. 인수 조건 4개 모두 통과.
+- AGP 9.4.0을 Version Catalog에 등록하고 내장 Kotlin을 사용했다. 플랫폼 SDK 37.2를 설치했으며 Gradle 9.7.1/JDK 17.0.18로 검증했다.
+- .\gradlew.bat help --no-daemon --console=plain: 통과.
+- .\gradlew.bat test lint assembleDebug assembleRelease --continue --no-daemon --console=plain: 통과, 종료 코드 0, 87개 작업 실행.
+- testDebugUnitTest는 NO-SOURCE다. 비즈니스 로직과 단위 테스트 소스가 없어 실행된 테스트는 0개다.
+- lint: 오류 0개, DataExtractionRules 경고 1개. 경고의 원인과 범위를 ADR-010에 기록했으며 린트 억제는 추가하지 않았다.
+- apkanalyzer manifest print로 APK의 패키지, 최소/대상 SDK 및 MAIN/LAUNCHER Activity를 확인했다. 릴리스 APK는 debuggable=false이며 서명되지 않은 산출물이다.
+- API 36 에뮬레이터에서 adb install -r 성공, am start -W 결과 Status: ok, MainActivity의 topResumedActivity 및 프로세스 확인. 빈 화면 캡처는 captures/km-011/launch.png에 보관했다.
+- 디버그 APK: app/build/outputs/apk/debug/app-debug.apk (874,070 바이트). SHA-256: a8b03ad79e8c2cb88948ca6369fd0a762139282b45e10b69ca932d772b0aa8db.
+- aapt dump badging은 플랫폼 기본 아이콘 참조 해석 오류가 있어 apkanalyzer와 실제 설치·실행으로 산출물을 확인했다.
+- 검증용 에뮬레이터는 정상 종료했다. API 26/37 및 실기기 실행은 미검증이다.
+- 결정은 docs/DECISIONS.md ADR-010에 기록하고 README 빌드·실행 방법을 갱신했다. KM-012 이후 작업은 진행하지 않았다.
+
+Goal:
+
+app module을 생성하고 빈 Android app을 build한다.
+
+Acceptance Criteria:
+
+package com.keuney.music
+
+minSdk 26
+
+current stable compile/target SDK
+
+launcher activity 존재
+
+Verification:
+
+./gradlew assembleDebug
+
+KM-012 — Compose + Material 3
+
+Status: [x]
+
+완료 기록 (2026-09-02):
+
+- Compose 컴파일러 플러그인과 `buildFeatures.compose`를 활성화했다.
+- Material 3 밝은 테마와 화면 중앙의 `Keuney Music` 기본 문구를 구현했다.
+- `gradlew.bat test lint assembleDebug assembleRelease --continue --no-daemon --console=plain` PASS. 단위 테스트는 소스가 없어 0개, 린트는 오류 0개·경고 4개다.
+- `scripts/verify-km012.ps1` PASS: API 36 에뮬레이터에 설치 후 콜드 실행, UI 계층의 앱 이름 확인, 화면 캡처 육안 확인을 완료했다.
+- 의존성과 검증 한계는 ADR-011에 기록했다. 기존 보류 작업의 상태는 유지하며 KM-013은 진행하지 않았다.
+
+Goal:
+
+Compose UI baseline 구성.
+
+Acceptance Criteria:
+
+Compose enabled
+
+Material3 theme
+
+앱 실행 시 Keuney Music placeholder 표시
+
+Verification:
+
+debug build
+
+emulator launch
+
+KM-013 — Hilt setup
+
+Status: [x]
+
+완료 기록 (2026-09-02):
+
+- `KeuneyApp`에 `@HiltAndroidApp` 적용 및 Manifest 등록, `MainActivity`에 `@AndroidEntryPoint` 적용.
+- Hilt 2.60.1 및 KSP 2.3.11을 Version Catalog에 등록하고 앱·계측 테스트 코드 생성을 구성했다.
+- `HiltInjectionTest`에서 생성자 주입, Application Context 전달, 싱글턴 인스턴스 공유를 검증했다. 샘플은 androidTest에만 존재한다.
+- 첫 빌드는 Gradle Metaspace 384MB 한도에서 메모리 부족으로 실패했다. 로그로 원인을 확인한 후 프로젝트 JVM 힙·메타스페이스 한도를 각각 1GB로 설정했다.
+- 최종 `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest --continue --no-daemon --console=plain` PASS: 종료 코드 0, 31초. 계측 테스트 1개 통과, 실패·오류·건너뜀 0개. 단위 테스트는 소스가 없어 0개다.
+- 린트 오류 0개·기존 경고 4개. API 36 에뮬레이터에서 기존 실행 검증 스크립트로 실제 앱의 설치·콜드 실행·기본 문구 표시도 확인했다.
+- 모든 인수 조건 통과. 상세 결정과 재현 명령은 ADR-012 및 README에 기록했다. 기존 보류 상태와 KM-014 이후 작업은 변경하지 않았다.
+
+Goal:
+
+Dependency Injection baseline 추가.
+
+Acceptance Criteria:
+
+Application class 설정
+
+Hilt plugin/configuration
+
+sample injected dependency test 가능
+
+build PASS
+
+KM-014 — Room setup
+
+Status: [x]
+
+완료 기록 (2026-09-02): KeuneyDatabase v1, 빈 초기화 테이블, Hilt 제공 및 스키마 export 구성. 마이그레이션은 명시적 경로만 허용하며 ADR-013에 기록했다. test/lint/assembleDebug/assembleRelease/connectedDebugAndroidTest PASS. DB 생성·재열기 및 기존 Hilt 계측 테스트 통과. 자세한 명령·변경 파일은 docs/SEQUENTIAL_RUN.md 참조.
+
+Goal:
+
+Room dependency 및 empty database baseline 추가.
+
+Acceptance Criteria:
+
+KeuneyDatabase
+
+migration policy 명시
+
+instrumentation 또는 unit smoke test
+
+KM-015 — DataStore setup
+
+Status: [x]
+
+완료 기록 (2026-09-02): SettingsRepository와 DataStore 구현, Hilt 단일 인스턴스 구성. 테마 기본값·모든 값 읽기/쓰기/재열기·미지원 값 fallback 단위 테스트 3개 PASS. Windows 파일 교체 실패를 명시적 OkioStorage로 해결했다. test/lint/assembleDebug/assembleRelease/connectedDebugAndroidTest PASS. ADR-014 및 docs/SEQUENTIAL_RUN.md 참조.
+
+Goal:
+
+Preferences infrastructure 추가.
+
+Acceptance Criteria:
+
+settings repository skeleton
+
+theme preference read/write test
+
+KM-016 — Media3 dependencies
+
+Status: [x]
+
+완료 기록 (2026-09-02): Media3 ExoPlayer/Session 1.11.0 등록. test/lint/assembleDebug/assembleRelease PASS (1분 51초). 재생 인스턴스는 아직 생성하지 않는다. ADR-015 참조.
+
+Goal:
+
+Media3 player/session dependency 추가.
+
+Acceptance Criteria:
+
+exoplayer dependency
+
+session dependency
+
+build PASS
+
+KM-017 — Ktor networking baseline
+
+Status: [x]
+
+완료 기록 (2026-09-02): Hilt 공용 Ktor/OkHttp 클라이언트, JSON 직렬화, connect/socket/request timeout 및 로깅 미설정. MockEngine의 타임아웃 설정·JSON·취소 테스트 3개 PASS. 공통 test/lint/assembleDebug/assembleRelease PASS (2분 3초). ADR-016 참조.
+
+Goal:
+
+Ktor + OkHttp engine + serialization baseline 구성.
+
+Acceptance Criteria:
+
+reusable HttpClient provider
+
+timeout 설정
+
+sensitive logging disabled by default
+
+KM-018 — Coil setup
+
+Status: [x]
+
+완료 기록 (2026-09-02): Coil Compose 3.4.0과 Artwork placeholder/error/fallback 컴포넌트 추가. 공통 test/lint/assembleDebug/assembleRelease PASS (2분 7초). 원격 이미지 fetcher는 미포함이며 ADR-017에 범위를 기록했다.
+
+Goal:
+
+Compose artwork loading baseline 추가.
+
+Acceptance Criteria:
+
+Coil Compose dependency
+
+placeholder image composable 가능
+
+KM-019 — CI baseline
+
+Status: [x]
+
+완료 기록 (2026-09-02): GitHub Actions workflow 추가 및 JDK/SDK 준비, test/lint/assembleDebug 구성. 로컬 동일 명령 PASS (10초). 인수 조건 충족. 원격 push/Actions 실행은 수행하지 않았으며 ADR-018에 구분 기록했다.
+
+Goal:
+
+GitHub Actions 기본 build pipeline.
+
+Checks:
+
+./gradlew test
+./gradlew lint
+./gradlew assembleDebug
+
+Acceptance Criteria:
+
+workflow file 존재
+
+local commands PASS
+
+M2 — Playback Foundation
+
+KM-030 — MusicService skeleton
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/assembleRelease 및 API 36 서비스 바인딩 계측 테스트 PASS. Manifest 등록·mediaPlayback 유형·서비스 시작 인수 조건 충족.
+
+Goal:
+
+MusicService : MediaLibraryService 생성.
+
+Acceptance Criteria:
+
+manifest service 등록
+
+foreground service type mediaPlayback
+
+service starts without crash
+
+KM-031 — ExoPlayer ownership
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/connectedDebugAndroidTest PASS. ExoPlayer 참조는 MusicService에만 있으며 실제 바인딩·해제 후 같은 인스턴스의 Init/Release 로그 확인.
+
+Goal:
+
+ExoPlayer를 MusicService가 생성/소유/해제하도록 구현.
+
+Acceptance Criteria:
+
+Activity/ViewModel에 ExoPlayer 없음
+
+service destroy 시 release
+
+KM-032 — MediaLibrarySession
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/connectedDebugAndroidTest PASS. 실제 컨트롤러 연결·플레이어 상태 조회 및 세션/플레이어 종료 해제 확인.
+
+Goal:
+
+MusicService에 MediaLibrarySession 구성.
+
+Acceptance Criteria:
+
+session 생성
+
+player 연결
+
+service destroy 시 session release
+
+KM-033 — MediaController connection
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/connectedDebugAndroidTest PASS. 연결 중 취소·중복 연결/해제·재연결 및 StateFlow 관찰 확인. 실제 앱 설치/콜드 실행 PASS. Activity는 컨트롤러만 해제하고 서비스 재생을 중단하지 않는다.
+
+Goal:
+
+UI에서 MusicService에 연결하는 controller layer 작성.
+
+Acceptance Criteria:
+
+Activity 재생 lifecycle과 player lifecycle 분리
+
+connect/disconnect 안전
+
+state observable
+
+KM-034 — Known test audio playback
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/assembleRelease/connectedDebugAndroidTest PASS. 단위 8개·계측 6개 통과. 120초 내장 음원의 재생/일시정지/30초 탐색/재개 및 실제 UI 상태·1분 슬라이더 탐색 확인.
+
+Goal:
+
+외부 Source Provider 없이 검증 가능한 test audio 재생.
+
+Acceptance Criteria:
+
+Play/Pause
+
+seek 가능
+
+app UI에서 playback state 표시
+
+KM-035 — Background playback
+
+Status: [x]
+
+검증 완료 (2026-09-02): API 36 에뮬레이터에 이어 Samsung SM-T220 / Android 14(API 34) 실기기에서 Home 후 Activity와 UI/테스트 컨트롤러를 모두 해제하고 32초 후 foreground 서비스 유지·재생 위치 30초 이상 증가를 확인했다. test/lint/assembleDebug/connectedDebugAndroidTest PASS (1분 17초, 단위 8개·계측 7개). 모든 인수 조건 충족. 다른 OEM·장시간 배터리 동작까지 검증했다는 의미는 아니다.
+
+Goal:
+
+Home 버튼 후 재생 지속.
+
+Acceptance Criteria:
+
+playback 시작
+
+Home
+
+30초 이상 playback 유지
+
+UI Activity 없어도 Service active
+
+Device verification required.
+
+KM-036 — Screen-off playback
+
+Status: [x]
+
+검증 (2026-09-02): Samsung SM-T220 / Android 14 실기기에서 화면 꺼짐을 62초 동안 확인하고, 화면을 깨우기 전 60초 이상 재생 위치 증가·재생 중 상태 확인. test/lint/assembleDebug/assembleRelease/connectedDebugAndroidTest PASS (단위 8개·계측 8개). 충전 연결 상태의 단기 검증이며 장시간 절전/OEM 전체 검증은 별도다.
+
+Goal:
+
+화면 OFF 상태 playback 유지.
+
+Acceptance Criteria:
+
+playback start
+
+screen off
+
+60초 이상 지속
+
+Real-device verification preferred.
+
+KM-037 — Media notification
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/assembleRelease/connectedDebugAndroidTest PASS (단위 8개·SM-T220 계측 9개). 실제 알림의 제목·아티스트·기본 이미지·앱 복귀 Intent 및 알림 PendingIntent의 pause/play 확인. 이전/다음은 Media3 playlist/명령 가용성 구조를 유지하며 현재 한 곡에서 없는 다음 곡 버튼은 비활성이다. 알림 패널 스크린샷으로 표시 확인.
+
+Goal:
+
+Media3 기반 notification control.
+
+Acceptance Criteria:
+
+title
+
+artwork 또는 placeholder
+
+play/pause
+
+previous/next 가능한 구조
+
+KM-038 — Lock-screen controls
+
+Status: [x]
+
+검증 (2026-09-02): SM-T220 / Android 14 실제 잠금화면에서 제목·아티스트·기본 이미지 표시 및 버튼 터치로 PAUSED(2) → PLAYING(3) 전환 확인. keyguard showing=true 유지. test/lint/assembleDebug PASS. 암호 없는 잠금화면 조건이며 다른 OEM/보안 잠금 설정은 미검증.
+
+Goal:
+
+Lock-screen media control 확인.
+
+Acceptance Criteria:
+
+play/pause 동작
+
+metadata 표시
+
+Real-device verification required.
+
+KM-039 — Audio focus
+
+Status: [x]
+
+검증 (2026-09-02): test/lint/assembleDebug/connectedDebugAndroidTest PASS. 단위 9개·SM-T220 실기기 계측 10개 통과. 일시적 포커스 손실 시 일시정지·위치 정지·복귀 후 재개, 영구 손실 시 자동 재개하지 않음, 충돌 없이 종료 확인. 실제 전화/블루투스 이벤트는 별도 검증 대상.
+
+Goal:
+
+AudioAttributes와 focus handling.
+
+Acceptance Criteria:
+
+다른 audio session interruption 처리
+
+focus loss state test 가능
+
+no crash
+
+KM-040 — Playback foundation regression test
+
+Status: [x]
+
+검증 (2026-09-02): docs/TESTING_PLAYBACK.md에 준비·전체 검사·백그라운드·화면 꺼짐·알림/잠금화면/포커스·dumpsys 확인 및 결과 기록 절차 작성. 문서의 test/lint/assembleDebug/connectedDebugAndroidTest 명령 실기기 PASS (단위 9개·계측 10개).
+
+Goal:
+
+M2 기능을 반복 검증할 수 있는 절차/스크립트 작성.
+
+Acceptance Criteria:
+
+docs/TESTING_PLAYBACK.md
+
+background test 절차
+
+screen-off test 절차
+
+dumpsys media_session 확인법
+
+M3 — Domain & Source POC
+
+KM-050 — Domain Track model
+
+Status: [x]
+
+검증 (2026-09-02): 공급자 이름/DTO/재생 URL 없는 불변 Track과 SourceType 추가. 검증 로직 없는 데이터 선언이므로 별도 단위 테스트 대상 없음. test/lint/assembleDebug PASS.
+
+Goal:
+
+Provider-neutral Track 모델 생성.
+
+Acceptance Criteria:
+
+no provider name in domain model
+
+unit tests if validation logic exists
+
+KM-051 — PlayableStream model
+
+Status: [x]
+
+검증 (2026-09-02): URL·선택적 MIME/bitrate·만료 시각을 가진 일시적 모델 추가. toString URL 비노출 단위 검사 포함. test/lint/assembleDebug PASS.
+
+Goal:
+
+ephemeral stream metadata 모델 생성.
+
+Acceptance Criteria:
+
+url
+
+mimeType
+
+bitrate
+
+optional expiry
+
+KM-052 — AppError model
+
+Status: [x]
+
+검증 (2026-09-02): PRD의 Network/SourceUnavailable/PlaybackUnavailable/GeoRestricted/Unknown 타입 정의. 예외 원문과 URL을 보유하지 않는 sealed interface. test/lint/assembleDebug PASS.
+
+Goal:
+
+UI로 raw exception이 전달되지 않도록 공통 오류 타입 생성.
+
+Acceptance Criteria:
+
+Network
+
+SourceUnavailable
+
+PlaybackUnavailable
+
+GeoRestricted
+
+Unknown
+
+KM-053 — MusicSource interface
+
+Status: [x]
+
+검증 (2026-09-02): search/getTrack/resolveStream/getRelated suspend 계약 정의. 도메인 타입과 Kotlin Result만 사용하며 Android/HTTP/공급자 의존성 없음. test/lint/assembleDebug PASS.
+
+Goal:
+
+Source Provider 계약 정의.
+
+Acceptance Criteria:
+
+search
+
+getTrack
+
+resolveStream
+
+getRelated
+
+domain type only
+
+KM-054 — Provider A client skeleton
+
+Status: [x]
+
+검증 (2026-09-02): data/source/providerA 내부 client/context DTO 및 중앙 header/context 설정 추가. 공급자 DTO 외부 누출·UI 의존성 없음. 인증 정보 없는 요청 구성/HTTP 오류 테스트 포함. test/lint/assembleDebug PASS (단위 12개).
+
+Goal:
+
+InnerTube-compatible Provider A를 data/source/providerA에 격리.
+
+Acceptance Criteria:
+
+provider-specific DTO 밖으로 누출 없음
+
+headers/context 한 곳에서 관리
+
+no UI dependency
+
+KM-055 — Provider A search POC
+
+Status: [x]
+
+검증 (2026-09-02): 일반 공개 WEB 검색을 Track으로 변환. 아이유/BTS Dynamite/Bach 실제 검색 3종 PASS, 빈 결과/오류/취소 및 mapper 단위 검사 PASS. test/lint/assembleDebug/assembleRelease/sourceContractTest PASS (단위 20개·실제 계약 3개). 음악 전용 WEB_REMIX의 빈 결과는 일반 공개 영상 검색으로 해결했으며 최종 공급자 채택은 아직 미정.
+
+Goal:
+
+query → List<Track> 변환.
+
+Acceptance Criteria:
+
+실제 query 3종 테스트
+
+empty/error 처리
+
+DTO mapper test
+
+KM-056 — Provider A resolveStream POC
+
+Status: [!]
+
+검증 (2026-09-02): 직접 HTTPS 오디오 형식 선택·만료 시각·안전한 오류/취소 처리를 구현하고 관련 단위 8개 추가. 전체 단위 28개·lint·debug/release 빌드 대상은 통과했으나 실제 스트림 계약 1개 FAIL. 공개 플레이어의 signatureTimestamp를 반영하면 상태는 OK지만 adaptiveFormats에 직접 URL/signatureCipher가 없고 serverAbrStreamingUrl만 존재해 PlayableStream을 얻지 못했다. 실제 곡 해석 성공 조건 미충족이므로 보류하며 KM-057 이후는 시작하지 않는다. 상세 결과는 docs/DEVICE_RESUME_REPORT.md.
+
+Goal:
+
+Track ID → playable stream resolution.
+
+Acceptance Criteria:
+
+실제 테스트 Track에 대해 stream resolve 성공
+
+full resolved URL 로그 금지
+
+domain PlayableStream 반환
+
+KM-057 — StreamResolver integration
+
+Status: [ ]
+
+Goal:
+
+MusicService playback과 MusicSource를 연결.
+
+Acceptance Criteria:
+
+Track ID
+→ resolveStream
+→ ExoPlayer
+→ playback
+
+KM-058 — Search-to-play vertical slice
+
+Status: [ ]
+
+Goal:
+
+최소 UI로 실제 음악 검색 → 선택 → 재생 성공.
+
+Acceptance Criteria:
+
+query 입력
+
+results 표시
+
+result tap
+
+playback 시작
+
+Home 후 playback 유지
+
+KM-059 — Provider A Gate
+
+Status: [ ]
+
+Goal:
+
+Provider A를 최종 v0.1 source로 채택할지 결정.
+
+Test set:
+
+10 tracks
+
+multiple artists
+
+at least one long track
+
+queue playback
+
+Acceptance Criteria:
+
+결과를 docs/SOURCE_PROVIDER.md에 기록
+
+PASS: Provider A 채택 ADR
+
+FAIL: Provider B evaluation task 활성화
+
+M4 — Source Hardening
+
+KM-060 — Source error mapping
+
+Status: [ ]
+
+Goal:
+
+Provider-specific error → AppError 매핑.
+
+Acceptance Criteria:
+
+network
+
+parse
+
+not found
+
+restricted
+
+unknown
+
+tests required.
+
+KM-061 — Stream refresh on playback failure
+
+Status: [ ]
+
+Goal:
+
+expired/forbidden stream 발생 시 재해석.
+
+Acceptance Criteria:
+
+first failure
+
+resolve again
+
+retry once
+
+second failure → terminal error
+
+infinite retry 없음
+
+KM-062 — Network timeout policy
+
+Status: [ ]
+
+Goal:
+
+Source requests의 timeout 및 cancellation 정책 정리.
+
+Acceptance Criteria:
+
+connect/read/request timeout
+
+coroutine cancellation honored
+
+KM-063 — Source contract test suite
+
+Status: [ ]
+
+Goal:
+
+실제 provider regression 탐지.
+
+Acceptance Criteria:
+
+search contract
+
+resolve contract
+
+별도 Gradle task 또는 test source set
+
+일반 unit test와 분리
+
+KM-064 — Provider B evaluation
+
+Status: [ ]
+
+Condition:
+
+KM-059가 FAIL일 때 수행.
+
+Goal:
+
+Extractor adapter fallback 평가.
+
+Acceptance Criteria:
+
+integration feasibility
+
+APK/dependency impact
+
+license impact
+
+provider contract compatibility
+
+ADR 작성
+
+M5 — Search UX
+
+KM-070 — SearchRepository
+
+Status: [ ]
+
+Goal:
+
+ViewModel과 MusicSource 사이 repository layer 구현.
+
+Acceptance Criteria:
+
+MusicSource injected
+
+error mapping
+
+unit tests
+
+KM-071 — SearchViewModel
+
+Status: [ ]
+
+Goal:
+
+SearchUiState 구현.
+
+States:
+
+Idle
+
+Loading
+
+Success
+
+Empty
+
+Error
+
+Acceptance Criteria:
+
+unit tests
+
+StateFlow
+
+KM-072 — SearchScreen
+
+Status: [ ]
+
+Goal:
+
+검색 입력 UI.
+
+Acceptance Criteria:
+
+query input
+
+Search action
+
+loading
+
+error
+
+empty state
+
+KM-073 — SearchResultList
+
+Status: [ ]
+
+Goal:
+
+Track 결과 목록.
+
+Display:
+
+artwork
+
+title
+
+artist
+
+duration where known
+
+KM-074 — Search history
+
+Status: [ ]
+
+Goal:
+
+최근 검색어 local persistence.
+
+Acceptance Criteria:
+
+successful search 저장
+
+history clear
+
+app restart persistence
+
+M6 — Player UX
+
+KM-090 — Player UI state adapter
+
+Status: [ ]
+
+Goal:
+
+MediaController state → PlayerUiState.
+
+Acceptance Criteria:
+
+current Track
+
+playing
+
+buffering
+
+duration
+
+position
+
+repeat
+
+shuffle
+
+KM-091 — Mini Player
+
+Status: [ ]
+
+Acceptance Criteria:
+
+artwork
+
+title
+
+play/pause
+
+tap opens Now Playing
+
+KM-092 — Now Playing screen
+
+Status: [ ]
+
+Acceptance Criteria:
+
+artwork
+
+title
+
+artist
+
+transport controls
+
+progress
+
+favorite
+
+queue button
+
+KM-093 — Seek
+
+Status: [ ]
+
+Acceptance Criteria:
+
+drag seek
+
+controller updates player
+
+progress remains synchronized
+
+KM-094 — Previous / Next
+
+Status: [ ]
+
+Acceptance Criteria:
+
+UI button
+
+notification button
+
+lockscreen button
+
+consistent behavior
+
+KM-095 — Shuffle
+
+Status: [ ]
+
+Acceptance Criteria:
+
+toggle
+
+state visible
+
+queue behavior test
+
+KM-096 — Repeat
+
+Status: [ ]
+
+Acceptance Criteria:
+
+off
+
+one
+
+all
+
+state persistence optional
+
+KM-097 — Queue UI
+
+Status: [ ]
+
+Goal:
+
+현재 queue 표시 및 기본 수정.
+
+Acceptance Criteria:
+
+show list
+
+current item highlight
+
+remove
+
+reorder if practical
+
+M7 — Library
+
+KM-110 — Room schema
+
+Status: [ ]
+
+Entities:
+
+TrackEntity
+
+FavoriteEntity
+
+PlaylistEntity
+
+PlaylistItemEntity
+
+PlaybackHistoryEntity
+
+SearchHistoryEntity
+
+Acceptance Criteria:
+
+schema export configured
+
+DB test
+
+KM-111 — Library repository
+
+Status: [ ]
+
+Goal:
+
+DAO를 UI/ViewModel에서 숨긴다.
+
+Acceptance Criteria:
+
+repository interfaces
+
+Flow-based observation
+
+tests
+
+KM-112 — Favorites
+
+Status: [ ]
+
+Acceptance Criteria:
+
+add/remove
+
+Library display
+
+app restart persistence
+
+KM-113 — Playlists
+
+Status: [ ]
+
+Acceptance Criteria:
+
+create
+
+rename
+
+delete
+
+add track
+
+remove track
+
+KM-114 — Playlist playback
+
+Status: [ ]
+
+Acceptance Criteria:
+
+playlist → Media3 queue
+
+sequential playback
+
+next/previous
+
+KM-115 — Playback history
+
+Status: [ ]
+
+Acceptance Criteria:
+
+successful playback 기록
+
+Recently Played
+
+clear history
+
+duplicate policy documented
+
+KM-116 — Library screen
+
+Status: [ ]
+
+Sections:
+
+Favorites
+
+Playlists
+
+History
+
+M8 — Stability & Device Behavior
+
+KM-130 — Bluetooth controls
+
+Status: [ ]
+
+Acceptance Criteria:
+
+headset Play/Pause
+
+Next if supported
+
+Previous if supported
+
+Real-device required.
+
+KM-131 — Headset disconnect behavior
+
+Status: [ ]
+
+Acceptance Criteria:
+
+wired/Bluetooth disconnect 시 playback policy 구현
+
+accidental speaker playback 방지
+
+KM-132 — Network reconnect
+
+Status: [ ]
+
+Acceptance Criteria:
+
+temporary loss
+
+reconnect
+
+reasonable recovery or clear failure
+
+KM-133 — Activity/process lifecycle regression
+
+Status: [ ]
+
+Acceptance Criteria:
+
+Activity recreation
+
+rotation/config change where applicable
+
+Activity finish
+
+Service playback unaffected under valid playback conditions
+
+KM-134 — Streaming cache
+
+Status: [ ]
+
+Goal:
+
+Media3 disposable cache 추가.
+
+Acceptance Criteria:
+
+LRU
+
+default target 256MB
+
+clear cache function
+
+no permanent download behavior
+
+KM-135 — OEM battery help
+
+Status: [ ]
+
+Condition:
+
+실기기에서 실제 background kill 문제가 재현될 때만 구현.
+
+Acceptance Criteria:
+
+generic settings help
+
+no aggressive battery exemption prompt at first launch
+
+KM-136 — 30-minute smoke test
+
+Status: [ ]
+
+Acceptance Criteria:
+
+실기기 30분 사용:
+
+search
+
+multiple tracks
+
+background
+
+screen off
+
+lockscreen
+
+Bluetooth where available
+
+Crash 없음.
+
+M9 — Polish & Release
+
+KM-150 — App navigation
+
+Status: [ ]
+
+Bottom navigation:
+
+Home
+
+Search
+
+Library
+
+Acceptance Criteria:
+
+player state survives navigation
+
+KM-151 — Home screen
+
+Status: [ ]
+
+Sections:
+
+Recently Played
+
+Favorites
+
+Playlists
+
+KM-152 — Dark theme
+
+Status: [ ]
+
+Acceptance Criteria:
+
+System
+
+Light
+
+Dark
+
+no unreadable contrast in primary screens
+
+KM-153 — Settings
+
+Status: [ ]
+
+Initial options:
+
+theme
+
+cache size
+
+clear cache
+
+history enabled
+
+Do not add unused settings.
+
+KM-154 — Accessibility pass
+
+Status: [ ]
+
+Acceptance Criteria:
+
+media controls contentDescription
+
+touch target acceptable
+
+large font basic usability
+
+KM-155 — OSS notices
+
+Status: [ ]
+
+Acceptance Criteria:
+
+THIRD_PARTY_NOTICES.md
+
+dependency licenses reviewed
+
+GPL dependency status explicitly documented
+
+KM-156 — README
+
+Status: [ ]
+
+Required:
+
+project purpose
+
+personal sideload boundary
+
+build instructions
+
+architecture summary
+
+known limitations
+
+KM-157 — Release signing configuration
+
+Status: [ ]
+
+Acceptance Criteria:
+
+signing secret not committed
+
+local signing instructions documented
+
+KM-158 — Release APK
+
+Status: [ ]
+
+Verification:
+
+./gradlew test
+./gradlew lint
+./gradlew assembleDebug
+./gradlew assembleRelease
+
+Acceptance Criteria:
+
+release APK installs
+
+core smoke test PASS
+
+Final MVP Gate — KM-200
+
+Status: [ ]
+
+Goal:
+
+Keuney Music v0.1 Definition of Done 최종 검증.
+
+Must PASS:
+
+Search works
+
+Track playback works
+
+Background playback works
+
+Screen-off playback works
+
+Notification controls work
+
+Lock-screen controls work
+
+Bluetooth Play/Pause works
+
+Queue Next works
+
+Favorites persist
+
+Playlists persist
+
+History persists
+
+Network errors handled
+
+No known core-flow crash
+
+Unit tests PASS
+
+Lint PASS
+
+Debug build PASS
+
+Release build PASS
+
+Source contract PASS
+
+Real-device playback Gate PASS
+
+When all items pass, tag candidate:
+
+v0.1.0
+
+Codex Start Prompt
+
+첫 작업:
+
+Read AGENTS.md, PRD.md, ARCHITECTURE.md and TASKS.md.
+
+Start with KM-001 only.
+
+Follow all rules in AGENTS.md.
+Do not implement future tasks.
+
+After implementation:
+1. list changed files,
+2. list commands executed,
+3. report verification results,
+4. report acceptance criteria,
+5. list remaining risks.
+
+이후:
+
+Continue the Keuney Music project.
+
+Read AGENTS.md, PRD.md, ARCHITECTURE.md, TASKS.md,
+and docs/DECISIONS.md.
+
+Find the next incomplete KM task.
+Implement that task only.
+
+Run the required verification.
+Mark it complete only if its Acceptance Criteria pass.
+
+Report:
+- changed files
+- commands
+- tests/build results
+- decisions
+- remaining risks

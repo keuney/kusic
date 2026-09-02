@@ -1,0 +1,43 @@
+# Gradle / Kotlin 캐시와 빌드 결과
+.gradle/
+.kotlin/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.hprof
+
+# Android SDK 경로와 로컬 설정
+local.properties
+
+# IDE 로컬 설정
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# 서명 키와 비밀 설정
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.key
+*.pem
+keystore.properties
+signing.properties
+secrets.properties
+gradle-local.properties
+.env
+.env.*
+!.env.example
+
+# 운영체제 생성 파일
+.DS_Store
+Thumbs.db
+Desktop.ini
