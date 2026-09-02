@@ -232,3 +232,14 @@
 - 재판정 근거: `gradlew.bat test lint assembleDebug --offline --continue --no-daemon --console=plain` BUILD SUCCESSFUL(29초). `gradlew.bat tasks --offline` BUILD SUCCESSFUL(8초). `java -version` OpenJDK 17.0.18 Temurin, `adb version` 1.0.41 / 35.0.2, `adb devices` R9PRB0PNLVT device, `emulator -list-avds` Medium_Phone_API_36.0. 루트 문서 4종·docs/DECISIONS.md·.gitignore·Wrapper 4개 파일·settings/build/libs.versions.toml 존재 확인.
 - 변경: `TASKS.md`(상태 4개와 재판정 기록), `README.md`, 이 기록. 앱 코드·의존성·기술 결정 변경 없음. 신규 테스트 대상 없음.
 - 현재 상태: 완료 30개, 보류 1개(KM-056), 미착수 44개. 보류는 KM-056 하나뿐이며 KM-057 이후는 이 Gate에 막혀 있다. 원격 push와 작업 브랜치 생성은 하지 않았다.
+
+## KM-056 완료 — 재생 요청의 클라이언트 프로필 분리
+
+- 브랜치 `codex/KM-056-stream-client`에서 작업했다. WEB이 직접 오디오 URL을 주지 않는 문제를, 재생 요청에 사용할 클라이언트 설정을 `ProviderAClientProfile`로 분리하고 후보를 순서대로 시도하는 방식으로 해결했다. 검색 경로는 KM-055에서 통과한 WEB 설정을 그대로 둔다.
+- 후보 5종을 한 번에 판정하도록 계약 검사를 확장했다. 실제 결과: IOS 해석 성공(audio/webm, bitrate 151020, 만료시각 있음, 부분요청 PASS), ANDROID 동일 성공, ANDROID_VR·TVHTML5_SIMPLY_EMBEDDED_PLAYER는 "Track is not playable", WEB은 "No direct audio stream available". 성공한 종류를 앞으로 옮겨 최종 순서를 IOS → ANDROID → ANDROID_VR → TVHTML5 → WEB으로 정했다.
+- 인수 조건: 실제 테스트 Track stream resolve 성공 PASS, full resolved URL 로그 금지 PASS, domain PlayableStream 반환 PASS.
+- `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(50초). 단위 31개(기존 28 + 신규 3)·실제 계약 4개 전부 통과, 실패/오류 0. 린트 오류 0·경고 18(변화 없음). debug/release APK 생성.
+- 단위 검사 추가: 서명 타임스탬프를 보내는 종류와 보내지 않는 종류의 요청 본문 구분, 직접 URL이 없는 응답에서 다음 후보로 넘어가는 대체 동작, 모든 후보 실패 시 마지막 안전 실패 유지. 기존 취소 전파와 빈 ID 검사는 유지했다.
+- 변경: `app/src/main/kotlin/com/keuney/music/data/source/providerA/ProviderAConfig.kt`, `ProviderAClient.kt`, `ProviderAStreamResolver.kt`, `dto/ProviderAContext.kt`, `app/src/test/kotlin/com/keuney/music/data/source/providerA/ProviderAStreamResolverTest.kt`, `ProviderAStreamSourceContractTest.kt`, `TASKS.md`, `README.md`, `docs/DECISIONS.md`, 이 기록. 결정 ADR-032, ADR-031은 대체 표시. 신규 의존성 없음.
+- 계약 검사 요약 출력에는 클라이언트 이름·성공 여부·고정 실패 메시지·MIME·bitrate·만료 유무만 남기며 URL과 응답 원문은 출력하지 않는다.
+- 한계: 클라이언트 종류별 설정은 공개 관찰값이라 공급자 변경에 취약하다. 검증은 JVM 계약 검사와 Range 요청 206까지이며 Android 기기의 실제 재생, 여러 곡·장시간 재생, 만료 후 재해석은 KM-057·KM-058·KM-061에서 확인한다. 단일 트랙 기준이며 10곡 세트 판정은 KM-059 Gate에서 수행한다. commit은 작업 브랜치에만 있고 push는 하지 않았다.

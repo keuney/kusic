@@ -709,9 +709,15 @@ DTO mapper test
 
 KM-056 — Provider A resolveStream POC
 
-Status: [!]
+Status: [x]
 
-검증 (2026-09-02): 직접 HTTPS 오디오 형식 선택·만료 시각·안전한 오류/취소 처리를 구현하고 관련 단위 8개 추가. 전체 단위 28개·lint·debug/release 빌드 대상은 통과했으나 실제 스트림 계약 1개 FAIL. 공개 플레이어의 signatureTimestamp를 반영하면 상태는 OK지만 adaptiveFormats에 직접 URL/signatureCipher가 없고 serverAbrStreamingUrl만 존재해 PlayableStream을 얻지 못했다. 실제 곡 해석 성공 조건 미충족이므로 보류하며 KM-057 이후는 시작하지 않는다. 상세 결과는 docs/DEVICE_RESUME_REPORT.md.
+완료 (2026-09-02): 재생 요청의 클라이언트 설정을 ProviderAClientProfile로 분리하고 후보를 순서대로 시도하도록 구현했다. 실제 계약 검사에서 IOS와 ANDROID가 직접 오디오 URL을 반환했고 Range 요청 206까지 확인했다. ANDROID_VR·TVHTML5_SIMPLY_EMBEDDED_PLAYER는 재생 불가, WEB은 직접 URL 없음으로 실패해 대체 경로로 남겼다. 후보 순서는 IOS → ANDROID → ANDROID_VR → TVHTML5 → WEB이다.
+
+- 인수 조건: 실제 테스트 Track(gdZLi9oWNZg) stream resolve 성공 PASS, full resolved URL 로그 금지 PASS(고정 문자열 예외·URL 비출력 요약만 기록), domain PlayableStream 반환 PASS.
+- `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(50초). 단위 31개·실제 계약 4개 전부 통과, 실패/오류 0. 린트 오류 0·경고 18. debug/release APK 생성.
+- 결정은 ADR-032에 기록했다. 신규 의존성·로그인·PO token·다운로드 없음. 클라이언트 설정은 공개 관찰값이라 공급자 변경에 취약하며 Android 기기의 실제 재생은 KM-057·KM-058에서 확인한다.
+
+이전 검증 (2026-09-02): 직접 HTTPS 오디오 형식 선택·만료 시각·안전한 오류/취소 처리를 구현하고 관련 단위 8개 추가. 전체 단위 28개·lint·debug/release 빌드 대상은 통과했으나 실제 스트림 계약 1개 FAIL. 공개 플레이어의 signatureTimestamp를 반영하면 상태는 OK지만 adaptiveFormats에 직접 URL/signatureCipher가 없고 serverAbrStreamingUrl만 존재해 PlayableStream을 얻지 못했다. 실제 곡 해석 성공 조건 미충족이므로 보류하며 KM-057 이후는 시작하지 않는다. 상세 결과는 docs/DEVICE_RESUME_REPORT.md.
 
 Goal:
 

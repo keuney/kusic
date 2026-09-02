@@ -265,7 +265,17 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
-### ADR-031 — 스트림 해석 POC의 제한 (KM-056, 보류)
+### ADR-032 — 재생 요청의 클라이언트 프로필 분리 (KM-056)
+
+- WEB 클라이언트는 player 응답의 audio 형식에 직접 URL과 signatureCipher를 더 이상 포함하지 않고 serverAbrStreamingUrl만 반환한다. 재생 요청에 사용할 클라이언트 설정을 `ProviderAClientProfile`로 분리하고 후보를 순서대로 시도해 직접 URL을 제공하는 종류를 사용한다. 검색 경로는 KM-055에서 통과한 WEB 설정을 그대로 유지한다.
+- 후보 순서는 IOS → ANDROID → ANDROID_VR → TVHTML5_SIMPLY_EMBEDDED_PLAYER → WEB이다. 실제 계약 검사에서 IOS와 ANDROID가 직접 URL을 반환했고 나머지는 실패했으므로 성공한 종류를 앞에 둔다. 실패한 종류도 대체 경로로 남기며 첫 성공에서 즉시 중단하므로 정상 경로의 추가 요청은 없다.
+- `sendsSignatureTimestamp`가 true인 종류에만 playbackContext의 signatureTimestamp를 보낸다. 직접 URL을 주는 종류는 서명 해석이 필요 없어 플레이어 버전을 보내지 않는다. 선택 필드는 기본값 null이며 기본 Json 설정의 encodeDefaults=false로 요청 본문에서 생략된다.
+- 모든 후보가 실패하면 마지막 실패를 그대로 반환한다. 예외 메시지는 고정 문자열이며 응답 원문·URL을 포함하지 않는다. 취소는 계속 전파한다. 로그인·쿠키·토큰·PO token은 사용하지 않고 신규 의존성도 없다.
+- 실제 계약 검사는 후보 전체를 시도한 뒤 클라이언트별 결과를 요약 출력하고, 해석된 스트림에 Range 요청을 보내 206 응답까지 확인한다. 출력에는 URL과 응답 원문을 남기지 않는다. AGENTS.md 17의 provider 변경 조기 감지 목적에 맞춰 어떤 종류가 깨졌는지 한 번에 드러난다.
+- clientVersion·signatureTimestamp와 마찬가지로 클라이언트 종류별 설정은 공개 클라이언트의 관찰값이며 안정된 API 계약이 아니다. 공급자가 이 경로도 SABR로 전환하면 다시 실패하며, 그 경우 KM-059 Gate 판정과 KM-064 Provider B 평가로 처리한다.
+- 검증은 JVM 계약 검사와 Range 요청까지이며 Android 기기의 실제 재생은 KM-057·KM-058에서 확인한다. 이 결정은 ADR-031의 "직접 URL 없는 전송 주소를 성공으로 취급하지 않는다"를 유지한 채 전송 방식 선택만 바꾼다.
+
+### ADR-031 — 스트림 해석 POC의 제한 (KM-056, ADR-032로 대체)
 
 - player 요청에 공개 플레이어 JavaScript에서 확인한 signatureTimestamp 20684를 전달한다. clientVersion과 함께 중앙 설정에 고정한 POC 값이며 동적 플레이어 버전 해석을 구현한 것은 아니다.
 - 직접 HTTPS 주소가 있는 audio/mp4 또는 audio/webm 형식 중 높은 bitrate를 선택한다. expiresInSeconds를 절대 만료 시각으로 변환하고 도메인 PlayableStream만 반환한다. URL/원문 응답을 로그에 남기거나 저장하지 않는다.

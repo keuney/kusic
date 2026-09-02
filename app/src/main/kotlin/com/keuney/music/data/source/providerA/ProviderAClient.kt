@@ -16,18 +16,22 @@ import kotlinx.serialization.json.encodeToJsonElement
 import javax.inject.Inject
 
 internal class ProviderAClient @Inject constructor(private val http: HttpClient) {
-    suspend fun request(endpoint: String, fields: JsonObject): JsonObject {
+    suspend fun request(
+        endpoint: String,
+        fields: JsonObject,
+        profile: ProviderAClientProfile = ProviderAConfig.search,
+    ): JsonObject {
         require(endpoint.matches(Regex("[a-z]+"))) { "Invalid provider operation" }
         val payload = buildJsonObject {
             fields.forEach { (key, value) -> put(key, value) }
-            put("context", Json.encodeToJsonElement(ProviderAConfig.context))
+            put("context", Json.encodeToJsonElement(profile.context()))
         }
         return http.post("${ProviderAConfig.origin}/youtubei/v1/$endpoint") {
             contentType(ContentType.Application.Json)
             header(HttpHeaders.Origin, ProviderAConfig.origin)
-            header(HttpHeaders.UserAgent, ProviderAConfig.userAgent)
-            header("X-Youtube-Client-Name", ProviderAConfig.clientId)
-            header("X-Youtube-Client-Version", ProviderAConfig.clientVersion)
+            header(HttpHeaders.UserAgent, profile.userAgent)
+            header("X-Youtube-Client-Name", profile.clientId)
+            header("X-Youtube-Client-Version", profile.clientVersion)
             setBody(Json.encodeToString(payload))
         }.body()
     }
