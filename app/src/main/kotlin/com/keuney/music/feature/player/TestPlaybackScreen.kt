@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -13,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +37,8 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel) {
     val connection by viewModel.connectionState.collectAsStateWithLifecycle()
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
     val search by viewModel.searchState.collectAsStateWithLifecycle()
+    val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
+    val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     val connected = connection == ConnectionState.Connected
@@ -81,6 +85,21 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel) {
             ) {
                 Text(stringResource(if (pauseAction) R.string.player_pause else R.string.player_play))
             }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.wifi_only_label), style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = wifiOnly, onCheckedChange = viewModel::setWifiOnlyPlayback)
+        }
+        if (meteredBlocked) {
+            Text(
+                stringResource(R.string.wifi_only_blocked),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
         OutlinedTextField(
             value = query,

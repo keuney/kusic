@@ -8,7 +8,7 @@ KM-039까지 기본 재생을 구현했다. `com.keuney.music` 앱에서 내장�
 
 Hilt, Room, DataStore, Media3, Ktor, Coil 및 GitHub Actions 기본 구성을 추가했다. ExoPlayer와 MediaLibrarySession은 MusicService만 소유하며 화면은 ViewModel과 MediaController를 통해 통신한다. KM-050~055의 공통 모델·MusicSource 계약·실제 공개 검색 POC는 완료했다. 검색은 아직 앱 화면과 연결하지 않았으며 라이브러리 화면도 없다.
 
-KM-056은 재생 요청의 클라이언트 설정을 프로필로 분리해 완료했다. WEB은 직접 오디오 URL 없이 별도 전송 주소만 반환하므로 후보를 순서대로 시도하며, 실제 계약 검사에서 IOS와 ANDROID가 직접 URL을 반환하고 Range 요청까지 통과했다(ADR-032). KM-058까지 검색어 입력 → 결과 목록 → 결과 선택 → 재생을 Samsung SM-T220 실기기에서 확인했다. Home 이동 후에도 재생이 유지된다. 오디오 전용 adaptive 주소는 공급자가 오프셋 요청을 거부하므로 영상이 함께 들어 있는 progressive 형식만 사용하고 영상 트랙은 끈다(ADR-034). 대역폭을 오디오 전용보다 5~6배 쓰는 것이 대가이며 최종 채택 판단은 KM-059 Gate에서 한다. 실기기 연결 이후의 변경 파일·실행 명령·인수 조건과 제한은 [종합 보고서](docs/DEVICE_RESUME_REPORT.md)에 정리했다.
+KM-056은 재생 요청의 클라이언트 설정을 프로필로 분리해 완료했다. WEB은 직접 오디오 URL 없이 별도 전송 주소만 반환하므로 후보를 순서대로 시도하며, 실제 계약 검사에서 IOS와 ANDROID가 직접 URL을 반환하고 Range 요청까지 통과했다(ADR-032). KM-058까지 검색어 입력 → 결과 목록 → 결과 선택 → 재생을 Samsung SM-T220 실기기에서 확인했다. Home 이동 후에도 재생이 유지된다. 오디오 전용 adaptive 주소는 공급자가 오프셋 요청을 거부하므로 영상이 함께 들어 있는 progressive 형식만 사용하고 영상 트랙은 끈다(ADR-034). 곡당 8~25MB로 오디오 전용의 약 3배를 쓰는 것이 대가다. 이를 줄이기 위해 재생한 구간을 256MB LRU 캐시에 보관하고(KM-134), WiFi에서만 재생하는 설정을 제공한다(KM-137). 캐시에 있는 구간은 제한을 켜도 그대로 재생된다. 최종 채택 판단은 KM-059 Gate에서 한다. 실기기 연결 이후의 변경 파일·실행 명령·인수 조건과 제한은 [종합 보고서](docs/DEVICE_RESUME_REPORT.md)에 정리했다.
 
 Samsung SM-T220 / Android 14 실기기에서 Home 이동·Activity 종료 후 32초 재생, 62초 화면 꺼짐 재생, 알림·잠금화면 재생 제어와 오디오 포커스를 검증했다. USB 충전 상태의 단기 검사이며 Bluetooth·장시간 절전·다른 OEM은 아직 검증하지 않았다. KM-001·002·003·010은 Wrapper와 앱 모듈 부재로 필수 Gradle 검증을 실행할 수 없어 보류했던 작업이며, KM-011 이후 검증이 통과하므로 인수 조건을 재확인하고 완료로 전환했다. 보류 중인 작업은 현재 없다. 작업별 상태는 TASKS.md, 변경 파일·실행 명령·검증 결과는 docs/SEQUENTIAL_RUN.md에서 확인한다.
 
@@ -97,7 +97,7 @@ SDK가 준비되어 있지 않다면 Android SDK Manager로 `platforms;android-3
 .\gradlew.bat assembleRelease
 ```
 
-KM-058 검증에서 단위 38개·실제 계약 4개·실기기 계측 16개와 lint·assembleDebug·assembleRelease가 모두 통과했다(종료 코드 0). 린트는 오류 0개·경고 19개이며 경고를 억제하지 않았다. 작업별 추가 검증과 한계는 순차 구현 기록을 참고한다.
+KM-137 검증에서 단위 41개·실제 계약 4개·실기기 계측 22개와 lint·assembleDebug·assembleRelease가 모두 통과했다(종료 코드 0). 린트는 오류 0개·경고 19개이며 경고를 억제하지 않았다. 작업별 추가 검증과 한계는 순차 구현 기록을 참고한다.
 
 이전 빌드의 메타스페이스 부족을 해결하기 위해 프로젝트 JVM 힙·메타스페이스 한도를 각각 1GB로 설정했다(ADR-012).
 

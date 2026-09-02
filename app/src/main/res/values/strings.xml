@@ -17,4 +17,6 @@
     <string name="search_searching">검색 중</string>
     <string name="search_empty">결과가 없습니다.</string>
     <string name="search_failed">검색에 실패했습니다. 다시 시도해 주세요.</string>
+    <string name="wifi_only_label">WiFi에서만 재생</string>
+    <string name="wifi_only_blocked">WiFi에서만 재생하도록 설정되어 있습니다. 저장된 구간이 없는 곡은 재생하지 않습니다.</string>
 </resources>

@@ -271,3 +271,22 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 7초). 단위 38개·실제 계약 4개·실기기 계측 16개, 실패/오류 0. 린트 오류 0·경고 19. 계약 검사 요약은 ANDROID만 해석 성공(video/mp4, 306098bps)이고 나머지 네 종류는 실패다.
 - 변경: `feature/player/PlayerViewModel.kt`, `TestPlaybackScreen.kt`, `data/source/providerA/mapper/ProviderAStreamMapper.kt`, `ProviderAConfig.kt`, `core/player/MusicService.kt`, `res/values/strings.xml`, `app/build.gradle.kts`, `gradle/libs.versions.toml`, 관련 단위/계측 테스트, `TASKS.md`, `README.md`, `docs/DECISIONS.md`, 이 기록. 삭제: `core/player/ChunkedHttpDataSource.kt`와 그 계측 검사.
 - 한계와 대가: progressive는 영상이 포함된 다중화 스트림이라 오디오 전용보다 대역폭을 5~6배 쓴다. 단일 트랙·단일 기기·WiFi 조건이며 여러 곡 연속 재생, 재생 중 URL 만료, 네트워크 전환은 KM-061·KM-132·KM-136 대상이다. 공급자 접근 제한을 우회하는 수단은 도입하지 않았다. push는 하지 않았다.
+
+## KM-134 완료 — 재생 스트리밍 캐시
+
+- 브랜치 `codex/KM-134-streaming-cache`. Media3 `SimpleCache`(LRU, 256MB, `cacheDir/media`)를 재생 경로 가장 바깥에 두었다. 캐시 키가 `keuney://track/<id>` 자리표시 URI라 매번 달라지는 스트림 주소와 무관하게 재사용되고, 캐시에 있으면 해석 요청 자체를 보내지 않는다.
+- 인수 조건 네 항목 모두 PASS. 영구 다운로드가 아님은 위치(cacheDir)·LRU 자동 삭제·DownloadManager 미사용으로 확인했다.
+- 검증 중 두 가지를 고쳤다. 첫째, `SimpleCache`는 한 디렉터리를 프로세스에서 하나만 열 수 있는데 계측 테스트마다 주입 그래프가 다시 만들어져 두 번째 생성이 실패했다. 프로세스 단위 보관으로 바꿨다. 둘째, 저장 확정 조각이 기본 5MB라 3초만 듣고 멈추면 캐시에 아무것도 남지 않았다. 1MB로 줄였고, 짧은 청취도 남도록 하는 실제 개선이다.
+- 계측 3개를 추가했다. 재생한 구간이 상위 소스 없이 캐시만으로 읽히는지, 비우면 더 이상 읽히지 않는지, 기본 상한과 저장 위치가 맞는지 확인한다.
+- 신규 의존성 `androidx.media3:media3-database`(StandaloneDatabaseProvider). 결정 ADR-035.
+
+## KM-137 완료 — 네트워크 사용 정책(WiFi 전용 재생)
+
+- 브랜치 `codex/KM-134-streaming-cache`에서 이어 진행했다. 백로그에 없던 작업이라 M8에 KM-137을 새로 추가했다. progressive 전환으로 곡당 8~25MB가 되어 데이터 통제 수단이 필요하다는 판단이다(ADR-034).
+- `SettingsRepository`에 `wifiOnlyPlayback`을 추가하고 DataStore에 저장한다. 기본값은 꺼짐이라 기존 동작이 바뀌지 않는다.
+- `NetworkPolicy`가 설정과 `isActiveNetworkMetered`를 함께 보고 판단한다. 연결 정보를 얻지 못하면 막지 않는다. 차단은 `TrackStreamResolver`에서 주소 해석 전에 일어나므로, 캐시에 있는 구간은 판단을 거치지 않고 그대로 재생된다. 제한을 켜도 들었던 곡은 계속 들린다.
+- 화면에 스위치와 차단 안내 문구를 넣었다. 원문 오류는 노출하지 않는다.
+- `NetworkPolicy`는 연결 확인을 람다로 받아 상속 없이 검사할 수 있다. 단위 3개(설정·연결 조합), 계측 3개(차단 시 공급자 미호출, 비측정 연결에서 해석, 자리표시가 아닌 요청 통과)를 추가했다.
+- 검증 중 회귀 1건을 잡았다. 재생 경로가 설정을 읽게 되면서 계측 테스트마다 DataStore가 다시 생성돼 "multiple DataStores active for the same file"로 실패했다. 캐시와 같은 이유이며 DataStore도 프로세스 단위 보관으로 바꿨다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 5초). 단위 41개·실제 계약 4개·실기기 계측 22개, 실패/오류 0. 린트 오류 0·경고 19.
+- 결정 ADR-036. 설정 UI는 KM-153 Settings로 옮긴다. 실제 측정 요금제(모바일 데이터) 기기 검증은 아직 하지 않았고 계측은 연결 확인을 대체한 검사다. push는 하지 않았다.

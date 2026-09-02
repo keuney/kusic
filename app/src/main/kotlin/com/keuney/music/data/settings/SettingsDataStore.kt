@@ -23,3 +23,17 @@ internal fun createSettingsDataStore(
     ),
     scope = scope,
 )
+
+/**
+ * DataStore는 한 파일을 프로세스에서 하나만 열 수 있다. 주입 그래프가 다시 만들어져도
+ * 같은 인스턴스를 쓰도록 프로세스 단위로 보관한다.
+ */
+internal object SettingsStoreHolder {
+    @Volatile
+    private var instance: DataStore<Preferences>? = null
+
+    fun get(file: File): DataStore<Preferences> =
+        instance ?: synchronized(this) {
+            instance ?: createSettingsDataStore(file).also { instance = it }
+        }
+}

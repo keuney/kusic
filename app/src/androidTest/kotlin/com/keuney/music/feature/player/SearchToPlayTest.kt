@@ -9,12 +9,17 @@ import com.keuney.music.core.model.SourceType
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
+import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlayerConnection
+import com.keuney.music.core.settings.SettingsRepository
+import com.keuney.music.core.settings.ThemePreference
 import com.keuney.music.data.source.MusicSource
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -79,7 +84,7 @@ class SearchToPlayTest {
             Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
         val connection = PlayerConnection(context)
-        val viewModel = PlayerViewModel(connection, source)
+        val viewModel = PlayerViewModel(connection, source, FakeSettings(), NetworkPolicy(FakeSettings()) { false })
         try {
             instrumentation.runOnMainSync { connection.connect() }
             withTimeout(10_000) { connection.state.first { it == ConnectionState.Connected } }
@@ -120,8 +125,19 @@ class SearchToPlayTest {
         }
     }
 
-    private fun viewModelWith(fake: MusicSource) =
-        PlayerViewModel(PlayerConnection(InstrumentationRegistry.getInstrumentation().targetContext), fake)
+    private fun viewModelWith(fake: MusicSource) = PlayerViewModel(
+        PlayerConnection(InstrumentationRegistry.getInstrumentation().targetContext),
+        fake,
+        FakeSettings(),
+        NetworkPolicy(FakeSettings()) { false },
+    )
+
+    private class FakeSettings : SettingsRepository {
+        override val theme: Flow<ThemePreference> = MutableStateFlow(ThemePreference.System)
+        override suspend fun setTheme(theme: ThemePreference) = Unit
+        override val wifiOnlyPlayback: Flow<Boolean> = MutableStateFlow(false)
+        override suspend fun setWifiOnlyPlayback(enabled: Boolean) = Unit
+    }
 
     private fun track(id: String) = Track(id, "제목 $id", "아티스트", null, 180_000, SourceType.Remote)
 

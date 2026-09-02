@@ -7,6 +7,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.CacheDataSink
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.common.MediaItem
 import androidx.media3.common.C
 import androidx.media3.common.AudioAttributes
@@ -26,13 +28,16 @@ class MusicService : MediaLibraryService() {
     @Inject
     internal lateinit var trackStreamResolver: TrackStreamResolver
 
+    @Inject
+    internal lateinit var playbackCache: PlaybackCache
+
     private var player: ExoPlayer? = null
     private var session: MediaLibrarySession? = null
 
     override fun onCreate() {
         super.onCreate()
         val servicePlayer = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(resolvingDataSourceFactory()))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(cachingDataSourceFactory()))
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -78,6 +83,21 @@ class MusicService : MediaLibraryService() {
             item.buildUpon().setUri(TrackUri.of(item.mediaId)).build()
         }.getOrDefault(item)
     }
+
+    /**
+     * 캐시를 가장 바깥에 둔다. 자리표시 URI가 캐시 키가 되므로 매번 달라지는 스트림 주소와
+     * 무관하게 같은 곡을 다시 쓸 수 있고, 캐시에 있으면 주소 해석 자체를 건너뛴다.
+     */
+    private fun cachingDataSourceFactory() = CacheDataSource.Factory()
+        .setCache(playbackCache.cache)
+        .setUpstreamDataSourceFactory(resolvingDataSourceFactory())
+        // 기본 조각은 5MB라 곡을 짧게 듣고 멈추면 아무것도 남지 않는다. 더 자주 확정한다.
+        .setCacheWriteDataSinkFactory(
+            CacheDataSink.Factory()
+                .setCache(playbackCache.cache)
+                .setFragmentSize(PlaybackCache.FRAGMENT_BYTES),
+        )
+        .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun resolvingDataSourceFactory() = ResolvingDataSource.Factory(
         DefaultDataSource.Factory(

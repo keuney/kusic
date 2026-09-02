@@ -265,6 +265,24 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-036 — WiFi 전용 재생 (KM-137)
+
+- progressive 전환으로 곡당 데이터가 8~25MB가 되어 사용자가 데이터 사용을 통제할 수 있어야 한다(ADR-034). 설정 하나를 DataStore에 저장하며 기본값은 꺼짐이다. 기존 동작을 바꾸지 않는다.
+- 판단은 `NetworkPolicy`가 한다. 설정이 켜져 있고 `ConnectivityManager.isActiveNetworkMetered`가 true일 때만 막는다. 연결 정보를 얻지 못하면 막지 않는다. 알 수 없는 상태 때문에 재생을 멈추지 않는다.
+- 차단 지점은 `TrackStreamResolver`다. 스트림 주소를 해석하기 전에 고정 메시지의 `MeteredNetworkBlockedException`을 던진다. 캐시는 해석보다 바깥에 있으므로 이미 받아 둔 구간은 이 판단을 거치지 않고 그대로 재생된다. 제한을 켜도 들었던 곡은 계속 들린다.
+- 화면에는 스위치와, 제한이 실제로 걸리는 상태일 때의 안내 문구를 둔다. 원문 오류는 노출하지 않는다.
+- `NetworkPolicy`는 연결 확인을 람다로 받아 실제 기기 상태와 무관하게 검사할 수 있다. 상속을 열지 않았다.
+- 이 설정은 KM-153 Settings 화면이 생기면 그쪽으로 옮긴다. 지금은 POC 화면에 둔다. 신규 의존성은 없다.
+
+### ADR-035 — 재생 스트리밍 캐시 (KM-134)
+
+- Media3 `SimpleCache`와 `LeastRecentlyUsedCacheEvictor`를 쓴다. 상한 256MB, 위치는 `cacheDir/media`다. 운영체제가 정리할 수 있는 영역이며 상한을 넘으면 오래된 것부터 지운다. `DownloadManager`나 영구 저장은 쓰지 않는다(AGENTS.md 15).
+- 캐시를 재생 경로 가장 바깥(해석보다 위)에 둔다. 캐시 키가 `keuney://track/<id>` 자리표시 URI가 되어 매번 달라지는 스트림 주소와 무관하게 재사용된다. 캐시에 있으면 주소 해석 요청 자체를 보내지 않는다.
+- 저장 확정 조각을 기본 5MB에서 1MB로 줄였다. 기본값에서는 곡을 짧게 듣고 멈추면 받은 구간이 하나도 남지 않는다. 조각이 작을수록 부분 청취도 남는다.
+- `SimpleCache`는 한 디렉터리를 프로세스에서 하나만 열 수 있다. 주입 그래프가 다시 만들어져도 같은 인스턴스를 쓰도록 프로세스 단위로 보관한다. 같은 이유로 설정 DataStore도 프로세스 단위로 보관하도록 바꿨다.
+- 캐시 크기 조절과 비우기 UI는 KM-153 Settings 범위다. 지금은 `PlaybackCache.clear()`만 제공한다.
+- 신규 의존성은 `androidx.media3:media3-database` 하나이며 `StandaloneDatabaseProvider`에 필요하다. media3와 같은 버전을 쓴다.
+
 ### ADR-034 — progressive 형식만 재생 스트림으로 인정 (KM-058)
 
 - KM-058 수동 검증에서 재생이 약 34초 지점(첫 512KB 직후)에 403으로 멈췄다. KM-057의 실기기 검증이 10초 미만이라 첫 청크 안에서 끝나 이 결함을 놓쳤다.

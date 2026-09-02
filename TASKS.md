@@ -1300,7 +1300,15 @@ Service playback unaffected under valid playback conditions
 
 KM-134 — Streaming cache
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): Media3 SimpleCache를 재생 경로 가장 바깥에 두어 같은 곡을 다시 들을 때 다시 받지 않게 했다. 캐시 키는 Track 자리표시 URI라 매번 달라지는 스트림 주소와 무관하게 재사용된다.
+
+- 인수 조건: LRU PASS(LeastRecentlyUsedCacheEvictor), 기본 상한 256MB PASS, 캐시 비우기 PASS, 영구 다운로드 아님 PASS(cacheDir 아래, 상한 초과 시 자동 삭제, DownloadManager 미사용).
+- 저장 확정 조각을 기본 5MB에서 1MB로 줄였다. 기본값에서는 곡을 짧게 듣고 멈추면 받은 구간이 하나도 남지 않는다.
+- SimpleCache는 한 디렉터리를 프로세스에서 하나만 열 수 있어 프로세스 단위 인스턴스로 보관한다. 주입 그래프가 다시 만들어져도 같은 캐시를 쓴다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0. 실기기 계측에 캐시 검사 3개를 추가했다.
+- 결정은 ADR-035에 기록했다. 신규 의존성은 androidx.media3:media3-database 하나다. 캐시 크기 설정 화면은 KM-153 범위다.
 
 Goal:
 
@@ -1351,6 +1359,37 @@ lockscreen
 Bluetooth where available
 
 Crash 없음.
+
+KM-137 — 네트워크 사용 정책
+
+Status: [x]
+
+완료 (2026-09-02): WiFi 전용 재생 설정을 추가했다. 켜면 측정 요금제 연결에서 새로 내려받는 재생을 막고, 이미 캐시에 있는 구간은 그대로 재생한다.
+
+- 인수 조건: 설정 저장·복원 PASS(DataStore), 측정 요금제에서 원격 재생 차단 PASS, 차단 사유 안내 PASS(화면 문구), 캐시 구간은 그대로 재생 PASS(캐시가 해석보다 바깥에 있어 판단을 거치지 않음), 기본값 꺼짐 PASS.
+- 차단은 `TrackStreamResolver`에서 주소 해석 전에 이뤄진다. 단위 3개·계측 3개를 추가했다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 5초). 단위 41개·실제 계약 4개·실기기 계측 22개.
+- 결정은 ADR-036에 기록했다. 신규 의존성 없음. 설정 UI는 KM-153 Settings 화면이 생기면 옮긴다.
+
+배경:
+
+Provider A는 오디오 전용 주소의 구간 요청을 거부해 영상이 포함된 progressive 형식만 재생할 수 있다(ADR-034). 곡당 8~25MB로 오디오 전용의 약 3배다. 사용자가 데이터 사용을 통제할 수 있어야 한다.
+
+Goal:
+
+측정 요금제 네트워크에서의 재생을 사용자가 통제한다.
+
+Acceptance Criteria:
+
+WiFi 전용 재생 설정 저장 및 복원
+
+설정이 켜져 있고 측정 요금제 연결이면 원격 재생을 시작하지 않는다
+
+차단 시 사용자에게 이유를 알린다
+
+캐시에 있는 구간은 네트워크 없이 그대로 재생한다
+
+기본값은 꺼짐
 
 M9 — Polish & Release
 
