@@ -243,3 +243,17 @@
 - 변경: `app/src/main/kotlin/com/keuney/music/data/source/providerA/ProviderAConfig.kt`, `ProviderAClient.kt`, `ProviderAStreamResolver.kt`, `dto/ProviderAContext.kt`, `app/src/test/kotlin/com/keuney/music/data/source/providerA/ProviderAStreamResolverTest.kt`, `ProviderAStreamSourceContractTest.kt`, `TASKS.md`, `README.md`, `docs/DECISIONS.md`, 이 기록. 결정 ADR-032, ADR-031은 대체 표시. 신규 의존성 없음.
 - 계약 검사 요약 출력에는 클라이언트 이름·성공 여부·고정 실패 메시지·MIME·bitrate·만료 유무만 남기며 URL과 응답 원문은 출력하지 않는다.
 - 한계: 클라이언트 종류별 설정은 공개 관찰값이라 공급자 변경에 취약하다. 검증은 JVM 계약 검사와 Range 요청 206까지이며 Android 기기의 실제 재생, 여러 곡·장시간 재생, 만료 후 재해석은 KM-057·KM-058·KM-061에서 확인한다. 단일 트랙 기준이며 10곡 세트 판정은 KM-059 Gate에서 수행한다. commit은 작업 브랜치에만 있고 push는 하지 않았다.
+
+## KM-057 완료 — MusicSource와 재생 연결
+
+- 브랜치 `codex/KM-057-stream-resolver-integration`. `ProviderAMusicSource`가 검색·스트림 해석을 MusicSource 계약 뒤에 묶고 `SourceModule`이 바인딩한다. `core/player/StreamResolver`는 MusicSource만 호출하는 얇은 seam이며 KM-061의 만료 재해석 자리다.
+- MediaItem에는 `keuney://track/<id>` 자리표시 URI만 넣는다. 컨트롤러가 보낸 MediaItem은 URI를 잃으므로 `onAddMediaItems`에서 mediaId로 복원하고, `ResolvingDataSource`가 재생 직전 로딩 스레드에서 실제 주소로 바꾼다. 대기열·컨트롤러는 주소를 알지 못한다.
+- 첫 실기기 시도는 HTTP 403이었다. 같은 기기·같은 URL에서 OkHttp와 HttpURLConnection은 206인데 media3만 403이어서 요청 형태 차이를 좁혔다. 결과: 열린 Range 403, 닫힌 32B/64KB/512KB 206, 닫힌 1MB·4MB·전체 크기 403, 같은 URL 64KB 4회 반복 모두 206. 해석 URL을 매번 새로 받아도 같았다.
+- 따라서 `ChunkedHttpDataSource`로 하나의 재생 요청을 512KB 이하 닫힌 Range 요청 여러 개로 나눈다. 첫 청크의 Content-Range에서 전체 길이를 얻어 상위에 알린다. `DefaultDataSource`의 base 소스로만 끼워 http(s)에만 적용하며 내장 음원 경로는 그대로다. 적용 후 실기기 원격 재생이 통과했다.
+- 부수 변경: 네트워크 재생을 위해 wake mode를 `WAKE_MODE_NETWORK`로 바꿨다. `PlayableStream`에 일시적 `requestHeaders`를 추가해 해석에 쓴 클라이언트 User-Agent를 재생 요청에 함께 보낸다. 계약 검사의 Range 요청도 같은 헤더를 보내도록 맞췄다.
+- 회귀 1건을 잡았다. 새 원격 재생 테스트가 서비스의 공유 대기열을 바꿔 뒤 순서의 `ScreenOffPlaybackTest`·`TestAudioPlaybackTest`가 실패했다. 새 테스트가 종료 시 내장 테스트 음원으로 되돌리도록 고쳐 14개 모두 통과했다.
+- media3 데이터 소스 API는 UnstableApi다. Kotlin `@file:OptIn`으로는 lint의 UnsafeOptInUsageError가 해소되지 않아(오류 43 → 46) `@androidx.annotation.OptIn(markerClass = [UnstableApi::class])`을 클래스에 붙였다. baseline 생성이나 규칙 비활성화는 하지 않았다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(2분 50초). 단위 36개·실제 계약 4개·실기기 계측 14개, 실패/오류 0. 린트 오류 0·경고 19(UseKtx 1건 증가). debug/release APK 생성.
+- 신규 파일: `core/player/TrackUri.kt`, `StreamResolver.kt`, `TrackStreamResolver.kt`, `ChunkedHttpDataSource.kt`, `data/source/providerA/ProviderAMusicSource.kt`, `di/SourceModule.kt`, `app/src/test/.../TrackUriTest.kt`, `ProviderAMusicSourceTest.kt`, `app/src/androidTest/.../ChunkedHttpDataSourceTest.kt`, `RemoteTrackPlaybackTest.kt`. 변경: `MusicService.kt`, `PlayerConnection.kt`, `PlayerViewModel.kt`, `TestPlaybackScreen.kt`, `core/model/PlayableStream.kt`, `ProviderAStreamResolver.kt`, `ProviderAStreamSourceContractTest.kt`, `res/values/strings.xml`, `TASKS.md`, `README.md`, `docs/DECISIONS.md`, 이 기록. 결정 ADR-033, 신규 의존성 없음.
+- 진단용으로 만든 기기 테스트는 결과를 ADR에 남기고 삭제했다. 대신 상위 소스를 흉내 낸 `ChunkedHttpDataSourceTest`로 청크 경계·시작 위치·명시 길이를 검증한다.
+- 한계: 단일 트랙·단일 기기·WiFi 조건이다. 청크 상한 512KB는 관찰값이며 공급자가 바꾸면 조정해야 한다. 화면의 원격 재생 버튼과 고정 Track ID는 KM-058에서 대체한다. push는 하지 않았다.

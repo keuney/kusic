@@ -36,7 +36,11 @@ internal class ProviderAStreamResolver @Inject constructor(private val client: P
         if (trackId.isBlank()) return Result.failure(ProviderAStreamException("Track ID is required"))
         return try {
             val response = client.request("player", playerFields(trackId, profile), profile)
-            Result.success(mapStreamResponse(response, Instant.now()))
+            // 해석에 사용한 클라이언트와 같은 identity로 받아야 공급자가 스트림을 거부하지 않는다.
+            Result.success(
+                mapStreamResponse(response, Instant.now())
+                    .copy(requestHeaders = mapOf("User-Agent" to profile.userAgent)),
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: ProviderAStreamException) {

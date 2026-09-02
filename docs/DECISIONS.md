@@ -265,6 +265,19 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-033 — MusicSource와 재생 연결, 청크 Range 요청 (KM-057)
+
+- `ProviderAMusicSource`가 검색과 스트림 해석을 MusicSource 계약 뒤에 묶고 Hilt `SourceModule`이 이를 바인딩한다. `getTrack`/`getRelated`는 구현한 작업이 없어 고정 메시지의 안전한 실패를 반환한다. `core/player/StreamResolver`는 MusicSource만 호출하는 얇은 seam이며 KM-061의 만료 재해석이 여기에 붙는다.
+- MediaItem에는 실제 주소 대신 `keuney://track/<id>` 자리표시 URI만 넣는다. 컨트롤러가 보낸 MediaItem은 URI를 잃으므로 `MediaLibrarySession.Callback.onAddMediaItems`에서 mediaId로 자리표시 URI를 복원한다. Track ID는 `[A-Za-z0-9_-]{1,64}`만 허용해 요청 대상이 바뀌지 않게 한다. 대기열과 컨트롤러는 스트림 주소를 알지 못하며 어디에도 저장하지 않는다(AGENTS.md 8).
+- `ResolvingDataSource`가 재생 직전 로딩 스레드에서 자리표시 URI를 실제 주소로 바꾼다. 해석 실패는 고정 메시지 IOException으로 바꿔 ExoPlayer 오류로 노출하며 URL·응답 원문을 남기지 않는다.
+- `PlayableStream`에 `requestHeaders`를 추가하고 해석에 사용한 클라이언트의 User-Agent를 담아 재생 요청에 함께 보낸다. 일시적 값이며 저장하지 않는다.
+- 실기기 검증에서 공급자 스트림이 **열린 Range 요청을 403으로 거부**했다. 같은 URL·같은 기기에서 닫힌 Range는 512KB까지 206, 1MB 이상은 403이었다. 같은 URL의 반복 요청은 문제없었다. ExoPlayer의 progressive 로딩은 길이 미지정으로 한 번에 열기 때문에 그대로는 재생할 수 없다.
+- 따라서 `ChunkedHttpDataSource`가 하나의 재생 요청을 512KB 이하의 닫힌 Range 요청 여러 개로 나눠 순서대로 읽는다. 첫 청크 응답의 Content-Range에서 전체 길이를 얻어 상위 계층에 알린다. `DefaultDataSource`의 base 소스로만 끼워 http(s)에만 적용하며 내장 테스트 음원 같은 로컬 스킴은 기존 경로를 그대로 쓴다. 청크 상한은 관찰값이며 공급자가 바꾸면 조정해야 한다.
+- 네트워크 재생을 위해 wake mode를 `WAKE_MODE_LOCAL`에서 `WAKE_MODE_NETWORK`로 바꿨다. 기존 WAKE_LOCK 권한을 그대로 사용하며 ADR-025의 화면 꺼짐 재생 결론은 유지된다.
+- media3의 데이터 소스 API는 UnstableApi다. Kotlin `@file:OptIn`은 Android lint의 UnsafeOptInUsageError를 만족시키지 못해 `@androidx.annotation.OptIn(markerClass = [UnstableApi::class])`을 해당 클래스에 붙였다. lint 오류를 억제하거나 baseline을 만들지 않았다. 신규 의존성은 없다.
+- 화면의 원격 재생 버튼과 `PlayerViewModel`의 고정 Track ID는 KM-057 확인용이며 KM-058의 검색 결과 선택으로 대체한다.
+- 검증 한계: 단일 트랙·단일 기기·WiFi 조건이다. 여러 곡 연속 재생, 장시간 재생 중 URL 만료, 탐색 반복, 네트워크 전환은 KM-058·KM-061·KM-132·KM-136에서 확인한다.
+
 ### ADR-032 — 재생 요청의 클라이언트 프로필 분리 (KM-056)
 
 - WEB 클라이언트는 player 응답의 audio 형식에 직접 URL과 signatureCipher를 더 이상 포함하지 않고 serverAbrStreamingUrl만 반환한다. 재생 요청에 사용할 클라이언트 설정을 `ProviderAClientProfile`로 분리하고 후보를 순서대로 시도해 직접 URL을 제공하는 종류를 사용한다. 검색 경로는 KM-055에서 통과한 WEB 설정을 그대로 유지한다.

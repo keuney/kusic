@@ -75,6 +75,9 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel) {
                 Text(stringResource(if (pauseAction) R.string.player_pause else R.string.player_play))
             }
         }
+        Button(onClick = viewModel::playSampleTrack, enabled = connected) {
+            Text(stringResource(R.string.player_play_remote))
+        }
     }
 }
 

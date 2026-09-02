@@ -733,7 +733,15 @@ domain PlayableStream 반환
 
 KM-057 — StreamResolver integration
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): MusicSource 구현을 Hilt로 바인딩하고 MusicService 재생과 연결했다. MediaItem에는 Track ID 자리표시 URI만 넣고 ResolvingDataSource가 재생 직전에 실제 주소로 바꾼다. 실기기에서 공급자가 열린 Range 요청을 403으로 거부해 ChunkedHttpDataSource로 512KB 이하 닫힌 Range 요청을 이어 붙이도록 했다.
+
+- 인수 조건: Track ID → resolveStream → ExoPlayer → playback을 Samsung SM-T220에서 확인 PASS. 원격 트랙이 실제로 재생되고 위치가 진행하며 길이를 얻는다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(2분 50초). 단위 36개·실제 계약 4개·실기기 계측 14개 전부 통과, 실패/오류 0. 린트 오류 0·경고 19.
+- 진단 결과: 열린 Range 403, 닫힌 512KB 206, 닫힌 1MB 이상 403, 같은 URL 반복 요청 정상. 청크 상한은 관찰값이다.
+- 결정은 ADR-033에 기록했다. 신규 의존성 없음. 화면의 원격 재생 버튼과 고정 Track ID는 확인용이며 KM-058에서 대체한다.
+- 남은 검증: 여러 곡 연속 재생·장시간 재생 중 만료·탐색 반복·네트워크 전환은 KM-058·KM-061·KM-132·KM-136 대상이다.
 
 Goal:
 

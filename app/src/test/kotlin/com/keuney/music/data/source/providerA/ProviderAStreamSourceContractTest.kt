@@ -58,8 +58,12 @@ class ProviderAStreamSourceContractTest {
         append('\n')
     }
 
+    /** 재생 요청은 앱과 동일하게 해석 시 사용한 클라이언트 헤더를 함께 보낸다. */
     private suspend fun acceptsRangeRequest(http: HttpClient, stream: PlayableStream): Boolean = try {
-        http.prepareGet(stream.url) { header(HttpHeaders.Range, "bytes=0-31") }.execute {
+        http.prepareGet(stream.url) {
+            stream.requestHeaders.forEach { (name, value) -> header(name, value) }
+            header(HttpHeaders.Range, "bytes=0-31")
+        }.execute {
             it.status == HttpStatusCode.PartialContent
         }
     } catch (_: Exception) {

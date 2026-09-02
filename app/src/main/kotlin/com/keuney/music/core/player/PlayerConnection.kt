@@ -5,6 +5,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.MainThread
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -104,6 +106,23 @@ internal class PlayerConnection @Inject constructor(
         val player = controller ?: return
         if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
         if (player.playbackState == Player.STATE_IDLE || player.playerError != null) player.prepare()
+        player.play()
+    }
+
+    /** 대기열에는 Track ID와 metadata만 보낸다. 실제 주소는 서비스가 재생 직전에 해석한다. */
+    @MainThread
+    fun playTrack(trackId: String, title: String, artist: String) {
+        checkMainThread()
+        val player = controller ?: return
+        player.setMediaItem(
+            MediaItem.Builder()
+                .setMediaId(trackId)
+                .setMediaMetadata(
+                    MediaMetadata.Builder().setTitle(title).setArtist(artist).build(),
+                )
+                .build(),
+        )
+        player.prepare()
         player.play()
     }
 
