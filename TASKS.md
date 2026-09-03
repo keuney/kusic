@@ -18,15 +18,15 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 54 / 미착수 23. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 23에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 55 / 미착수 22. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 22에는 최종 게이트 KM-200이 포함된다.
 
-**M6 Player UX 완료 (KM-090~097).** 남은 마일스톤은 M7 Library, M8 Cache/Network(KM-134·137은 이미 완료), M9 Polish/Release(KM-150은 이미 완료)다.
+**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110 완료).**
 
-**다음 작업: KM-110 (Room schema).** 인수 조건은 schema export configured·DB test다. 현재 `KeuneyDatabase`는 자리표시 엔티티 `SchemaBaseline` 하나만 두고 버전 1이며 스키마 내보내기와 계측 검사(`KeuneyDatabaseTest`)는 이미 있다. 이 작업의 실제 내용은 실제 엔티티를 넣고 버전을 2로 올리며 마이그레이션 전략을 정하는 것이다. 착수 시 정할 것: (1) 아래 KM-110 항목을 볼 것 — `SearchHistoryEntity`는 필요하지 않다, (2) 자리표시 엔티티 `SchemaBaseline`을 지울지(지우면 마이그레이션에서 테이블 삭제가 필요하다), (3) v0.1에 설치 기반이 사용자 한 명뿐이라 `fallbackToDestructiveMigration`으로 갈지 명시적 마이그레이션을 쓸지.
+**다음 작업: KM-111 (Library repository).** 인수 조건은 repository interfaces·Flow-based observation·tests다. KM-110이 표까지 만들었고 DAO는 없으므로 이 작업에서 DAO와 저장소를 함께 만든다. ARCHITECTURE 4의 트리대로 DAO는 `core/database/dao`, 저장소 인터페이스는 `core/library`(검색이 `core/search`에 있는 것과 같은 방식), 구현은 `data/repository`다. AGENTS.md 10대로 ViewModel은 DAO를 직접 부르지 않는다. 착수 전에 정해야 할 미결 사항은 없다.
 
-**KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
+**KM-110에서 정한 것:** 표는 tracks·favorites·playlists·playlist_items·playback_history 다섯 개다. `search_history` 표는 만들지 않았다(최근 검색어는 DataStore, ADR-046). 마이그레이션은 명시적이며 SQL은 Room이 내보낸 스키마 파일에서 옮긴다. 표를 바꿀 때도 같은 방식으로 하고 `KeuneyMigrationTest`가 결과를 검증한다. DAO 사용처가 아직 없어 기기에 실제 `keuney.db` 파일은 만들어지지 않은 상태다.
 
-**내장 테스트 음원은 artworkUri가 없어** 미니 플레이어에서 자리표시자 색으로 보인다. 알림은 기존대로 artworkData를 쓴다. `playQueue`는 이미지 주소를 받지 않는다(Gate 검증용 진입점).
+**남은 화면 작업:** 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing의 즐겨찾기 버튼은 비활성이며 KM-112에서 살린다(그때 "아직 준비되지 않은 기능입니다." 문구도 지운다). WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다. 내장 테스트 음원은 artworkUri가 없어 미니 플레이어에서 자리표시자 색으로 보인다.
 
 **진행 방식(이 세션에서 사용자와 합의한 것):**
 
@@ -1113,7 +1113,7 @@ Status: [x]
 
 - 인수 조건: successful search 저장 PASS, history clear PASS, app restart persistence PASS. 셋 다 실기기에서 확인했다.
 - 저장 위치는 Room이 아니라 DataStore다. 짧은 문자열 목록이고 조회·정렬이 필요하지 않으며, Room을 쓰면 자리표시자 엔티티만 있는 스키마를 1에서 2로 올려야 한다. Preferences에 순서를 지키는 목록 타입이 없어 JSON 배열 한 값으로 저장한다.
-- KM-110의 SearchHistoryEntity는 이 결정에 따라 필요하지 않다. KM-110 착수 시 다시 판단한다.
+- KM-110의 SearchHistoryEntity는 이 결정에 따라 필요하지 않다. KM-110에서 그 항목을 빼기로 확정했다.
 - 오류 없이 끝난 검색만 남긴다. 결과가 없는 검색도 성공한 검색이므로 남기고 실패한 검색은 남기지 않는다. 상한 10, 같은 검색어는 중복 없이 앞으로 올라온다.
 - 목록은 Idle일 때만 보여준다. 한 화면에 검색과 재생이 함께 있어 자리가 넉넉하지 않다. 칩을 누르면 그 검색어로 다시 검색한다.
 - 단위 15개 추가(저장소 9·ViewModel 6). 저장소 재개방 검사가 앱 재시작 유지를 단위 검사로 덮는다.
@@ -1359,7 +1359,19 @@ M7 — Library
 
 KM-110 — Room schema
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 표 다섯 개와 명시적 마이그레이션(1 → 2)을 넣었다. 사용자와 정한 세 가지대로 진행했다.
+
+- 인수 조건: schema export configured PASS(app/schemas에 1.json·2.json), DB test PASS(계측 3개).
+- SearchHistoryEntity는 넣지 않았다. KM-074에서 최근 검색어를 DataStore에 두기로 정했다(ADR-046). 같은 값을 두 곳에 두지 않는다. 아래 Entities 목록에서 이 항목을 지웠다.
+- 자리표시 표 schema_baseline을 지웠다. 쓰인 적이 없고 남기면 Room이 기대하는 스키마와 어긋난다.
+- 명시적 마이그레이션을 쓴다. 지우고 다시 만드는 방식은 기기 데이터를 말없이 없애는데, 사이드로드 앱이라 그것이 사용자의 유일한 사본이다.
+- 마이그레이션 SQL은 손으로 쓰지 않고 Room이 내보낸 2.json의 createSql을 그대로 옮겼다. 검사 전용 room-testing을 추가해 MigrationTestHelper가 결과 스키마를 2.json과 견주게 했다.
+- 재생 주소는 어떤 표에도 없다(AGENTS.md 8). artwork_url만 예외이며 이 성질을 계측 검사로 고정했다.
+- DAO는 넣지 않았다. 표와 마이그레이션까지이며 DAO와 저장소는 KM-111이다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 34초). 단위 129개·실제 계약 7개·실기기 계측 35개. 린트 오류 0.
+- 결정은 ADR-056에 기록했다. 신규 의존성 1개(검사 전용 room-testing).
 
 Entities:
 
@@ -1372,8 +1384,6 @@ PlaylistEntity
 PlaylistItemEntity
 
 PlaybackHistoryEntity
-
-SearchHistoryEntity
 
 Acceptance Criteria:
 

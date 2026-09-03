@@ -556,3 +556,17 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 5초). 단위 129개·실제 계약 7개·실기기 계측 33개, 실패/오류 0. 린트 오류 0·경고 22.
 - 실기기 SM-T220 / Android 14 확인: "iu" 검색 결과에서 두 번째 곡을 골랐더니 그 곡이 재생되고 나머지 결과가 모두 대기열에 남았다. 대기열 화면에 앨범 이미지·제목·아티스트가 나오고 현재 곡은 배경색과 "재생 중"으로 구분된다. 첫 항목의 위로 버튼은 비활성이고, 세 번째 항목의 위로 버튼을 누르면 두 번째 자리로 올라간다. 첫 항목의 X를 누르면 목록에서 사라지고 재생은 그대로 이어진다(PLAYING 유지). 셔플을 켜고 대기열로 돌아오면 안내 문구가 붙는다. 대기열이 생겨 Now Playing의 다음 버튼도 활성이 됐다. 화면 캡처는 captures/km-097에 보관했다(저장소 추적 대상 아님).
 - 결정 ADR-055. 신규 의존성 없음. M6 Player UX 완료. 다음은 M7 Library의 KM-110이다.
+
+## KM-110 완료 — Room schema
+
+- 브랜치 `codex/KM-110-room-schema`. M7 Library의 첫 작업이다. 사용자와 정한 세 가지로 진행했다. `SearchHistoryEntity` 제외, 자리표시 표 삭제, 명시적 마이그레이션.
+- 표 다섯 개를 `core/database/entity`에 만들었다. `tracks`·`favorites`·`playlists`·`playlist_items`·`playback_history`다. `search_history`는 만들지 않는다. 최근 검색어는 DataStore에 있다(ADR-046).
+- 자리표시 표 `schema_baseline`을 지우고 버전을 1에서 2로 올렸다. 마이그레이션에서 `DROP TABLE`한다.
+- 마이그레이션 SQL은 손으로 쓰지 않았다. 엔티티를 먼저 쓰고 `kspDebugKotlin`으로 2.json을 내보낸 뒤 그 `createSql`을 그대로 옮겼다. 손으로 쓰면 Room이 기대하는 정의와 한 글자만 달라도 실행 중 검증이 깨진다.
+- 검사 전용 `androidx.room:room-testing`을 추가했다. `MigrationTestHelper.runMigrationsAndValidate`가 결과 스키마를 내보낸 2.json과 견주므로 옮겨 적은 SQL을 믿을 근거가 된다.
+- `DatabaseModule`에 `addMigrations`를 등록했다. 지우고 다시 만드는 방식은 쓰지 않는다. 사이드로드 앱이라 기기의 데이터가 유일한 사본이다.
+- 계측 3개(기존 1개 갱신 + 신규 2개): 새 데이터베이스가 열리고 다시 열리며 기대한 다섯 표만 있고 비어 있다, 어떤 표도 재생 주소를 담지 않는다(열 이름에 url이 있으면 artwork_url이어야 한다), 버전 1 데이터베이스가 마이그레이션으로 버전 2가 되고 자리표시 표가 사라지며 새 표에 외래 키 관계까지 쓸 수 있다. 계측 33개 → 35개.
+- DAO는 넣지 않았다. 이 작업은 표와 마이그레이션까지이며 DAO와 저장소는 KM-111이다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 34초). 단위 129개·실제 계약 7개·실기기 계측 35개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 마이그레이션 확인은 계측 검사가 담당한다. 실제 `keuney.db`는 아직 기기에 없다. 데이터베이스를 여는 코드가 없어(DAO 사용처가 KM-111부터) 파일이 만들어지지 않았기 때문이다. 계측 검사는 진짜 버전 1 파일을 만들어 마이그레이션을 돌리므로 같은 경로를 기기에서 확인한다.
+- 결정 ADR-056. 신규 의존성 1개(검사 전용 room-testing). 다음은 KM-111 Library repository다.
