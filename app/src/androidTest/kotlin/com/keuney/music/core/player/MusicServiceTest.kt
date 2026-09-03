@@ -9,13 +9,20 @@ import android.os.IBinder
 import android.os.Build
 import androidx.media3.session.MediaLibraryService
 import androidx.test.platform.app.InstrumentationRegistry
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
+@HiltAndroidTest
 class MusicServiceTest {
+    @get:Rule
+    val hilt = HiltAndroidRule(this)
+
     @Test
     fun serviceIsRegisteredAndCanBeBound() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

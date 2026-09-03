@@ -336,3 +336,15 @@
 - 단위 검사 5개 추가: 기본값이 정책과 일치, 값 사이의 대소 관계, 상한 초과 시 Network 오류, 상한 안의 응답 성공, 취소 시 즉시 중단.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(5분 2초). 단위 58개·실제 계약 5개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19. Gate 판정은 해석 10/10, 중간 구간 10/10(공급자 거부 0, 전송 지연 0).
 - 결정 ADR-040. 신규 의존성 없음. 한계: 늘린 재생 대기 값이 실제 스로틀링 상황에서 충분한지는 KM-136의 30분 연속 재생에서 다시 본다. push는 하지 않았다.
+
+## KM-063 완료 — 소스 계약 검사 스위트
+
+- 브랜치 `codex/KM-063-contract-suite`. 인수 조건 네 항목은 이미 갖춰져 있었다(검색·해석 계약, 별도 Gradle 작업 `sourceContractTest`, 일반 `test`에서 분리). 그래서 이번 작업은 회귀 감지의 구멍을 메우는 데 썼다.
+- 구멍 1 — 검색 계약이 얕았다. ID와 제목만 확인해 아티스트·길이·이미지가 응답에서 사라져도 통과했다. mapper가 이 값들을 nullable로 다루므로 화면 품질만 조용히 떨어진다. 결과의 절반 이상에 존재하는지로 필드 계약을 추가했다. 중복 ID 검사도 넣었다.
+- 구멍 2 — 스트림 계약이 파일 앞부분(`bytes=0-31`)만 요청했다. "앞부분만 되는 주소"를 통과시키는 구조이며 실제로 그 결함을 놓친 적이 있다(ADR-034). Content-Range로 전체 길이를 얻어 절반 지점을 요청하도록 바꿔 Gate와 기준을 맞췄다.
+- 구멍 3 — 오류 경로 계약이 없었다. 단위 검사는 우리가 만든 응답으로만 분류를 검증하므로, 공급자가 실패를 알리는 방식을 바꾸면 단위는 통과하면서 사용자에게 엉뚱한 문구가 보인다. 없는 트랙과 결과 없는 검색어로 계약 2개를 추가했다.
+- 실행 결과 없는 트랙은 NotFound → PlaybackUnavailable로 분류돼 KM-060 매핑이 실제 공급자 동작과 일치함을 확인했다. 결과 없는 검색어는 실패가 아닌 성공으로 처리된다.
+- 계약 7개 전부 통과(검색 3·스트림 1·오류 2·Gate 1). README의 외부 소스 검증 섹션에 각 검사가 지키는 것과 깨졌을 때의 증상을 표로 정리했다.
+- 함께 고친 것: 계측 4개(`MusicServiceTest`, `MusicSessionTest`, `PlayerConnectionTest`, `TestAudioPlaybackTest`)가 `@AndroidEntryPoint`인 MusicService에 연결하면서 `HiltAndroidRule`이 없었다. 앞선 테스트가 컴포넌트를 정리하면 "The component was not created"로 실패하는 구조라 순서에 따라 간헐적으로 깨졌다. 네 곳에 규칙을 추가했다. 앞서 두 차례 관찰한 전체 실행 중 단발 실패의 원인이 이것이다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 17초). 단위 58개·실제 계약 7개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19.
+- 결정 ADR-041. 신규 의존성 없음. M4 Source Hardening 완료. push는 하지 않았다.

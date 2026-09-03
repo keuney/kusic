@@ -5,12 +5,19 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.test.platform.app.InstrumentationRegistry
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
+@HiltAndroidTest
 class MusicSessionTest {
+    @get:Rule
+    val hilt = HiltAndroidRule(this)
+
     @Test
     fun controllerConnectsToServiceSessionAndCanReadPlayer() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

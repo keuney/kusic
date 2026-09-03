@@ -904,7 +904,18 @@ coroutine cancellation honored
 
 KM-063 — Source contract test suite
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): 기존 스위트를 점검해 회귀 감지의 구멍 세 곳을 메웠다. 검색·스트림·오류·Gate 네 종류로 정리하고 각각이 지키는 것을 문서화했다.
+
+- 인수 조건: search contract PASS(3개), resolve contract PASS(1개), 별도 Gradle task PASS(`sourceContractTest`), 일반 unit test와 분리 PASS(`test`가 `*SourceContractTest` 제외).
+- 메운 구멍 1: 검색 계약이 ID·제목만 확인해 아티스트·길이·이미지가 사라져도 통과했다. 결과의 절반 이상에 존재하는지로 필드 계약을 추가했다.
+- 메운 구멍 2: 스트림 계약이 파일 앞부분만 요청해 "앞부분만 되는 주소"를 통과시켰다. Gate와 같은 중간 지점 기준으로 바꿨다.
+- 메운 구멍 3: 오류 경로 계약이 없었다. 없는 트랙이 재생 불가로 분류되는지, 결과 없음이 실패로 바뀌지 않는지를 실제 응답으로 확인한다. 실행 결과 없는 트랙은 NotFound → PlaybackUnavailable로 KM-060 매핑과 일치했다.
+- 계약 7개 전부 통과(검색 3·스트림 1·오류 2·Gate 1). README에 각 검사가 지키는 것과 깨졌을 때의 증상을 표로 정리했다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 17초). 단위 58개·실제 계약 7개·실기기 계측 29개.
+- 함께 고친 것: 계측 4개가 MusicService에 연결하면서 HiltAndroidRule이 없어 순서에 따라 간헐적으로 실패했다. 네 곳에 규칙을 추가했다.
+- 결정은 ADR-041에 기록했다.
 
 Goal:
 

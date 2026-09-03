@@ -1,15 +1,22 @@
 package com.keuney.music.core.player
 
 import androidx.test.platform.app.InstrumentationRegistry
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
+@HiltAndroidTest
 class TestAudioPlaybackTest {
+    @get:Rule
+    val hilt = HiltAndroidRule(this)
+
     @Test
     fun testAudioPlaysPausesSeeksAndResumes(): Unit = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
