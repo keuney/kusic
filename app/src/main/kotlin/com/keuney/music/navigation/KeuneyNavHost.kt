@@ -30,7 +30,7 @@ import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.feature.player.MiniPlayer
 import com.keuney.music.feature.player.PlayerViewModel
-import com.keuney.music.feature.player.TestPlaybackScreen
+import com.keuney.music.feature.player.NowPlayingScreen
 import com.keuney.music.feature.search.SearchScreen
 import com.keuney.music.feature.search.SearchViewModel
 
@@ -52,12 +52,15 @@ internal fun KeuneyNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val connected = connection == ConnectionState.Connected
     val nowPlaying = playback.nowPlaying
+    val onNowPlaying = currentRoute == NOW_PLAYING_ROUTE
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            Column {
-                // 전체 화면 플레이어에서는 접는다. 같은 것을 위아래로 두 번 보여주지 않는다.
-                if (nowPlaying != null && currentRoute != NOW_PLAYING_ROUTE) {
+            // 전체 화면 플레이어는 하단을 비워 앨범 이미지에 자리를 준다. 뒤로 가기와 화면 안의
+            // 뒤로 버튼으로 떠났던 탭으로 돌아간다.
+            if (!onNowPlaying) Column {
+                // 같은 것을 위아래로 두 번 보여주지 않는다.
+                if (nowPlaying != null) {
                     HorizontalDivider()
                     MiniPlayer(
                         nowPlaying = nowPlaying,
@@ -97,8 +100,12 @@ internal fun KeuneyNavHost(
                 )
             }
             composable(TopLevelDestination.Library.route) { NotReadyScreen() }
-            // 실제 Now Playing 화면은 KM-092다. 그때까지 기존 재생 확인 화면을 둔다.
-            composable(NOW_PLAYING_ROUTE) { TestPlaybackScreen(playerViewModel) }
+            composable(NOW_PLAYING_ROUTE) {
+                NowPlayingScreen(
+                    viewModel = playerViewModel,
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
     }
 }

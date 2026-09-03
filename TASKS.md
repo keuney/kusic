@@ -18,9 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 48 / 미착수 29. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 29에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 49 / 미착수 28. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 28에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-092 (Now Playing screen).** 사용자와 정한 것: KM-150을 앞당겨 화면 전환을 이미 붙였고, favorite·queue 버튼은 자리만 두고 동작은 각 소속 작업(KM-112 즐겨찾기, KM-097 Queue UI)까지 미룬다. 현재 `now-playing` 목적지에는 임시 `feature/player/TestPlaybackScreen`이 있으며 KM-092가 이를 대체한다. 착수 시 함께 정할 것: 전체 화면에서 하단 내비게이션을 감출지(지금은 보인다). WiFi 전용 스위치는 지금 이 화면에 있고 설정 화면(KM-153)이 생기면 옮긴다.
+**다음 작업: KM-093 (Seek).** 인수 조건은 drag seek·controller updates player·progress remains synchronized다. 끌어서 탐색은 `NowPlayingScreen`에 이미 동작하며(끌는 동안 손가락 위치의 시간을 보여주고 손을 떼면 `seekTo`) 실기기 계측 `TestAudioPlaybackTest`가 30초 탐색을 확인한다. 즉 이 작업의 실제 내용은 인수 조건 세 개를 명시적으로 확인하고 부족한 부분을 메우는 것이다. 착수 전에 정해야 할 미결 사항은 없다.
+
+**M6 진행 상황:** KM-090·091·092 완료. 남은 것은 KM-093(Seek)·094(이전/다음)·095(셔플)·096(반복)·097(Queue UI)다. KM-090에서 반복·셔플 상태는 이미 읽히고 있으며 토글 조작이 KM-095·096 몫이다.
+
+**화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing의 즐겨찾기·대기열 버튼은 비활성이며 KM-112·097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
@@ -1196,7 +1200,19 @@ tap opens Now Playing
 
 KM-092 — Now Playing screen
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): feature/player/NowPlayingScreen이 임시 TestPlaybackScreen을 대체하고 그 파일을 지웠다.
+
+- 인수 조건: artwork PASS, title PASS, artist PASS, transport controls PASS(재생·일시정지), progress PASS(슬라이더와 위치·길이). favorite·queue button은 **자리만 두고 비활성**이다.
+- 즐겨찾기·대기열 동작은 사용자와 합의해 각 소속 작업으로 미뤘다. 즐겨찾기 저장은 KM-112, 대기열 화면은 KM-097이다. 반응 없는 버튼은 고장으로 보이므로 비활성으로 두고 "아직 준비되지 않은 기능입니다."를 함께 적었다.
+- 이전·다음은 두지 않았다. KM-094가 UI·알림·잠금화면을 함께 다루는 작업이라 UI만 먼저 만들면 반쪽으로 시작된다. 끌어서 탐색은 이미 동작하며 인수 조건 확인은 KM-093이다.
+- 전체 화면에서는 하단 내비게이션을 감춘다. 앨범 이미지가 화면 폭 전체의 정사각형이라 자리가 필요하다. 화면 안에 뒤로 버튼을 두었다. KM-150에서 미뤄 둔 판단이다.
+- 화면을 세로로 흘린다. 제목 두 줄이나 요금제 안내가 붙으면 세로가 모자랄 수 있다.
+- WiFi 전용 스위치는 이 화면에 남겼다. 설정 화면이 KM-153이라 지금 없애면 KM-137 기능에 닿을 길이 사라진다.
+- 단위·계측 검사를 새로 넣지 않았다. 화면 배치 작업이며 상태 매핑은 KM-090, 세션 이미지는 KM-091이 검사한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 50초). 단위 110개·실제 계약 7개·실기기 계측 28개. 린트 오류 0·경고 22.
+- 결정은 ADR-050에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 
