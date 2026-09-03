@@ -1,6 +1,5 @@
 package com.keuney.music.feature.player
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,11 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -20,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,22 +23,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.keuney.music.R
-import com.keuney.music.core.model.AppError
-import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
-import com.keuney.music.feature.search.SearchUiState
+import com.keuney.music.feature.search.SearchScreen
 import com.keuney.music.feature.search.SearchViewModel
+import com.keuney.music.ui.format.formatDuration
 
 @Composable
 internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: SearchViewModel) {
     val connection by viewModel.connectionState.collectAsStateWithLifecycle()
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
-    val search by searchViewModel.state.collectAsStateWithLifecycle()
     val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
     val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
-    var query by rememberSaveable { mutableStateOf("") }
     val connected = connection == ConnectionState.Connected
     val pauseAction = playback.playWhenReady &&
         playback.phase != PlaybackPhase.Ended && playback.phase != PlaybackPhase.Unavailable
@@ -78,7 +70,7 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: Sea
             valueRange = 0f..playback.durationMs.coerceAtLeast(1).toFloat(),
             enabled = connected && playback.durationMs > 0,
         )
-        Text("${formatTime(playback.positionMs)} / ${formatTime(playback.durationMs)}")
+        Text("${formatDuration(playback.positionMs)} / ${formatDuration(playback.durationMs)}")
         if (connection == ConnectionState.Unavailable) {
             Button(onClick = viewModel::connect) { Text(stringResource(R.string.player_retry)) }
         } else {
@@ -104,70 +96,11 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: Sea
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            label = { Text(stringResource(R.string.search_hint)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(onClick = { searchViewModel.search(query) }, enabled = query.isNotBlank()) {
-            Text(stringResource(R.string.search_action))
-        }
-        SearchResults(
-            state = search,
-            enabled = connected,
+        SearchScreen(
+            viewModel = searchViewModel,
+            selectEnabled = connected,
             onSelect = viewModel::playTrack,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
     }
-}
-
-@Composable
-private fun SearchResults(
-    state: SearchUiState,
-    enabled: Boolean,
-    onSelect: (Track) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    when (state) {
-        SearchUiState.Idle -> Column(modifier) {}
-        SearchUiState.Loading -> Text(stringResource(R.string.search_searching), modifier = modifier)
-        SearchUiState.Empty -> Text(stringResource(R.string.search_empty), modifier = modifier)
-        is SearchUiState.Error -> Text(stringResource(state.error.messageRes()), modifier = modifier)
-        is SearchUiState.Success -> LazyColumn(
-            modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items(state.tracks, key = Track::id) { track ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = enabled) { onSelect(track) }
-                        .padding(vertical = 8.dp),
-                ) {
-                    Text(track.title, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        listOfNotNull(track.artist.takeIf(String::isNotBlank), track.durationMs?.let(::formatTime))
-                            .joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** 사용자에게 보여줄 문구. 원문 예외나 응답 내용은 여기까지 오지 않는다. */
-private fun AppError.messageRes(): Int = when (this) {
-    AppError.Network -> R.string.error_network
-    AppError.SourceUnavailable -> R.string.error_source_unavailable
-    AppError.PlaybackUnavailable -> R.string.error_playback_unavailable
-    AppError.GeoRestricted -> R.string.error_geo_restricted
-    AppError.Unknown -> R.string.error_unknown
-}
-
-private fun formatTime(milliseconds: Long): String {
-    val seconds = milliseconds / 1000
-    return "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
 }

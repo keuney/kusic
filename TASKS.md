@@ -14,18 +14,15 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 ---
 
-## 재개 지점 (2026-09-02 기준)
+## 재개 지점 (2026-09-03 기준)
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 42 / 미착수 34. 보류 없음. 작업 트리 깨끗하고 브랜치는 master 하나.**
+**현재: 완료 43 / 미착수 34. 보류 없음. 작업 트리 깨끗하고 브랜치는 master 하나.** 상태 표시를 세어 확인한 값이며 미착수 34에는 최종 게이트 KM-200이 포함된다. 이전 재개 지점의 "완료 42 / 미착수 34"는 이 게이트를 빼고 센 값이었다.
 
-**다음 작업: KM-072 (SearchScreen).** 착수 전에 정해야 할 것이 하나 있다. 지금 검색과 재생이 `feature/player/TestPlaybackScreen` 한 화면에 섞여 있는데, 화면을 진짜로 나누려면 화면 전환이 필요하고 내비게이션은 KM-150(M9) 소속이다. 두 가지 길이 있다.
+**다음 작업: KM-073 (SearchResultList).** 결과 항목을 컴포저블로 빼고 앨범 이미지·제목·아티스트·아는 경우의 길이를 보여준다. 현재 결과 목록은 `feature/search/SearchScreen` 안의 private `SearchResults`에 있고 제목·아티스트·길이만 문자열로 그린다. 이미지 표시에 쓸 `ui/components/Artwork`(Coil)는 이미 있다. 착수 전에 정해야 할 미결 사항은 없다.
 
-1. KM-072에서 검색 화면을 컴포저블로만 분리하고 배치는 현재대로 둔다. 내비게이션은 KM-150에서 붙인다. (백로그 순서 유지)
-2. KM-150을 당겨와 내비게이션부터 넣고 화면을 실제로 분리한다.
-
-사용자와 합의되지 않았다. 1번이 백로그 순서를 지키며 되돌리기도 쉽다.
+**KM-072에서 정한 것:** 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀다. 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이며 사용자와 합의한 순서다.
 
 **진행 방식(이 세션에서 사용자와 합의한 것):**
 
@@ -1047,7 +1044,18 @@ StateFlow
 
 KM-072 — SearchScreen
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 검색어 입력과 결과 표시를 feature/search/SearchScreen으로 옮겼다. TestPlaybackScreen에는 재생 제어만 남는다.
+
+- 인수 조건: query input PASS, Search action PASS(버튼과 키보드 ImeAction.Search), loading PASS(진행 표시와 문구), error PASS(오류 색 문구), empty state PASS. 다섯 상태 모두 실기기에서 확인했다.
+- 착수 전 미결 사항은 사용자와 합의했다. 화면을 컴포저블로만 분리하고 배치는 현재대로 둔다. 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150이다.
+- 검색 화면은 SearchViewModel만 알고 선택은 onSelect 콜백으로 넘긴다. 재생 의존성이 검색 화면에 들어가지 않는다.
+- 검색어는 화면의 rememberSaveable 상태다. 검색어를 비우면 clear()로 이전 결과도 치운다.
+- 분:초 표기를 ui/format/formatDuration으로 합쳤다. 이전에는 재생 위치와 결과 목록의 길이가 같은 규칙을 각각 계산했다. 단위 6개 추가.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 38초). 단위 79개·실제 계약 7개·실기기 계측 26개. 린트 오류 0.
+- 실기기 SM-T220 / Android 14 확인: Idle → 검색 → Loading → Success(길이 18:24 등) → 검색어 삭제 시 Idle 복귀 → 없는 검색어로 Empty → WiFi 차단 후 Error. 확인 후 WiFi를 되돌렸다.
+- 결정은 ADR-044에 기록했다. 신규 의존성 없음. 결과 목록 항목 구성은 KM-073이다.
 
 Goal:
 

@@ -265,6 +265,17 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-044 — 검색 화면 분리 (KM-072)
+
+- 검색어 입력과 결과 표시를 `feature/search/SearchScreen`으로 옮겼다. `TestPlaybackScreen`에는 재생 제어만 남는다. 검색 화면은 `SearchViewModel`만 알고, 결과를 고른 뒤 무엇을 할지는 `onSelect` 콜백으로 밖에 맡긴다. 재생 의존성을 검색 화면에 들이지 않는다.
+- 화면을 파일로만 나누고 배치는 그대로 뒀다. 진짜로 두 화면을 만들려면 화면 전환이 필요하고 내비게이션은 KM-150(M9) 범위다. 백로그 순서를 지키고 되돌리기 쉬운 쪽을 골랐다. 사용자와 합의한 선택이다.
+- 검색어는 화면의 `rememberSaveable` 상태로 둔다. ViewModel로 올리면 회전·프로세스 복원 처리를 직접 짜야 하고, 입력 중 글자마다 상태 갱신이 검색 상태 흐름과 섞인다. 검색 결과와 달리 입력 중인 글자는 화면 밖에서 쓰이지 않는다.
+- 검색어를 비우면 `SearchViewModel.clear()`를 불러 이전 결과도 치운다. 빈 입력창 아래 옛 결과가 남아 있으면 화면이 거짓말을 한다.
+- 키보드에 `ImeAction.Search`를 붙여 입력 직후 바로 검색할 수 있게 했다. 검색 버튼과 같은 동작이며 버튼은 그대로 둔다.
+- 다섯 상태를 모두 그린다. Loading은 진행 표시와 문구, Empty와 Error는 문구로 알린다. Error는 오류 색을 쓰고 `AppError`를 문자열 리소스로만 바꿔 보여준다. 원문 예외나 응답 내용은 화면까지 오지 않는다(AGENTS.md 12).
+- `분:초` 표기를 `ui/format/formatDuration`으로 옮겼다. 이전에는 재생 위치와 곡 길이가 같은 규칙을 각각 계산했다. 한곳에 두고 단위 검사로 고정했다.
+- 결과 목록은 이번에 옮기기만 했다. 앨범 이미지를 포함한 항목 구성은 KM-073 범위이므로 여기서 만들지 않는다.
+
 ### ADR-043 — SearchViewModel 분리 (KM-071)
 
 - 검색을 `PlayerViewModel`에서 떼어 `feature/search/SearchViewModel`로 옮겼다. 상태 이름을 TASKS의 정의에 맞춰 Idle/Loading/Success/Empty/Error로 바꿨다. 상태는 `StateFlow`로만 노출하고 화면은 읽기만 한다(AGENTS.md 11).

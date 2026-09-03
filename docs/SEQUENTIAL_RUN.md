@@ -371,3 +371,16 @@
 - 화면은 아직 POC 하나이며 두 ViewModel을 함께 받는다. MainActivity가 둘 다 만들어 전달한다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(6분 20초). 단위 73개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 19.
 - 결정 ADR-043. 검색 화면 분리는 KM-072, 결과 목록 추출은 KM-073이다. push는 하지 않았다.
+
+## KM-072 완료 — SearchScreen
+
+- 브랜치 `codex/KM-072-search-screen`. 검색어 입력과 결과 표시를 `feature/search/SearchScreen`으로 옮겼다. `TestPlaybackScreen`에는 재생 제어만 남고 검색 화면을 자리만 잡아 넣는다.
+- 착수 전 미결 사항이었던 배치 문제는 사용자와 합의했다. 화면을 컴포저블로만 분리하고 배치는 현재대로 둔다. 내비게이션으로 실제 두 화면을 만드는 것은 KM-150 범위다. 백로그 순서를 지키고 되돌리기 쉬운 쪽이다.
+- 검색 화면은 `SearchViewModel`만 알고 `onSelect` 콜백으로 선택을 밖에 넘긴다. 재생 의존성이 검색 화면에 들어가지 않는다.
+- 검색어는 화면의 `rememberSaveable` 상태다. 검색어를 비우면 `clear()`로 이전 결과도 치운다. 빈 입력창 아래 옛 결과가 남지 않게 한다.
+- 키보드에 `ImeAction.Search`를 붙였다. 검색 버튼과 같은 동작이며 버튼은 그대로 둔다.
+- `분:초` 표기를 `ui/format/formatDuration`으로 합쳤다. 이전에는 재생 위치·곡 길이와 결과 목록의 길이가 같은 규칙을 각각 계산했다. 단위 6개 추가: 0, 10초 미만 두 자리 유지, 초 절삭, 60초 분 올림, 한 시간 초과, 음수는 0.
+- 결과 목록은 옮기기만 했다. 앨범 이미지를 포함한 항목 구성은 KM-073이다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 38초). 단위 79개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 20(신규 파일에서 발생한 경고 없음).
+- 실기기 SM-T220 / Android 14에서 다섯 상태를 눈으로 확인했다. Idle(결과 없음), 입력 후 검색 버튼 → Loading(진행 표시와 "검색 중"), Success(제목·아티스트·길이 18:24/3:42/5:07), 검색어 삭제 → Idle 복귀와 버튼 비활성, 없는 검색어를 키보드 검색 키로 실행 → Empty("결과가 없습니다."), WiFi를 끈 뒤 검색 → Error(오류 색 "네트워크에 연결할 수 없습니다."). 확인 후 WiFi를 되돌려 연결을 확인했다. 화면 캡처는 captures/km-072에 보관했다(저장소 추적 대상 아님).
+- 결정 ADR-044. 신규 의존성 없음. 결과 목록 추출은 KM-073, 최근 검색어 저장은 KM-074다. push는 하지 않았다.
