@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -26,7 +27,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +47,9 @@ import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
 import com.keuney.music.core.player.RepeatMode
+import com.keuney.music.feature.library.AddToPlaylistDialog
 import com.keuney.music.feature.library.LibraryViewModel
+import com.keuney.music.feature.library.PlaylistNameDialog
 import com.keuney.music.ui.components.Artwork
 import com.keuney.music.ui.format.formatDuration
 
@@ -73,6 +78,9 @@ internal fun NowPlayingScreen(
         nowPlaying?.let { libraryViewModel.isFavorite(it.mediaId) } ?: flowOf(false)
     }
     val isFavorite by favoriteFlow.collectAsStateWithLifecycle(false)
+    val playlists by libraryViewModel.playlists.collectAsStateWithLifecycle()
+    var addingToPlaylist by remember { mutableStateOf(false) }
+    var namingNewPlaylist by remember { mutableStateOf(false) }
     // 손가락 → 아직 도달하지 않은 탐색 목표 → 실제 위치 순으로 고른다.
     val shownPositionMs = seekDisplayPositionMs(
         reportedMs = playback.positionMs,
@@ -185,6 +193,9 @@ internal fun NowPlayingScreen(
             ) {
                 Text(stringResource(R.string.player_next))
             }
+            IconButton(onClick = { addingToPlaylist = true }, enabled = nowPlaying != null) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.playlist_add_track))
+            }
             IconButton(onClick = onOpenQueue, enabled = connected) {
                 Icon(Icons.Filled.List, contentDescription = stringResource(R.string.player_queue))
             }
@@ -221,6 +232,33 @@ internal fun NowPlayingScreen(
                 color = MaterialTheme.colorScheme.error,
             )
         }
+    }
+    val currentTrack = nowPlaying?.toTrack(playback.durationMs)
+    if (addingToPlaylist && currentTrack != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onSelect = {
+                libraryViewModel.addToPlaylist(it.id, currentTrack)
+                addingToPlaylist = false
+            },
+            onCreateNew = {
+                addingToPlaylist = false
+                namingNewPlaylist = true
+            },
+            onDismiss = { addingToPlaylist = false },
+        )
+    }
+    if (namingNewPlaylist && currentTrack != null) {
+        // 새 재생목록을 만들고 그 곡을 바로 담는다. 만들고 다시 고르게 하면 두 번 묻는 셈이다.
+        PlaylistNameDialog(
+            titleRes = R.string.playlist_create_title,
+            initialName = "",
+            onConfirm = {
+                libraryViewModel.createPlaylistWith(it, currentTrack)
+                namingNewPlaylist = false
+            },
+            onDismiss = { namingNewPlaylist = false },
+        )
     }
 }
 

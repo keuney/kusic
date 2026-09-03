@@ -602,3 +602,19 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 53초). 단위 147개·실제 계약 7개·실기기 계측 43개, 실패/오류 0. 린트 오류 0·경고 22.
 - 실기기 SM-T220 / Android 14 확인: 곡을 재생하고 하트를 누르면 설명이 "즐겨찾기"에서 "즐겨찾기 해제"로 바뀌고 아이콘이 채워진다. 라이브러리 탭에 그 곡이 앨범 이미지·제목·"1theK (원더케이) · 3:41"과 함께 나온다. 앱을 force-stop하고 다시 켜도 그대로 남는다(인수 조건 app restart persistence PASS). 이때 기기에 실제 `keuney.db` 파일이 처음 만들어진 것도 확인했다. 라이브러리 항목을 누르면 그 곡이 재생되고(PLAYING), Now Playing에서 하트를 다시 누르면 라이브러리가 "즐겨찾기한 곡이 없습니다."로 돌아간다. 확인 후 즐겨찾기를 해제해 기기 데이터를 원래대로 남겼다. 화면 캡처는 captures/km-112에 보관했다(저장소 추적 대상 아님).
 - 결정 ADR-058. 신규 의존성 없음. 다음은 KM-113 Playlists다.
+
+## KM-113 완료 — Playlists
+
+- 브랜치 `codex/KM-113-playlists`. 방향은 내가 정했다. 재생목록 목록은 라이브러리 탭의 두 번째 구획, 한 재생목록의 곡 목록은 전체 화면 목적지 `playlist/{id}`, 곡을 담는 진입점은 Now Playing이다.
+- `feature/library/PlaylistScreen`과 `PlaylistDialogs`(이름 입력·담을 곳 고르기)를 추가하고 `LibraryScreen`에 재생목록 구획을 더했다. 이 프로젝트에서 대화상자가 처음 등장한다.
+- 이름 바꾸기·삭제는 재생목록 화면에, 곡 빼기는 그 화면의 줄마다 뒀다. 목록의 줄에 삭제를 붙이면 실수로 누르기 쉽고 되돌릴 방법이 없다.
+- 삭제에 확인을 묻지 않는다. 대신 한 번 더 들어가야 닿는 자리에 뒀다. 대화상자를 셋으로 늘리지 않기 위한 선택이며 되돌리기가 없다는 점은 남는 위험이다.
+- 담기 대화상자에서 새 재생목록을 고르면 만들고 그 곡을 바로 담는다. 만든 뒤 다시 고르게 하면 같은 것을 두 번 묻는 셈이다.
+- 빈 이름으로는 만들거나 바꿀 수 없고 앞뒤 공백은 잘라낸다. 같은 이름은 막지 않는다.
+- 재생목록 화면의 곡을 누르면 그 곡부터 재생하고 재생목록 전체가 대기열이 된다. 누르면 아무 일도 없는 줄을 두지 않기 위해 연결했다. 이어 듣기와 이전·다음 확인은 KM-114다.
+- 두 구획이 한 `LazyColumn` 안에서 함께 흐른다. 구획마다 스크롤을 주면 같은 방향으로 겹친 스크롤이 되고 Compose가 허용하지 않는다.
+- 단위 6개 추가: 재생목록 목록이 저장소를 따라감, 만들 때 이름 trim과 빈 이름 무시, 새 목록에 곡 바로 담기, 빈 이름이면 만들지도 담지도 않음, 이름 바꾸기 trim과 빈 이름 무시, 담기·빼기·삭제가 저장소까지 닿음.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 7초). 단위 153개·실제 계약 7개·실기기 계측 43개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 SM-T220 / Android 14에서 인수 조건 다섯 개를 확인했다. 만들기로 "morning"(0곡) 생성 → Now Playing의 담기 버튼으로 그 목록에 담아 "1곡" → 재생목록 화면에서 이름을 "evening"으로 바꿈 → 곡을 빼서 "담긴 곡이 없습니다." → 삭제하면 라이브러리로 돌아오고 "재생목록이 없습니다."가 된다. 확인 후 기기 데이터는 비어 있는 상태로 남았다. 화면 캡처는 captures/km-113에 보관했다(저장소 추적 대상 아님).
+- 함정: 대화상자의 입력창을 누르면 소프트 키보드가 확인·취소 버튼을 덮는다. 좌표로 조작할 때는 글자를 넣은 뒤 뒤로 가기로 키보드를 내리고 다시 좌표를 확인해야 한다. 처음에는 키보드에 가려진 자리를 눌러 대화상자만 닫혔다.
+- 결정 ADR-059. 신규 의존성 없음. 다음은 KM-114 Playlist playback이다.

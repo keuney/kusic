@@ -24,3 +24,9 @@ internal const val NOW_PLAYING_ROUTE = "now-playing"
 
 /** 전체 화면 플레이어의 대기열 버튼으로 들어온다. */
 internal const val QUEUE_ROUTE = "queue"
+
+/** 라이브러리의 재생목록을 눌러 들어온다. */
+internal const val PLAYLIST_ID_ARG = "playlistId"
+internal const val PLAYLIST_ROUTE = "playlist/{$PLAYLIST_ID_ARG}"
+
+internal fun playlistRoute(playlistId: Long) = "playlist/$playlistId"

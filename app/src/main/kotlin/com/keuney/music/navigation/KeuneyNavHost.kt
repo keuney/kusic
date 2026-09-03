@@ -23,7 +23,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.keuney.music.R
@@ -32,6 +34,7 @@ import com.keuney.music.feature.player.MiniPlayer
 import com.keuney.music.feature.player.PlayerViewModel
 import com.keuney.music.feature.library.LibraryScreen
 import com.keuney.music.feature.library.LibraryViewModel
+import com.keuney.music.feature.library.PlaylistScreen
 import com.keuney.music.feature.player.NowPlayingScreen
 import com.keuney.music.feature.player.QueueScreen
 import com.keuney.music.feature.search.SearchScreen
@@ -57,7 +60,7 @@ internal fun KeuneyNavHost(
     val connected = connection == ConnectionState.Connected
     val nowPlaying = playback.nowPlaying
     // 전체 화면 목적지에서는 하단을 비운다.
-    val onFullScreen = currentRoute == NOW_PLAYING_ROUTE || currentRoute == QUEUE_ROUTE
+    val onFullScreen = currentRoute in setOf(NOW_PLAYING_ROUTE, QUEUE_ROUTE, PLAYLIST_ROUTE)
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -110,6 +113,7 @@ internal fun KeuneyNavHost(
                     viewModel = libraryViewModel,
                     selectEnabled = connected,
                     onSelect = playerViewModel::playTracks,
+                    onOpenPlaylist = { navController.navigate(playlistRoute(it)) },
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
             }
@@ -119,6 +123,18 @@ internal fun KeuneyNavHost(
                     libraryViewModel = libraryViewModel,
                     onBack = { navController.popBackStack() },
                     onOpenQueue = { navController.navigate(QUEUE_ROUTE) },
+                )
+            }
+            composable(
+                route = PLAYLIST_ROUTE,
+                arguments = listOf(navArgument(PLAYLIST_ID_ARG) { type = NavType.LongType }),
+            ) { entry ->
+                PlaylistScreen(
+                    viewModel = libraryViewModel,
+                    playlistId = entry.arguments?.getLong(PLAYLIST_ID_ARG) ?: 0L,
+                    selectEnabled = connected,
+                    onSelect = playerViewModel::playTracks,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(QUEUE_ROUTE) {

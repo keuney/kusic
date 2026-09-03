@@ -78,6 +78,78 @@ class LibraryViewModelTest {
         assertFalse("다른 곡까지 즐겨찾기로 보면 안 된다", viewModel.isFavorite("b").first())
     }
 
+    @Test
+    fun playlistsFollowTheRepository() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<Playlist>(), viewModel.playlists.value)
+
+        repository.playlistRows.value = listOf(Playlist(1, "출근길", 2))
+        advanceUntilIdle()
+
+        assertEquals(listOf(Playlist(1, "출근길", 2)), viewModel.playlists.value)
+    }
+
+    @Test
+    fun createTrimsTheNameAndIgnoresBlank() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+
+        viewModel.createPlaylist("  출근길  ")
+        viewModel.createPlaylist("   ")
+        viewModel.createPlaylist("")
+        advanceUntilIdle()
+
+        // 이름 없는 재생목록이 생기면 지울 수밖에 없다.
+        assertEquals(listOf("출근길"), repository.created)
+    }
+
+    @Test
+    fun creatingWithATrackAddsItRightAway() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+
+        viewModel.createPlaylistWith("출근길", track("a"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("출근길"), repository.created)
+        assertEquals(listOf(1L to "a"), repository.added.map { it.first to it.second.id })
+    }
+
+    @Test
+    fun creatingWithATrackIgnoresABlankName() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+
+        viewModel.createPlaylistWith("   ", track("a"))
+        advanceUntilIdle()
+
+        assertTrue(repository.created.isEmpty())
+        assertTrue(repository.added.isEmpty())
+    }
+
+    @Test
+    fun renameTrimsTheNameAndIgnoresBlank() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+
+        viewModel.renamePlaylist(1, "  퇴근길  ")
+        viewModel.renamePlaylist(1, "  ")
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L to "퇴근길"), repository.renamed)
+    }
+
+    @Test
+    fun addRemoveAndDeleteReachTheRepository() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+
+        viewModel.addToPlaylist(1, track("a"))
+        viewModel.removeFromPlaylist(1, "a")
+        viewModel.deletePlaylist(1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L to "a"), repository.added.map { it.first to it.second.id })
+        assertEquals(listOf(1L to "a"), repository.removed)
+        assertEquals(listOf(1L), repository.deleted)
+    }
+
     private fun track(id: String) =
         Track(id, "제목 $id", "아티스트", null, 180_000, SourceType.Remote)
 
@@ -94,13 +166,37 @@ class LibraryViewModelTest {
             calls += track to favorite
         }
 
-        override val playlists: Flow<List<Playlist>> = MutableStateFlow(emptyList())
+        val playlistRows = MutableStateFlow(emptyList<Playlist>())
+        val created = mutableListOf<String>()
+        val renamed = mutableListOf<Pair<Long, String>>()
+        val deleted = mutableListOf<Long>()
+        val added = mutableListOf<Pair<Long, Track>>()
+        val removed = mutableListOf<Pair<Long, String>>()
+
+        override val playlists: Flow<List<Playlist>> = playlistRows
+
         override fun playlistTracks(playlistId: Long): Flow<List<Track>> = MutableStateFlow(emptyList())
-        override suspend fun createPlaylist(name: String): Long = 0
-        override suspend fun renamePlaylist(playlistId: Long, name: String) = Unit
-        override suspend fun deletePlaylist(playlistId: Long) = Unit
-        override suspend fun addToPlaylist(playlistId: Long, track: Track) = Unit
-        override suspend fun removeFromPlaylist(playlistId: Long, trackId: String) = Unit
+
+        override suspend fun createPlaylist(name: String): Long {
+            created += name
+            return created.size.toLong()
+        }
+
+        override suspend fun renamePlaylist(playlistId: Long, name: String) {
+            renamed += playlistId to name
+        }
+
+        override suspend fun deletePlaylist(playlistId: Long) {
+            deleted += playlistId
+        }
+
+        override suspend fun addToPlaylist(playlistId: Long, track: Track) {
+            added += playlistId to track
+        }
+
+        override suspend fun removeFromPlaylist(playlistId: Long, trackId: String) {
+            removed += playlistId to trackId
+        }
         override fun recentlyPlayed(limit: Int): Flow<List<Track>> = MutableStateFlow(emptyList())
         override suspend fun recordPlayback(track: Track) = Unit
         override suspend fun clearPlaybackHistory() = Unit

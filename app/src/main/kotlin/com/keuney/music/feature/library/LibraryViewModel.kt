@@ -3,6 +3,7 @@ package com.keuney.music.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.keuney.music.core.library.LibraryRepository
+import com.keuney.music.core.model.Playlist
 import com.keuney.music.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -36,5 +37,47 @@ internal class LibraryViewModel @Inject constructor(
 
     fun setFavorite(track: Track, favorite: Boolean) {
         viewModelScope.launch { repository.setFavorite(track, favorite) }
+    }
+
+    /** 재생목록 목록. 최근에 만든 것부터 오고 담긴 곡 수를 함께 준다. */
+    val playlists: StateFlow<List<Playlist>> = repository.playlists
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** 한 재생목록의 곡. 담은 자리 순서대로 온다. */
+    fun playlistTracks(playlistId: Long): Flow<List<Track>> = repository.playlistTracks(playlistId)
+
+    /**
+     * 재생목록을 만든다. 빈 이름은 만들지 않는다. 목록에 이름 없는 줄이 생기면 지울 수밖에 없다.
+     * 같은 이름은 막지 않는다. 그것은 사용자의 선택이다.
+     */
+    fun createPlaylist(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { repository.createPlaylist(trimmed) }
+    }
+
+    /** 만든 재생목록에 곡을 바로 담는다. 담기 대화상자에서 새 목록을 고를 때 쓴다. */
+    fun createPlaylistWith(name: String, track: Track) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { repository.addToPlaylist(repository.createPlaylist(trimmed), track) }
+    }
+
+    fun renamePlaylist(playlistId: Long, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch { repository.renamePlaylist(playlistId, trimmed) }
+    }
+
+    fun deletePlaylist(playlistId: Long) {
+        viewModelScope.launch { repository.deletePlaylist(playlistId) }
+    }
+
+    fun addToPlaylist(playlistId: Long, track: Track) {
+        viewModelScope.launch { repository.addToPlaylist(playlistId, track) }
+    }
+
+    fun removeFromPlaylist(playlistId: Long, trackId: String) {
+        viewModelScope.launch { repository.removeFromPlaylist(playlistId, trackId) }
     }
 }
