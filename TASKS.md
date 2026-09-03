@@ -18,13 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 58 / 미착수 19. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 19에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 59 / 미착수 18. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 18에는 최종 게이트 KM-200이 포함된다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110~113 완료).**
+**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110~114 완료).**
 
-**다음 작업: KM-114 (Playlist playback).** 인수 조건은 playlist → Media3 queue·sequential playback·next/previous다. KM-113에서 재생목록 화면의 곡을 누르면 이미 목록 전체가 대기열이 되므로 첫 조건은 사실상 되어 있다. 이 작업의 실제 내용은 **여러 곡 대기열에서 이어 듣기와 이전·다음을 확인하는 것**이다. KM-094는 대기열에 한 곡뿐이라 곡 간 이동을 검증할 수 없었고 그 확인이 여기로 넘어왔다. 착수 전에 정해야 할 미결 사항은 없다.
+**다음 작업: KM-115 (Playback history).** 인수 조건은 successful playback 기록·Recently Played·clear history·duplicate policy documented다. 데이터 계층은 KM-111이 만들었다(`recordPlayback`·`recentlyPlayed`·`clearPlaybackHistory`, 곡별 가장 최근 시각만 남겨 묶음). 이 작업의 내용은 **언제 기록할지 정하는 것과 화면**이다. 착수 시 정할 것: (1) "successful playback"의 기준 — 재생을 시작한 순간인지, 일정 시간 이상 들었을 때인지(전자는 훑어보기만 해도 기록되고 후자는 판단 기준이 필요하다), (2) 기록하는 자리 — `PlayerViewModel`이 재생 상태를 보다가 기록할지, 재생을 소유한 `MusicService`가 할지(반복 모드는 서비스가 설정을 보는 방식을 택했다, ADR-054), (3) 최근 재생 구획을 라이브러리 탭에 더할 위치와 clear 버튼 자리. PRD 34의 DataStore 항목에 "history enabled"가 있는데 이번에 넣을지도 정해야 한다.
 
-**KM-113에서 정한 것:** 재생목록 목록은 라이브러리 탭 구획, 곡 목록은 전체 화면 목적지 `playlist/{id}`, 담기 진입점은 Now Playing이다. 이름 바꾸기·삭제는 재생목록 화면에 있고 곡 빼기는 그 화면의 줄마다 있다. 삭제에 확인을 묻지 않으며 되돌리기도 없다.
+**KM-114에서 알게 된 것:** `connectedDebugAndroidTest`는 끝나면 앱과 앱 데이터를 기기에서 지운다. 기기 화면 확인은 그 뒤 다시 설치해야 한다. 명령 가용성(`hasNext`·`hasPrevious`)은 대기열 자리와 같은 순간에 오지 않으므로 계측에서 즉시 읽지 말고 기다려야 한다.
 
 **남은 화면 작업:** 홈(KM-151)은 자리표시자다. 라이브러리에 최근 재생 구획은 KM-115에서 더하고 화면 전체 구성은 KM-116이 다듬는다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다. 내장 테스트 음원은 artworkUri가 없어 미니 플레이어에서 자리표시자 색으로 보인다.
 
@@ -1475,7 +1475,18 @@ remove track
 
 KM-114 — Playlist playback
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 앱 코드는 바뀌지 않았다. 여러 곡 대기열에서 세 조건이 실제로 맞물리는지 확인하고 계측으로 고정했다.
+
+- 인수 조건: playlist → Media3 queue PASS(KM-113에서 이미 연결), sequential playback PASS, next/previous PASS.
+- 재생목록 → 대기열은 KM-113, 이전·다음 명령은 KM-094, 대기열 상태 노출은 KM-097이 이미 만들었다. KM-094는 대기열에 한 곡뿐이라 곡 간 이동을 확인할 수 없었고 그 확인이 여기로 넘어왔다.
+- 계측 1개 추가(PlaylistPlaybackTest). 내장 테스트 음원 두 곡 대기열로 자리 이동·이전 두 갈래·곡 끝에서 이어 듣기를 확인한다. 자리는 queueIndex로 본다.
+- 함정: 명령 가용성은 대기열·자리와 같은 순간에 오지 않는다. seekToNext 뒤 hasNext를 즉시 읽으면 아직 이전 값이다. 가용성도 기다리는 조건에 넣어야 한다.
+- 함정: connectedDebugAndroidTest는 끝나면 앱과 앱 데이터를 기기에서 지운다. 기기 화면 확인은 그 뒤 다시 설치해야 한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 5초). 단위 153개·실제 계약 7개·실기기 계측 44개. 린트 오류 0.
+- 실기기에서 실제 재생목록 두 곡을 만들어 첫 곡 재생 → 다음 버튼으로 두 번째 곡 이동을 확인했다.
+- 결정은 ADR-060에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 
