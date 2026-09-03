@@ -90,7 +90,8 @@ class MusicService : MediaLibraryService() {
      */
     private fun cachingDataSourceFactory() = CacheDataSource.Factory()
         .setCache(playbackCache.cache)
-        .setUpstreamDataSourceFactory(resolvingDataSourceFactory())
+        // 캐시 아래에 재해석 재시도를 둔다. 캐시 적중은 재시도 경로를 타지 않는다.
+        .setUpstreamDataSourceFactory(RefreshingDataSource.Factory(resolvingDataSourceFactory()))
         // 기본 조각은 5MB라 곡을 짧게 듣고 멈추면 아무것도 남지 않는다. 더 자주 확정한다.
         .setCacheWriteDataSinkFactory(
             CacheDataSink.Factory()

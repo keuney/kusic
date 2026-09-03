@@ -313,3 +313,15 @@
 - `BackgroundPlaybackTest`도 전체 실행 중 한 번 실패했으나 단독 실행에서 통과했다. 앞선 실행이 중간에 끊긴 영향으로 보이며 코드 변경과 무관하다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 10초). 단위 53개·실제 계약 5개·실기기 계측 24개, 실패/오류 0. 린트 오류 0·경고 19. Gate 판정은 해석 10/10, 중간 구간 10/10(공급자 거부 0, 전송 지연 0).
 - 결정 ADR-038. 신규 의존성 없음. 재생 중 실패의 재해석과 재시도는 KM-061, 타임아웃 값 정책은 KM-062다.
+
+## KM-061 완료 — 재생 중 스트림 재해석과 1회 재시도
+
+- 브랜치 `codex/KM-061-stream-refresh`. `RefreshingDataSource`를 캐시 안쪽·해석 바깥쪽에 넣었다. 캐시 적중은 재시도 경로를 타지 않고, 재시도는 항상 새 주소로 이뤄진다.
+- 상위 소스를 새로 여는 것이 곧 재해석이다. `ResolvingDataSource`가 열 때마다 주소를 해석하고 앱이 해석 결과를 보관하지 않기 때문에 다시 열면 새 주소가 나온다.
+- 읽던 위치부터 이어 연다. `DataSpec.subrange(읽은 바이트)`로 재요청하므로 처음부터 다시 받지 않는다. 계측에서 이어받은 내용이 원본과 바이트 단위로 일치하는지 확인한다.
+- 재시도는 열기 한 번당 1회다. 이어 연 뒤의 실패는 그대로 올려 보내 종점 오류가 된다. 계측으로 상위 소스 생성 횟수가 2를 넘지 않음을 확인해 무한 재시도가 없음을 보인다.
+- 열기 실패와 읽기 도중 실패를 모두 다룬다. ExoPlayer의 기본 정책은 403 같은 응답을 재시도 대상으로 보지 않아, 그대로 두면 재생 중 만료가 곧 종점 오류였다.
+- `PlayableStream.expiresAt`은 여전히 읽는 곳이 없다. 열 때마다 새로 해석하고 만료는 실패로 드러나 재시도로 처리되므로 시각을 미리 비교할 필요가 없다. 값은 PRD 모델 정의를 따라 유지하며 이 판단을 ADR-039에 남겼다.
+- 계측 5개 추가: 열기 실패 후 재해석, 읽기 실패 후 이어받기와 내용 일치, 열기 두 번째 실패의 종점 처리, 읽기 두 번째 실패의 종점 처리, 정상 스트림은 다시 열지 않음. 네트워크 없이 상위 소스를 흉내 내 결정적으로 검사한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 53초). 단위 53개·실제 계약 5개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19.
+- 결정 ADR-039. 신규 의존성 없음. 한계: 실제 만료 시각까지 기다리는 장시간 재생은 검증하지 않았고 KM-136의 30분 연속 재생 검사 대상이다. 타임아웃 값 정책은 KM-062다. push는 하지 않았다.

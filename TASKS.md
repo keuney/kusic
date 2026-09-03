@@ -852,7 +852,16 @@ tests required.
 
 KM-061 — Stream refresh on playback failure
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): RefreshingDataSource를 캐시 안쪽·해석 바깥쪽에 두어 재생 중 실패 시 주소를 다시 해석하고 읽던 위치부터 한 번만 이어 시도한다.
+
+- 인수 조건: first failure PASS, resolve again PASS(상위 소스를 새로 열면 재해석된다), retry once PASS, second failure → terminal error PASS, 무한 retry 없음 PASS.
+- 읽던 위치부터 이어 연다. 처음부터 다시 받지 않으며 이미 받은 구간을 버리지 않는다.
+- 열기 실패와 읽기 도중 실패를 모두 다룬다. ExoPlayer 기본 정책은 403을 재시도 대상으로 보지 않아 그대로 두면 종점 오류가 된다.
+- 계측 검사 5개 추가: 열기 실패 후 재해석, 읽기 실패 후 이어받기와 내용 일치, 열기 두 번째 실패의 종점 처리, 읽기 두 번째 실패의 종점 처리, 정상 스트림은 다시 열지 않음.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 53초). 단위 53개·실제 계약 5개·실기기 계측 29개.
+- 결정은 ADR-039에 기록했다. 신규 의존성 없음. 실제 만료 시각에 맞춘 장시간 재생 검증은 KM-136 대상이다.
 
 Goal:
 
