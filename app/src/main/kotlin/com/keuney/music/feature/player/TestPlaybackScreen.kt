@@ -71,10 +71,20 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: Sea
             enabled = connected && playback.durationMs > 0,
         )
         Text("${formatDuration(playback.positionMs)} / ${formatDuration(playback.durationMs)}")
-        if (connection == ConnectionState.Unavailable) {
-            Button(onClick = viewModel::connect) { Text(stringResource(R.string.player_retry)) }
-        } else {
-            Button(
+        val nowPlaying = playback.nowPlaying
+        when {
+            connection == ConnectionState.Unavailable ->
+                Button(onClick = viewModel::connect) { Text(stringResource(R.string.player_retry)) }
+            // 재생·일시정지는 미니 플레이어가 들고 있다. 같은 버튼을 두 곳에 두지 않는다.
+            nowPlaying != null -> MiniPlayer(
+                nowPlaying = nowPlaying,
+                isPlaying = pauseAction,
+                enabled = connected,
+                onPlayPause = { if (pauseAction) viewModel.pause() else viewModel.play() },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // 대기열이 비어 있으면 보여줄 곡이 없으므로 버튼만 둔다.
+            else -> Button(
                 onClick = { if (pauseAction) viewModel.pause() else viewModel.play() },
                 enabled = connected,
             ) {

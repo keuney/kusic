@@ -2,6 +2,7 @@ package com.keuney.music.core.player
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.MainThread
@@ -109,17 +110,20 @@ internal class PlayerConnection @Inject constructor(
         player.play()
     }
 
-    /** 대기열에는 Track ID와 metadata만 보낸다. 실제 주소는 서비스가 재생 직전에 해석한다. */
+    /**
+     * 대기열에는 Track ID와 metadata만 보낸다. 실제 재생 주소는 서비스가 재생 직전에 해석한다.
+     *
+     * [artworkUri]는 앨범 이미지 주소이며 재생 주소가 아니다. 세션에 넣으면 알림과 잠금화면도
+     * 같은 이미지를 쓴다.
+     */
     @MainThread
-    fun playTrack(trackId: String, title: String, artist: String) {
+    fun playTrack(trackId: String, title: String, artist: String, artworkUri: String? = null) {
         checkMainThread()
         val player = controller ?: return
         player.setMediaItem(
             MediaItem.Builder()
                 .setMediaId(trackId)
-                .setMediaMetadata(
-                    MediaMetadata.Builder().setTitle(title).setArtist(artist).build(),
-                )
+                .setMediaMetadata(trackMetadata(title, artist, artworkUri))
                 .build(),
         )
         player.prepare()
@@ -136,7 +140,7 @@ internal class PlayerConnection @Inject constructor(
             tracks.map { (id, title, artist) ->
                 MediaItem.Builder()
                     .setMediaId(id)
-                    .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setArtist(artist).build())
+                    .setMediaMetadata(trackMetadata(title, artist, artworkUri = null))
                     .build()
             },
         )
@@ -165,6 +169,16 @@ internal class PlayerConnection @Inject constructor(
         }
     }
 
+    /** https 주소만 넣는다. 그 밖의 스킴은 세션이 읽으려다 실패할 뿐이다. */
+    private fun trackMetadata(title: String, artist: String, artworkUri: String?): MediaMetadata =
+        MediaMetadata.Builder()
+            .setTitle(title)
+            .setArtist(artist)
+            .apply {
+                artworkUri?.takeIf { it.startsWith("https://") }?.let { setArtworkUri(Uri.parse(it)) }
+            }
+            .build()
+
     private fun updatePlayback() {
         val player = controller ?: return
         val item = player.currentMediaItem
@@ -179,6 +193,7 @@ internal class PlayerConnection @Inject constructor(
                 mediaId = item?.mediaId,
                 title = item?.mediaMetadata?.title?.toString(),
                 artist = item?.mediaMetadata?.artist?.toString(),
+                artworkUri = item?.mediaMetadata?.artworkUri?.toString(),
             ),
             repeatMode = player.repeatMode,
             shuffleEnabled = player.shuffleModeEnabled,

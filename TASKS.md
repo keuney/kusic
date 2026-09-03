@@ -18,14 +18,16 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 46 / 미착수 31. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 31에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 47 / 미착수 30. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 30에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-091 (Mini Player).** 인수 조건은 artwork·title·play/pause·tap opens Now Playing이다. 착수 전에 정할 것이 둘 있다.
+**다음 작업: KM-092 (Now Playing screen).** 인수 조건은 artwork·title·artist·transport controls·progress·favorite·queue button이다. 착수 전에 정할 것이 있다.
 
-1. **앨범 이미지.** KM-090에서 대기열 항목에 이미지 주소를 넣지 않았다(ADR-047). 미니 플레이어에 이미지를 넣으려면 `PlayerConnection.playTrack`이 `Track.artworkUrl`을 함께 보내야 하고, 그러면 알림·잠금화면 이미지가 자리표시자에서 실제 이미지로 바뀌므로 KM-037·038에서 검증한 것을 다시 확인해야 한다.
-2. **tap opens Now Playing.** 화면 전환이 필요한데 내비게이션은 KM-150(M9)이고 KM-092(Now Playing)도 아직이다. KM-072와 같은 제약이다. 미니 플레이어를 지금 화면 안에 넣고 tap 동작은 KM-092·150에서 붙이거나, KM-150을 당겨오는 두 길이 있다. KM-072에서는 백로그 순서를 지키는 쪽으로 합의했다.
+1. **화면 전환.** Now Playing은 독립 화면이어야 하는데 내비게이션은 여전히 KM-150(M9)이다. KM-072·091과 같은 제약이며, 지금까지는 백로그 순서를 지켜 왔다. 이번에는 목적 화면 자체를 만드는 작업이라 순서를 지키면 "화면은 만들되 갈 수 없는 상태"가 된다. KM-150을 당겨올지 판단이 필요하다.
+2. **favorite·queue button.** favorite는 Room 기반 즐겨찾기(KM-112, M7)가 있어야 실제로 저장된다. queue button은 Queue UI(KM-097)가 목적지다. 둘 다 이 작업보다 뒤에 있는 기능이라 버튼만 두고 동작을 비워 둘지, 해당 작업까지 미룰지 정해야 한다.
 
-**M5 검색 완료 (KM-070~074).** 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀으며, 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이다. 사용자와 합의한 순서다.
+**KM-091에서 남긴 것:** 미니 플레이어의 "tap opens Now Playing"은 KM-092·150 몫이다. 내장 테스트 음원은 artworkUri가 없어 미니 플레이어에서 자리표시자로 보인다. `playQueue`는 이미지 주소를 받지 않는다.
+
+**M5 검색 완료 (KM-070~074).** 검색과 재생이 여전히 한 화면에 함께 배치된다. 내비게이션으로 화면을 실제로 나누는 것은 KM-150(M9)이다.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
@@ -1173,7 +1175,19 @@ shuffle
 
 KM-091 — Mini Player
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): feature/player/MiniPlayer가 현재 곡의 앨범 이미지·제목·아티스트와 재생·일시정지를 한 줄로 보여준다.
+
+- 인수 조건: artwork PASS, title PASS, play/pause PASS. **tap opens Now Playing은 넣지 않았다.** 화면 전환이 필요하고 내비게이션은 KM-150, 목적 화면은 KM-092다. 사용자와 백로그 순서를 지키기로 합의했으며 아무 일도 하지 않는 탭 영역을 미리 만들지 않았다. 이 조건은 KM-092·150에서 충족된다.
+- 사용자 결정에 따라 대기열 항목에 앨범 이미지 주소를 넣었다(ADR-047에서 미뤄 둔 것). playTrack이 artworkUri를 받아 세션에 넣고 상태로 다시 읽는다. https로 시작하는 주소만 넣는다.
+- 그 결과 알림·잠금화면 이미지가 자리표시자에서 실제 이미지로 바뀌므로 KM-037·038을 재검증했다. 계측 1개와 실기기 눈 확인으로 알림·잠금화면의 제목·아티스트·이미지·진행·버튼과 잠금화면 일시정지/재생 왕복을 확인했다.
+- 미니 플레이어가 재생·일시정지를 들고 있으므로 화면의 독립 재생 버튼을 없앴다. 현재 곡이 없을 때와 연결이 끊겼을 때만 단독 버튼을 둔다.
+- 내장 테스트 음원은 artworkData만 있고 artworkUri가 없어 미니 플레이어에서는 자리표시자 색으로 보인다. 알림은 기존대로 그 데이터를 쓴다.
+- playQueue는 이미지 주소를 받지 않는다. Gate 검증용 진입점이며 제품 경로는 playTrack이다.
+- 단위 2개·계측 1개 추가(계측 27개 → 28개).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 32초). 단위 110개·실제 계약 7개·실기기 계측 28개. 린트 오류 0·경고 22(새 Uri.parse의 UseKtx 1건 증가, 기존 2건과 같은 종류).
+- 결정은 ADR-048에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 

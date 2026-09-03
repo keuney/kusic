@@ -427,3 +427,21 @@
 - 새 필드를 쓰는 화면은 아직 없다. 소비는 KM-091 Mini Player부터다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 3초). 단위 108개·실제 계약 7개·실기기 계측 27개, 실패/오류 0. 린트 오류 0·경고 21(새 코드에서 발생한 경고 없음).
 - 결정 ADR-047. 신규 의존성 없음. 다음은 KM-091 Mini Player다.
+
+## KM-091 완료 — Mini Player
+
+- 브랜치 `codex/KM-091-mini-player`. `feature/player/MiniPlayer`를 추가하고 현재 곡의 앨범 이미지·제목·아티스트와 재생·일시정지를 한 줄로 보여준다. 배치는 KM-072 제약대로 지금 화면 안이다.
+- 사용자 결정에 따라 대기열 항목에 앨범 이미지 주소를 넣었다. `playTrack`이 `artworkUri`를 받아 `MediaMetadata.setArtworkUri`로 세션에 넣고, 상태로 다시 읽는다. `https`로 시작하는 주소만 넣는다.
+- 세션에 넣은 결과로 알림·잠금화면 이미지가 자리표시자에서 실제 이미지로 바뀐다. KM-037·038 재검증을 함께 했다.
+- 미니 플레이어가 재생·일시정지를 들고 있으므로 화면의 독립 재생 버튼을 없앴다. 현재 곡이 없을 때와 연결이 끊겼을 때만 단독 버튼을 둔다. 같은 버튼을 두 곳에 두지 않는다.
+- 눌러서 Now Playing으로 가는 동작은 넣지 않았다. 내비게이션은 KM-150, 목적 화면은 KM-092다. 아무 일도 하지 않는 탭 영역을 미리 만들지 않는다. 백로그 순서를 지키기로 사용자와 합의했다.
+- 내장 테스트 음원은 `artworkData`만 있고 `artworkUri`가 없어 미니 플레이어에서는 자리표시자 색으로 보인다. 알림은 기존대로 그 데이터를 쓴다.
+- `playQueue`는 이미지 주소를 받지 않는다. Gate 검증용 진입점이고 서명이 `Triple`이라 타입을 바꿔야 한다. 제품 경로는 `playTrack`이다.
+- 단위 2개 추가: 이미지 주소가 현재 곡까지 도달, 없거나 빈 주소는 이미지 없음.
+- 계측 1개 추가(`NowPlayingArtworkTest`): 실제 검색 결과에서 이미지 주소가 있는 곡을 골라 재생하고, 상태에 주소가 그대로 돌아오는지와 알림에 제목·아티스트·PendingIntent·실제 큰 아이콘이 실리는지 확인한다. 이미지 CDN이 필요한 검사다. 계측 27개 → 28개.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 32초). 단위 110개·실제 계약 7개·실기기 계측 28개, 실패/오류 0. 린트 오류 0·경고 22.
+- 린트 경고가 21개에서 22개로 늘었다. 새로 쓴 `Uri.parse`에 대한 `UseKtx`이며 기존 두 건과 같은 종류다. androidx.core-ktx 의존성이 없어 고칠 수 없고, 이 한 줄 때문에 의존성을 넣지 않는다.
+- 실기기 SM-T220 / Android 14 눈 확인: 미니 플레이어에 실제 섬네일과 제목 "[MV] IU(아이유) _ Blueming(블루밍)"·아티스트 "1theK (원더케이)"·일시정지 버튼이 나오고 독립 재생 버튼은 없다. 알림 패널의 미디어 카드에 실제 이미지와 제목·아티스트·진행(00:32/03:41)·이전·일시정지가 표시된다. 잠금화면(keyguard showing=true)에도 같은 카드가 나오고, 카드의 일시정지를 누르면 세션이 PLAYING(3) → PAUSED(2), 다시 누르면 PAUSED(2) → PLAYING(3)으로 왕복한다. 확인 후 일시정지했다. 화면 캡처는 captures/km-091에 보관했다(저장소 추적 대상 아님).
+- 함정: 삼성 잠금화면의 미디어 카드는 `uiautomator dump`의 접근성 트리에 나오지 않는다. 스크린샷 좌표로 눌러야 하며, 상태 변화는 `dumpsys media_session`의 `state=`로 확인한다.
+- 검증 동안 화면 타임아웃을 600000으로 올리고 끝난 뒤 30000으로 되돌렸다.
+- 결정 ADR-048. 신규 의존성 없음. 다음은 KM-092 Now Playing screen이다.

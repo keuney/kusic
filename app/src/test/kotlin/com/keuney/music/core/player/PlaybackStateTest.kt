@@ -128,6 +128,21 @@ class PlaybackStateTest {
         assertTrue(state.shuffleEnabled)
     }
 
+    @Test
+    fun theArtworkAddressReachesTheCurrentTrack() {
+        assertEquals(
+            "https://example.invalid/a.jpg",
+            nowPlayingOf("track-1", "제목", "아티스트", "https://example.invalid/a.jpg")?.artworkUri,
+        )
+    }
+
+    @Test
+    fun aMissingOrBlankArtworkAddressIsNoArtwork() {
+        assertNull(nowPlayingOf("track-1", "제목", "아티스트")?.artworkUri)
+        assertNull(nowPlayingOf("track-1", "제목", "아티스트", "")?.artworkUri)
+        assertNull(nowPlayingOf("track-1", "제목", "아티스트", "   ")?.artworkUri)
+    }
+
     private fun repeatModeOf(repeatMode: Int) =
         mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, repeatMode = repeatMode)
             .repeatMode

@@ -44,8 +44,9 @@ internal class PlayerViewModel @Inject constructor(
     fun pause() = connection.pause()
     fun seekTo(positionMs: Long) = connection.seekTo(positionMs)
 
-    /** 대기열에는 Track ID와 metadata만 전달한다. 스트림 주소는 서비스가 해석한다. */
-    fun playTrack(track: Track) = connection.playTrack(track.id, track.title, track.artist)
+    /** 대기열에는 Track ID와 표시용 metadata만 전달한다. 스트림 주소는 서비스가 해석한다. */
+    fun playTrack(track: Track) =
+        connection.playTrack(track.id, track.title, track.artist, track.artworkUrl)
 
     override fun onCleared() = connection.disconnect()
 }

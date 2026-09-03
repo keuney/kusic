@@ -10,13 +10,14 @@ internal enum class RepeatMode { Off, One, All }
 /**
  * 지금 재생 중인 대기열 항목. 세션이 실제로 들고 있는 것만 담는다.
  *
- * 대기열에는 Track ID와 metadata만 넣으므로(AGENTS.md 8) 여기에도 그만큼만 온다. 앨범 이미지는
- * 아직 대기열 항목에 넣지 않으며, 필요해지는 Now Playing 화면(KM-091·092)에서 함께 다룬다.
+ * 대기열에는 Track ID와 metadata만 넣으므로(AGENTS.md 8) 여기에도 그만큼만 온다. 재생 주소는
+ * 여기 오지 않는다.
  */
 internal data class NowPlaying(
     val mediaId: String,
     val title: String,
     val artist: String,
+    val artworkUri: String? = null,
 )
 
 /**
@@ -71,12 +72,18 @@ internal fun mapPlaybackState(
  * 대기열 항목을 화면이 쓸 현재 곡으로 바꾼다. ID가 없으면 대기열이 비어 있는 것으로 본다.
  * 제목이나 아티스트가 없는 항목도 있으므로 없으면 빈 문자열이다.
  */
-internal fun nowPlayingOf(mediaId: String?, title: String?, artist: String?): NowPlaying? {
+internal fun nowPlayingOf(
+    mediaId: String?,
+    title: String?,
+    artist: String?,
+    artworkUri: String? = null,
+): NowPlaying? {
     if (mediaId.isNullOrBlank()) return null
     return NowPlaying(
         mediaId = mediaId,
         title = title.orEmpty().trim(),
         artist = artist.orEmpty().trim(),
+        artworkUri = artworkUri?.takeIf(String::isNotBlank),
     )
 }
 
