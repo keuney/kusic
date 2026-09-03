@@ -25,13 +25,25 @@ import kotlinx.coroutines.flow.map
  *
  * 시각은 밖에서 받지 않고 여기서 읽는다. 화면이 시계를 넘기게 만들면 화면마다 다른 시계를 쓸 수 있다.
  */
-internal class LibraryRepositoryImpl @Inject constructor(
+internal class LibraryRepositoryImpl(
     private val trackDao: TrackDao,
     private val favoriteDao: FavoriteDao,
     private val playlistDao: PlaylistDao,
     private val playbackHistoryDao: PlaybackHistoryDao,
-    private val now: () -> Long = System::currentTimeMillis,
+    private val now: () -> Long,
 ) : LibraryRepository {
+    /**
+     * 주입은 시계 없이 받는다. Dagger는 Kotlin 기본값을 보지 않으므로 함수 타입을 주입하려 들고,
+     * 시계를 위한 타입을 따로 만들 이유는 없다. 검사만 시계를 넘긴다.
+     */
+    @Inject
+    constructor(
+        trackDao: TrackDao,
+        favoriteDao: FavoriteDao,
+        playlistDao: PlaylistDao,
+        playbackHistoryDao: PlaybackHistoryDao,
+    ) : this(trackDao, favoriteDao, playlistDao, playbackHistoryDao, System::currentTimeMillis)
+
     override val favorites: Flow<List<Track>> =
         favoriteDao.observeAll().map { it.map(TrackEntity::toTrack) }.distinctUntilChanged()
 

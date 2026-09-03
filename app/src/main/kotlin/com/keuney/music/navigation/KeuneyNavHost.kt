@@ -30,6 +30,8 @@ import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.feature.player.MiniPlayer
 import com.keuney.music.feature.player.PlayerViewModel
+import com.keuney.music.feature.library.LibraryScreen
+import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.feature.player.NowPlayingScreen
 import com.keuney.music.feature.player.QueueScreen
 import com.keuney.music.feature.search.SearchScreen
@@ -45,6 +47,7 @@ import com.keuney.music.feature.search.SearchViewModel
 internal fun KeuneyNavHost(
     playerViewModel: PlayerViewModel,
     searchViewModel: SearchViewModel,
+    libraryViewModel: LibraryViewModel,
     navController: NavHostController = rememberNavController(),
 ) {
     val connection by playerViewModel.connectionState.collectAsStateWithLifecycle()
@@ -91,7 +94,7 @@ internal fun KeuneyNavHost(
             startDestination = TopLevelDestination.Search.route,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         ) {
-            // 홈 내용은 KM-151, 라이브러리 내용은 KM-116이다.
+            // 홈 내용은 KM-151이다.
             composable(TopLevelDestination.Home.route) { NotReadyScreen() }
             composable(TopLevelDestination.Search.route) {
                 SearchScreen(
@@ -102,10 +105,18 @@ internal fun KeuneyNavHost(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
             }
-            composable(TopLevelDestination.Library.route) { NotReadyScreen() }
+            composable(TopLevelDestination.Library.route) {
+                LibraryScreen(
+                    viewModel = libraryViewModel,
+                    selectEnabled = connected,
+                    onSelect = playerViewModel::playTracks,
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                )
+            }
             composable(NOW_PLAYING_ROUTE) {
                 NowPlayingScreen(
                     viewModel = playerViewModel,
+                    libraryViewModel = libraryViewModel,
                     onBack = { navController.popBackStack() },
                     onOpenQueue = { navController.navigate(QUEUE_ROUTE) },
                 )

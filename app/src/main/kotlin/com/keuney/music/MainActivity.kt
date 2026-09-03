@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.keuney.music.ui.theme.KeuneyMusicTheme
 import dagger.hilt.android.AndroidEntryPoint
 import com.keuney.music.feature.player.PlayerViewModel
+import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.feature.search.SearchViewModel
 import com.keuney.music.navigation.KeuneyNavHost
 
@@ -20,6 +21,7 @@ import com.keuney.music.navigation.KeuneyNavHost
 class MainActivity : ComponentActivity() {
     private val playerViewModel by lazy { ViewModelProvider(this)[PlayerViewModel::class.java] }
     private val searchViewModel by lazy { ViewModelProvider(this)[SearchViewModel::class.java] }
+    private val libraryViewModel by lazy { ViewModelProvider(this)[LibraryViewModel::class.java] }
 
     override fun onStart() {
         super.onStart()
@@ -40,7 +42,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KeuneyMusicTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    KeuneyNavHost(playerViewModel, searchViewModel)
+                    KeuneyNavHost(playerViewModel, searchViewModel, libraryViewModel)
                 }
             }
         }

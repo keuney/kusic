@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Button
@@ -25,6 +26,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,22 +39,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.flowOf
 import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
 import com.keuney.music.core.player.RepeatMode
+import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.ui.components.Artwork
 import com.keuney.music.ui.format.formatDuration
 
 /**
  * 전체 화면 플레이어. 미니 플레이어를 눌러 들어오고 뒤로 가기로 떠났던 탭으로 돌아간다.
  *
- * 즐겨찾기 버튼은 자리만 있고 눌리지 않는다. 즐겨찾기 저장은 KM-112 소속이라 여기서 만들지
- * 않는다. 사용자와 합의한 범위다. 대기열 버튼은 KM-097에서 대기열 화면으로 연결했다.
+ * 즐겨찾기는 저장소에서 흐르는 값을 그대로 보여준다. 눌렀다는 사실을 따로 기억하면 저장이
+ * 실패했을 때 화면이 거짓을 보인다. 대기열 버튼은 KM-097에서 대기열 화면으로 연결했다.
  */
 @Composable
 internal fun NowPlayingScreen(
     viewModel: PlayerViewModel,
+    libraryViewModel: LibraryViewModel,
     onBack: () -> Unit,
     onOpenQueue: () -> Unit,
 ) {
@@ -64,6 +69,10 @@ internal fun NowPlayingScreen(
     var pendingSeek by remember { mutableStateOf<PendingSeek?>(null) }
     val connected = connection == ConnectionState.Connected
     val nowPlaying = playback.nowPlaying
+    val favoriteFlow = remember(nowPlaying?.mediaId) {
+        nowPlaying?.let { libraryViewModel.isFavorite(it.mediaId) } ?: flowOf(false)
+    }
+    val isFavorite by favoriteFlow.collectAsStateWithLifecycle(false)
     // 손가락 → 아직 도달하지 않은 탐색 목표 → 실제 위치 순으로 고른다.
     val shownPositionMs = seekDisplayPositionMs(
         reportedMs = playback.positionMs,
@@ -133,9 +142,20 @@ internal fun NowPlayingScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 즐겨찾기 저장은 KM-112가 만든다. 그때까지 눌리지 않는다.
-            IconButton(onClick = {}, enabled = false) {
-                Icon(Icons.Filled.FavoriteBorder, contentDescription = stringResource(R.string.player_favorite))
+            IconButton(
+                onClick = {
+                    nowPlaying?.let {
+                        libraryViewModel.setFavorite(it.toTrack(playback.durationMs), !isFavorite)
+                    }
+                },
+                enabled = nowPlaying != null,
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = stringResource(
+                        if (isFavorite) R.string.player_favorite_remove else R.string.player_favorite,
+                    ),
+                )
             }
             // 대기열에 곡이 하나뿐이면 이전은 그 곡의 처음으로, 다음은 명령이 없어 비활성이다.
             OutlinedButton(
@@ -169,12 +189,6 @@ internal fun NowPlayingScreen(
                 Icon(Icons.Filled.List, contentDescription = stringResource(R.string.player_queue))
             }
         }
-        // 비활성인 즐겨찾기가 고장으로 보이지 않게 이유를 적는다. KM-112에서 살리면 지운다.
-        Text(
-            text = stringResource(R.string.player_not_ready_action),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         // 켜짐·꺼짐이 눈에 보여야 한다. 선택 상태를 가진 칩으로 둔다.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(

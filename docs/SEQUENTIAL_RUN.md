@@ -587,3 +587,18 @@
 - 화면 변경은 없다. M7의 세 기능을 한 인터페이스에 담았으므로 KM-112~115는 화면과 정책만 붙인다.
 - 함정: Room 메모리 데이터베이스도 SQLite 기본대로 외래 키가 꺼져 있다. 실제 앱과 같게 동작을 확인하려면 `PRAGMA foreign_keys = ON`을 켜야 한다.
 - 결정 ADR-057. 신규 의존성 없음. 다음은 KM-112 Favorites다.
+
+## KM-112 완료 — Favorites
+
+- 브랜치 `codex/KM-112-favorites`. 사용자와 정한 대로 즐겨찾기 목록을 라이브러리 탭에 바로 넣었다. 그때까지 목록을 어디에도 두지 않으면 저장은 되지만 볼 수 없는 상태가 된다.
+- `feature/library/LibraryViewModel`과 `LibraryScreen`을 추가하고 라이브러리 탭의 자리표시자를 대체했다. Activity가 ViewModel을 만들어 내려주며 전체 화면 플레이어와 라이브러리 탭이 함께 쓴다.
+- Now Playing의 즐겨찾기 버튼을 살렸다. 채워진 하트와 빈 하트로 상태를 보이고 설명도 "즐겨찾기"/"즐겨찾기 해제"로 바뀐다. 여부는 저장소에서 흐르는 값을 그대로 쓴다.
+- 세션이 준 것으로 곡을 만드는 `NowPlaying.toTrack(durationMs)`를 추가했다. 길이는 재생 상태에서 받고 알 수 없으면 넣지 않는다. 0을 넣으면 화면이 "0:00"을 사실처럼 보여준다.
+- 즐겨찾기 항목을 누르면 그 곡부터 재생하고 목록 전체가 대기열이 된다. 검색 결과와 같은 방식이다.
+- 곡 한 줄의 모양을 `ui/components/TrackRow`로 옮겨 검색과 라이브러리가 같은 것을 쓴다. `trackSubtitle`과 그 단위 검사도 함께 옮겼다.
+- Now Playing의 "아직 준비되지 않은 기능입니다." 문구와 문자열을 지웠다. 비활성인 조작이 더 없다.
+- 함정: Dagger는 Kotlin 기본값을 보지 않는다. `LibraryRepositoryImpl`의 시계에 기본값을 준 채 `@Inject`를 붙였더니 `Function0<Long>`을 주입할 수 없다는 오류가 났다. 주입용 생성자를 시계 없이 따로 두고 검사만 시계를 넘긴다.
+- 단위 7개 추가: 세션 metadata가 곡이 됨, 알 수 없는 길이는 비움(0과 음수), 이미지 없음 유지, 즐겨찾기 목록이 저장소를 따라감, 켜기·끄기가 저장소까지 닿음, 여부가 저장소에서 옴(다른 곡은 아님).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 53초). 단위 147개·실제 계약 7개·실기기 계측 43개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 SM-T220 / Android 14 확인: 곡을 재생하고 하트를 누르면 설명이 "즐겨찾기"에서 "즐겨찾기 해제"로 바뀌고 아이콘이 채워진다. 라이브러리 탭에 그 곡이 앨범 이미지·제목·"1theK (원더케이) · 3:41"과 함께 나온다. 앱을 force-stop하고 다시 켜도 그대로 남는다(인수 조건 app restart persistence PASS). 이때 기기에 실제 `keuney.db` 파일이 처음 만들어진 것도 확인했다. 라이브러리 항목을 누르면 그 곡이 재생되고(PLAYING), Now Playing에서 하트를 다시 누르면 라이브러리가 "즐겨찾기한 곡이 없습니다."로 돌아간다. 확인 후 즐겨찾기를 해제해 기기 데이터를 원래대로 남겼다. 화면 캡처는 captures/km-112에 보관했다(저장소 추적 대상 아님).
+- 결정 ADR-058. 신규 의존성 없음. 다음은 KM-113 Playlists다.

@@ -1,4 +1,4 @@
-package com.keuney.music.feature.search
+package com.keuney.music.ui.components
 
 import com.keuney.music.core.model.SourceType
 import com.keuney.music.core.model.Track

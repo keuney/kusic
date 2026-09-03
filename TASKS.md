@@ -18,13 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 56 / 미착수 21. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 21에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 57 / 미착수 20. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 20에는 최종 게이트 KM-200이 포함된다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110·111 완료).**
+**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110·111·112 완료).**
 
-**다음 작업: KM-112 (Favorites).** 인수 조건은 add/remove·Library display·app restart persistence다. 데이터 계층은 KM-111이 다 만들었으므로(`LibraryRepository.favorites`·`isFavorite`·`setFavorite`) 이 작업은 화면 연결이다. 할 일: Now Playing의 비활성 즐겨찾기 버튼을 살리고(그때 "아직 준비되지 않은 기능입니다." 문구도 지운다), 라이브러리 탭에 즐겨찾기 목록을 보여준다. **라이브러리 탭은 지금 자리표시자이고 KM-116(Library screen)이 그 화면의 소속이다.** 즐겨찾기 목록을 KM-112에서 라이브러리 탭에 바로 넣을지, KM-116까지 미루고 Now Playing 버튼만 살릴지 착수 시 정해야 한다. 인수 조건에 Library display가 있으니 전자가 자연스럽다.
+**다음 작업: KM-113 (Playlists).** 인수 조건은 create·rename·delete·add track·remove track이다. 데이터 계층은 KM-111이 다 만들었으므로(`LibraryRepository`의 재생목록 함수 여섯 개) 이 작업은 화면이다. 착수 시 정할 것: (1) 재생목록 목록과 한 재생목록의 곡 목록을 어디에 둘지 — 라이브러리 탭에 구획을 더할지, 별도 목적지를 만들지(대기열처럼 전체 화면 목적지가 이미 두 개 있다), (2) 곡을 재생목록에 담는 진입점 — Now Playing이나 검색 결과에서 어떻게 담을지. 이름 입력과 확인이 필요하므로 대화상자가 처음 등장한다.
 
-**KM-111에서 정한 것:** 라이브러리 데이터 계층은 `LibraryRepository` 하나로 M7의 세 기능(즐겨찾기·재생목록·재생 기록)을 모두 덮는다. 읽기는 Flow, 쓰기는 Track을 받으며 곡 메타데이터 저장은 저장소가 알아서 한다. 시각도 저장소가 읽는다. KM-112~115는 화면과 정책만 붙이면 된다.
+**KM-112에서 정한 것:** 즐겨찾기 목록은 라이브러리 탭에 있고 항목을 누르면 목록 전체가 대기열이 된다(검색과 같은 방식). 해제는 그 곡을 재생하는 화면에서만 한다. 곡 한 줄의 모양은 `ui/components/TrackRow` 하나를 쓴다.
 
 **남은 화면 작업:** 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing의 즐겨찾기 버튼은 비활성이며 KM-112에서 살린다(그때 "아직 준비되지 않은 기능입니다." 문구도 지운다). WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다. 내장 테스트 음원은 artworkUri가 없어 미니 플레이어에서 자리표시자 색으로 보인다.
 
@@ -1421,7 +1421,20 @@ tests
 
 KM-112 — Favorites
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): Now Playing의 즐겨찾기 버튼을 살리고 라이브러리 탭에 즐겨찾기 목록을 넣었다.
+
+- 인수 조건: add/remove PASS, Library display PASS, app restart persistence PASS.
+- 사용자와 정한 대로 목록을 라이브러리 탭에 바로 넣었다. 그때까지 목록을 어디에도 두지 않으면 저장은 되지만 볼 수 없는 상태가 된다. 화면 전체 구성은 KM-116이 다듬고 재생목록·최근 재생 구획은 각 기능 작업에서 더한다.
+- 즐겨찾기 여부는 저장소에서 흐르는 값을 그대로 보여준다. 눌렀다는 사실을 앱이 따로 기억하면 저장 실패 시 화면이 거짓을 보인다.
+- NowPlaying.toTrack(durationMs)로 세션이 준 것만으로 곡을 만든다. 길이는 재생 상태에서 받고 알 수 없으면 넣지 않는다. SourceType은 v0.1에 하나뿐이라 Remote로 둔다.
+- 즐겨찾기 항목을 누르면 그 곡부터 재생하고 목록 전체가 대기열이 된다. 검색 결과와 같은 방식이다.
+- 곡 한 줄의 모양을 ui/components/TrackRow로 옮겨 검색과 라이브러리가 같은 것을 쓴다.
+- Now Playing의 "아직 준비되지 않은 기능입니다." 문구를 지웠다. 비활성인 조작이 더 없다.
+- 단위 7개 추가. 기기 확인에서 실제 keuney.db 파일이 처음 만들어진 것도 확인했다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 53초). 단위 147개·실제 계약 7개·실기기 계측 43개. 린트 오류 0.
+- 결정은 ADR-058에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 
