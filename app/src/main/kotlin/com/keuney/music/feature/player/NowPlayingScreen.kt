@@ -22,6 +22,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,8 +55,19 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
     val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
     val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
+    var pendingSeek by remember { mutableStateOf<PendingSeek?>(null) }
     val connected = connection == ConnectionState.Connected
     val nowPlaying = playback.nowPlaying
+    // 손가락 → 아직 도달하지 않은 탐색 목표 → 실제 위치 순으로 고른다.
+    val shownPositionMs = seekDisplayPositionMs(
+        reportedMs = playback.positionMs,
+        draggingMs = draggedPosition?.toLong(),
+        pending = pendingSeek,
+    )
+    // 목표에 도달하면 붙잡아 둔 것을 놓는다. 남겨 두면 재생이 진행한 뒤 표시를 다시 가로챈다.
+    LaunchedEffect(playback.positionMs) {
+        if (pendingSeek?.isSettled(playback.positionMs) == true) pendingSeek = null
+    }
     Column(
         // 제목이 두 줄이거나 요금제 안내가 붙으면 세로가 모자랄 수 있다. 잘리지 않게 흘린다.
         modifier = Modifier
@@ -91,10 +103,15 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
         )
         Text(stringResource(statusRes(connection, playback.phase)))
         Slider(
-            value = draggedPosition ?: playback.positionMs.toFloat(),
+            value = shownPositionMs.toFloat(),
             onValueChange = { draggedPosition = it },
             onValueChangeFinished = {
-                draggedPosition?.let { viewModel.seekTo(it.toLong()) }
+                draggedPosition?.let { dragged ->
+                    val target = dragged.toLong()
+                    // 실제 위치가 목표에 닿을 때까지 표시를 붙잡아 둔다.
+                    pendingSeek = PendingSeek(fromMs = playback.positionMs, toMs = target)
+                    viewModel.seekTo(target)
+                }
                 draggedPosition = null
             },
             modifier = Modifier.fillMaxWidth(),
@@ -102,7 +119,7 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
             enabled = connected && playback.durationMs > 0,
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatDuration(draggedPosition?.toLong() ?: playback.positionMs), style = MaterialTheme.typography.bodySmall)
+            Text(formatDuration(shownPositionMs), style = MaterialTheme.typography.bodySmall)
             Text(formatDuration(playback.durationMs), style = MaterialTheme.typography.bodySmall)
         }
         Row(

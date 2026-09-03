@@ -18,11 +18,11 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 49 / 미착수 28. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 28에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 50 / 미착수 27. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 27에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-093 (Seek).** 인수 조건은 drag seek·controller updates player·progress remains synchronized다. 끌어서 탐색은 `NowPlayingScreen`에 이미 동작하며(끌는 동안 손가락 위치의 시간을 보여주고 손을 떼면 `seekTo`) 실기기 계측 `TestAudioPlaybackTest`가 30초 탐색을 확인한다. 즉 이 작업의 실제 내용은 인수 조건 세 개를 명시적으로 확인하고 부족한 부분을 메우는 것이다. 착수 전에 정해야 할 미결 사항은 없다.
+**다음 작업: KM-094 (Previous / Next).** 인수 조건은 UI button·notification button·lockscreen button·consistent behavior다. 착수 전에 알아 둘 것이 있다. 지금 대기열에는 한 곡만 들어간다(`playTrack`이 `setMediaItem`으로 갈아 끼운다). `playQueue`가 여러 곡을 넣을 수 있지만 Gate 검증용 진입점이고 화면에서 쓰이지 않는다. 즉 이전/다음이 실제로 의미를 가지려면 검색 결과에서 대기열을 만드는 경로가 필요하다. 그것을 KM-094에 포함할지, 아니면 KM-097(Queue UI)까지 미루고 KM-094에서는 버튼과 알림·잠금화면 명령 연결만 다룰지 정해야 한다. 알림·잠금화면의 이전/다음 버튼은 KM-037에서 이미 구조가 있고 곡이 하나라 다음 버튼이 비활성으로 나온다.
 
-**M6 진행 상황:** KM-090·091·092 완료. 남은 것은 KM-093(Seek)·094(이전/다음)·095(셔플)·096(반복)·097(Queue UI)다. KM-090에서 반복·셔플 상태는 이미 읽히고 있으며 토글 조작이 KM-095·096 몫이다.
+**M6 진행 상황:** KM-090·091·092·093 완료. 남은 것은 KM-094(이전/다음)·095(셔플)·096(반복)·097(Queue UI)다. 반복·셔플 상태는 KM-090에서 이미 읽히고 있고 토글 조작이 KM-095·096 몫이다.
 
 **화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing의 즐겨찾기·대기열 버튼은 비활성이며 KM-112·097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
 
@@ -1232,7 +1232,18 @@ queue button
 
 KM-093 — Seek
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 끌어서 탐색은 이미 동작했으나 손을 뗀 직후 표시가 탐색 이전 자리로 되돌아갔다가 목표로 뛰는 문제를 고쳤다.
+
+- 인수 조건: drag seek PASS, controller updates player PASS, progress remains synchronized PASS.
+- 원인은 위치 보고가 250ms 간격이라 손가락 값을 지운 순간에는 옛 위치만 있다는 것이다. feature/player/PendingSeek를 두어 표시 위치를 손가락 → 아직 도달하지 않은 목표 → 실제 위치 순으로 고른다.
+- 목표를 놓아주는 조건 셋: 목표 근처(±1초), 목표를 지나 재생이 계속됨, 목표에서 멀어짐. 마지막이 없으면 탐색이 받아들여지지 않았을 때 표시가 목표에 붙어 멈춘다.
+- 시간 문구도 슬라이더와 같은 값을 쓴다.
+- 단위 7개·계측 1개 추가(계측 28개 → 29개).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 29초). 단위 117개·실제 계약 7개·실기기 계측 29개. 린트 오류 0.
+- 실기기 확인: 0:06에서 오른쪽으로 끌어 손을 떼자 곧바로 1:24를 표시하고 세션 위치 87353ms, 되돌아가는 구간 없음. 이후 1:50까지 진행. 왼쪽으로 끌면 0:32(32782ms)로 옮겨지고 0:39까지 진행.
+- 결정은 ADR-051에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 
