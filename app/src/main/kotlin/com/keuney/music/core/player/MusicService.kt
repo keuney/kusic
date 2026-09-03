@@ -13,15 +13,23 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.C
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.keuney.music.R
+import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.data.network.NetworkTimeouts
 import com.keuney.music.MainActivity
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
@@ -32,8 +40,14 @@ class MusicService : MediaLibraryService() {
     @Inject
     internal lateinit var playbackCache: PlaybackCache
 
+    @Inject
+    internal lateinit var settings: SettingsRepository
+
     private var player: ExoPlayer? = null
     private var session: MediaLibrarySession? = null
+
+    /** 저장된 설정을 재생에 적용하기 위한 수명. onDestroy에서 끊는다. */
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onCreate() {
         super.onCreate()
@@ -74,6 +88,10 @@ class MusicService : MediaLibraryService() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             ),
         ).build()
+        // 반복 모드는 저장된 설정이 곧 적용되는 값이다. 화면은 설정만 바꾸고 여기서 재생에 옮긴다.
+        serviceScope.launch {
+            settings.repeatMode.collectLatest { servicePlayer.repeatMode = it.toPlayerRepeatMode() }
+        }
     }
 
     /** 컨트롤러가 보낸 MediaItem에는 URI가 없다. Track ID를 자리표시 URI로 되돌린다. */
@@ -127,6 +145,7 @@ class MusicService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
     override fun onDestroy() {
+        serviceScope.cancel()
         player?.release()
         player = null
         session?.release()
@@ -137,4 +156,10 @@ class MusicService : MediaLibraryService() {
     internal companion object {
         const val TEST_TONE_MEDIA_ID = "known-test-tone"
     }
+}
+
+private fun RepeatMode.toPlayerRepeatMode(): Int = when (this) {
+    RepeatMode.Off -> Player.REPEAT_MODE_OFF
+    RepeatMode.One -> Player.REPEAT_MODE_ONE
+    RepeatMode.All -> Player.REPEAT_MODE_ALL
 }

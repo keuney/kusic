@@ -15,6 +15,9 @@
     <string name="player_previous">이전</string>
     <string name="player_next">다음</string>
     <string name="player_shuffle">셔플</string>
+    <string name="player_repeat_off">반복 없음</string>
+    <string name="player_repeat_all">전체 반복</string>
+    <string name="player_repeat_one">한 곡 반복</string>
     <string name="search_hint">검색어</string>
     <string name="search_action">검색</string>
     <string name="search_searching">검색 중</string>

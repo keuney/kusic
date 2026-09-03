@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlayerConnection
+import com.keuney.music.core.player.RepeatMode
 import com.keuney.music.core.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -46,6 +47,14 @@ internal class PlayerViewModel @Inject constructor(
     fun previous() = connection.seekToPrevious()
     fun next() = connection.seekToNext()
     fun setShuffleEnabled(enabled: Boolean) = connection.setShuffleEnabled(enabled)
+
+    /**
+     * 반복 모드를 다음 값으로 넘긴다. 설정만 바꾸고 플레이어에는 지시하지 않는다. 적용은 재생을
+     * 소유한 MusicService가 저장된 설정을 보고 한다(ADR-054).
+     */
+    fun cycleRepeatMode(current: RepeatMode) {
+        viewModelScope.launch { settings.setRepeatMode(current.next()) }
+    }
 
     /** 대기열에는 Track ID와 표시용 metadata만 전달한다. 스트림 주소는 서비스가 해석한다. */
     fun playTrack(track: Track) =

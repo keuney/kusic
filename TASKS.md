@@ -18,15 +18,16 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 52 / 미착수 25. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 25에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 53 / 미착수 24. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 24에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-096 (Repeat).** 인수 조건은 off·one·all·state persistence optional이다. 반복 상태를 읽는 것은 KM-090에서 이미 되어 있고(`PlaybackState.repeatMode`) 이번에 세 상태를 도는 토글을 붙인다. KM-095의 셔플 칩 옆에 같은 방식으로 두면 된다. 착수 시 정할 것: state persistence는 optional인데 PRD 34의 DataStore 항목에는 반복 모드가 들어 있다. 지금 저장할지(설정 저장소가 이미 있으니 어렵지 않다) 미룰지 정해야 한다.
+**다음 작업: KM-097 (Queue UI).** M6의 마지막이다. 인수 조건은 show list·current item highlight·remove·reorder if practical이다. 착수 전에 알아야 할 것이 둘 있다.
 
-**M6 진행 상황:** KM-090~095 완료. 남은 것은 KM-096(반복)·097(Queue UI)다.
+1. **화면에서 대기열을 만드는 경로가 아직 없다.** `playTrack`은 `setMediaItem`으로 한 곡을 갈아 끼우고 `playQueue`는 Gate 검증용 진입점이라 화면에서 쓰이지 않는다. 대기열 화면을 만들려면 먼저 대기열이 있어야 하므로, 검색 결과에서 여러 곡을 넣는 경로를 이 작업에 포함해야 한다. KM-094에서 미뤄 둔 것이 여기로 왔다.
+2. **섞인 재생 순서는 보여줄 수 없다(ADR-053).** 컨트롤러가 받는 Timeline에 셔플 순서가 실려 오지 않는다. 대기열 화면은 넣은 순서만 보여줄 수 있다. 셔플이 켜졌을 때 순서 표시를 어떻게 할지(그대로 두기, 안내 문구, 감추기) 정해야 한다.
 
-**KM-097 착수 시 알아야 할 제약(ADR-053):** 컨트롤러가 받는 Timeline에는 셔플 순서가 실려 오지 않는다. 대기열 화면은 넣은 순서만 보여줄 수 있고 셔플이 켜졌을 때의 실제 재생 순서는 보여줄 수 없다. 순서를 보여줄지, 셔플 중에는 순서 표시를 감출지 정해야 한다. 또한 화면에서 대기열을 만드는 경로가 아직 없다(playTrack은 setMediaItem으로 한 곡을 갈아 끼우고, playQueue는 Gate 검증용이다). 그 경로를 KM-097에서 만든다.
+또한 대기열을 상태로 노출하려면 `PlaybackState`에 대기열 목록과 현재 위치가 필요하다. 지금은 현재 곡 하나만 있다.
 
-**화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing 조작 줄은 즐겨찾기(비활성)·이전·재생/일시정지·다음(대기열이 한 곡이라 비활성)·대기열(비활성)이고 그 아래 셔플 칩이 있다. 즐겨찾기는 KM-112, 대기열은 KM-097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
+**M6 진행 상황:** KM-090~096 완료. 남은 것은 KM-097(Queue UI) 하나다.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
@@ -1306,7 +1307,19 @@ queue behavior test
 
 KM-096 — Repeat
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): Now Playing의 반복 칩이 없음 → 전체 → 한 곡 → 없음을 돌고, 사용자 요청으로 저장까지 넣었다.
+
+- 인수 조건: off PASS, one PASS, all PASS, state persistence PASS(optional이었으나 저장했다).
+- 저장된 설정이 곧 적용되는 값이다. 화면은 SettingsRepository.setRepeatMode만 부르고 플레이어에 직접 지시하지 않는다. 적용은 재생을 소유한 MusicService가 설정 흐름을 구독해 player.repeatMode에 옮긴다. 경로가 하나뿐이라 저장값과 실제 재생이 어긋나지 않고, UI 없이 세션만 살아난 경우에도 저장된 모드로 시작한다.
+- 화면 표시는 저장값이 아니라 플레이어가 돌려준 PlaybackState.repeatMode를 쓴다. 저장값으로 그리면 적용 실패 시 화면이 거짓을 보인다.
+- 셔플과 다른 선택이다. 셔플은 저장하지 않는다(PRD 34의 DataStore 항목에 반복 모드만 있다).
+- RepeatMode를 공개 타입으로 바꿨다. 설정 계약에 들어가며 저장 값이 상수 이름으로 남는다.
+- 단위 6개·계측 1개 추가(계측 31개 → 32개). SettingsRepository 가짜 구현 셋도 함께 고쳤다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 45초). 단위 126개·실제 계약 7개·실기기 계측 32개. 린트 오류 0.
+- 실기기 확인: 칩이 세 상태를 돌고, "한 곡 반복"으로 두고 앱을 force-stop한 뒤 다시 켜도 그대로였다.
+- 결정은 ADR-054에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 

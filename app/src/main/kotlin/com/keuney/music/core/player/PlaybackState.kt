@@ -4,8 +4,13 @@ import androidx.media3.common.Player
 
 internal enum class PlaybackPhase { Idle, Buffering, Playing, Paused, Ended, Unavailable }
 
-/** ARCHITECTURE 18의 정책대로 반복은 세 가지뿐이다. */
-internal enum class RepeatMode { Off, One, All }
+/**
+ * ARCHITECTURE 18의 정책대로 반복은 세 가지뿐이다.
+ *
+ * 설정 저장소 계약에 들어가므로 공개 타입이다. 저장된 값은 이름으로 남으니 상수 이름을 바꾸면
+ * 이전에 저장된 설정을 읽지 못한다.
+ */
+enum class RepeatMode { Off, One, All }
 
 /**
  * 지금 재생 중인 대기열 항목. 세션이 실제로 들고 있는 것만 담는다.

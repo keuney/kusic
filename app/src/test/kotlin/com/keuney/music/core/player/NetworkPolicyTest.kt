@@ -43,5 +43,7 @@ class NetworkPolicyTest {
         override suspend fun setWifiOnlyPlayback(enabled: Boolean) {
             state.value = enabled
         }
+        override val repeatMode: Flow<RepeatMode> = MutableStateFlow(RepeatMode.Off)
+        override suspend fun setRepeatMode(mode: RepeatMode) = Unit
     }
 }

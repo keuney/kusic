@@ -523,3 +523,19 @@
 - 실기기 SM-T220 / Android 14 확인: Now Playing을 아래로 밀면 셔플 칩이 나온다. 누르면 테두리 칩에서 채워진 칩으로 바뀌고 다시 누르면 되돌아간다. 화면 캡처는 captures/km-095에 보관했다(저장소 추적 대상 아님).
 - 함정: Compose `FilterChip`의 선택 상태는 `uiautomator dump`의 `selected`/`checked`에 나오지 않는다. 화면 캡처로 확인해야 한다.
 - 결정 ADR-053. 신규 의존성 없음. 다음은 KM-096 Repeat다.
+
+## KM-096 완료 — Repeat
+
+- 브랜치 `codex/KM-096-repeat`. Now Playing의 셔플 칩 옆에 반복 칩을 두고 없음 → 전체 → 한 곡 → 없음을 돌게 했다. 지금 무엇인지는 칩의 글자가 말한다.
+- 사용자 요청으로 저장까지 넣었다. 인수 조건에는 optional이었지만 PRD 34의 DataStore 항목에 반복 모드가 있고 설정 저장소가 이미 있어 추가 비용이 거의 없다.
+- 저장된 설정이 곧 적용되는 값이다. 화면은 `setRepeatMode`만 부르고 플레이어에 지시하지 않는다. 적용은 `MusicService`가 설정 흐름을 구독해 `player.repeatMode`에 옮긴다. 경로가 하나뿐이라 저장값과 실제 재생이 어긋나지 않고, UI 없이 세션만 살아난 경우에도 저장된 모드로 시작한다.
+- 화면 표시는 저장값이 아니라 플레이어가 돌려준 `PlaybackState.repeatMode`를 쓴다. 저장값으로 그리면 적용이 실패했을 때 화면이 거짓을 보인다.
+- `RepeatMode`를 공개 타입으로 바꿨다. 설정 계약에 들어가기 때문이다. 저장 값은 상수 이름으로 남으므로 이름을 바꾸면 이전 설정을 읽지 못한다는 것을 주석에 남겼다.
+- `MusicService`에 서비스 수명의 코루틴 범위를 두고 `onDestroy`에서 끊는다.
+- 단위 6개 추가: 순환 세 단계·세 번 누르면 제자리·모든 모드 도달(3개), 저장 기본값 없음·세 모드 저장과 재개방 후 유지·알 수 없는 값은 없음(3개).
+- 계측 1개 추가(`RepeatModeTest`): 세 모드를 저장하면 각각 재생 상태로 돌아온다. 마지막에 없음으로 되돌려 기기 설정을 원래대로 남긴다. 계측 31개 → 32개.
+- `SettingsRepository`에 멤버가 늘어 가짜 구현 셋(`NetworkPolicyTest`, `MeteredPlaybackBlockTest`, `SearchToPlayTest`)도 함께 고쳤다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 45초). 단위 126개·실제 계약 7개·실기기 계측 32개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 SM-T220 / Android 14 확인: 칩을 누를 때마다 "반복 없음" → "전체 반복" → "한 곡 반복" → "반복 없음"으로 돈다. "한 곡 반복"으로 두고 앱을 force-stop한 뒤 다시 켰더니 그대로 "한 곡 반복"이었다(인수 조건 state persistence PASS). 확인 후 "반복 없음"으로 되돌렸다. 화면 캡처는 captures/km-096에 보관했다(저장소 추적 대상 아님).
+- 함정: Bash 안에서 PowerShell을 중첩 호출해 Gradle을 돌리자 빌드가 끝난 뒤에도 파이프라인이 반환되지 않고 멈췄다(Gradle 쪽 CPU는 진행이 없는데 PowerShell이 대기). Gradle은 PowerShell에서 직접 실행한다.
+- 결정 ADR-054. 신규 의존성 없음. 다음은 KM-097 Queue UI다.

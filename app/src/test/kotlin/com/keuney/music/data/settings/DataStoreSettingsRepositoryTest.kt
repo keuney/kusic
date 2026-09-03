@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.keuney.music.core.player.RepeatMode
 import com.keuney.music.core.settings.ThemePreference
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +47,36 @@ class DataStoreSettingsRepositoryTest {
         withStore { store ->
             store.edit { it[stringPreferencesKey("theme")] = "future-theme" }
             assertEquals(ThemePreference.System, DataStoreSettingsRepository(store).theme.first())
+        }
+    }
+
+    @Test
+    fun repeatDefaultsToOff() = runBlocking {
+        withStore { store ->
+            assertEquals(RepeatMode.Off, DataStoreSettingsRepository(store).repeatMode.first())
+        }
+    }
+
+    @Test
+    fun writesAndPersistsEveryRepeatModeAcrossReopen() = runBlocking {
+        for (mode in RepeatMode.entries) {
+            withStore { store ->
+                val repository = DataStoreSettingsRepository(store)
+                repository.setRepeatMode(mode)
+                assertEquals(mode, repository.repeatMode.first())
+            }
+            // 앱 재시작에 해당한다. 저장소를 새로 열어도 남아야 한다.
+            withStore { store ->
+                assertEquals(mode, DataStoreSettingsRepository(store).repeatMode.first())
+            }
+        }
+    }
+
+    @Test
+    fun unknownStoredRepeatModeFallsBackToOff() = runBlocking {
+        withStore { store ->
+            store.edit { it[stringPreferencesKey("repeat_mode")] = "future-mode" }
+            assertEquals(RepeatMode.Off, DataStoreSettingsRepository(store).repeatMode.first())
         }
     }
 

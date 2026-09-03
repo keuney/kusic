@@ -84,5 +84,7 @@ class MeteredPlaybackBlockTest {
         override suspend fun setTheme(theme: ThemePreference) = Unit
         override val wifiOnlyPlayback: Flow<Boolean> = MutableStateFlow(wifiOnly)
         override suspend fun setWifiOnlyPlayback(enabled: Boolean) = Unit
+        override val repeatMode: Flow<RepeatMode> = MutableStateFlow(RepeatMode.Off)
+        override suspend fun setRepeatMode(mode: RepeatMode) = Unit
     }
 }

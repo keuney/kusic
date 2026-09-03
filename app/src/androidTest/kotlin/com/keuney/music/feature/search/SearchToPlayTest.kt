@@ -9,6 +9,7 @@ import com.keuney.music.core.player.MusicService
 import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlaybackPhase
 import com.keuney.music.core.player.PlayerConnection
+import com.keuney.music.core.player.RepeatMode
 import com.keuney.music.core.search.SearchHistoryRepository
 import com.keuney.music.core.search.SearchRepository
 import com.keuney.music.core.settings.SettingsRepository
@@ -99,6 +100,8 @@ class SearchToPlayTest {
         override suspend fun setTheme(theme: ThemePreference) = Unit
         override val wifiOnlyPlayback: Flow<Boolean> = MutableStateFlow(false)
         override suspend fun setWifiOnlyPlayback(enabled: Boolean) = Unit
+        override val repeatMode: Flow<RepeatMode> = MutableStateFlow(RepeatMode.Off)
+        override suspend fun setRepeatMode(mode: RepeatMode) = Unit
     }
 
     private companion object {

@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
+import com.keuney.music.core.player.RepeatMode
 import com.keuney.music.ui.components.Artwork
 import com.keuney.music.ui.format.formatDuration
 
@@ -179,6 +180,13 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 enabled = connected,
                 label = { Text(stringResource(R.string.player_shuffle)) },
             )
+            // 세 상태를 도는 하나의 칩이다. 지금 무엇인지는 글자가 말한다.
+            FilterChip(
+                selected = playback.repeatMode != RepeatMode.Off,
+                onClick = { viewModel.cycleRepeatMode(playback.repeatMode) },
+                enabled = connected,
+                label = { Text(stringResource(repeatLabelRes(playback.repeatMode))) },
+            )
         }
         // WiFi 전용 설정(KM-137)은 설정 화면(KM-153)이 생기면 그쪽으로 옮긴다.
         Row(
@@ -197,6 +205,12 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
             )
         }
     }
+}
+
+private fun repeatLabelRes(mode: RepeatMode): Int = when (mode) {
+    RepeatMode.Off -> R.string.player_repeat_off
+    RepeatMode.All -> R.string.player_repeat_all
+    RepeatMode.One -> R.string.player_repeat_one
 }
 
 private fun statusRes(connection: ConnectionState, phase: PlaybackPhase): Int = when (connection) {
