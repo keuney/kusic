@@ -18,13 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 50 / 미착수 27. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 27에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 51 / 미착수 26. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 26에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-094 (Previous / Next).** 인수 조건은 UI button·notification button·lockscreen button·consistent behavior다. 착수 전에 알아 둘 것이 있다. 지금 대기열에는 한 곡만 들어간다(`playTrack`이 `setMediaItem`으로 갈아 끼운다). `playQueue`가 여러 곡을 넣을 수 있지만 Gate 검증용 진입점이고 화면에서 쓰이지 않는다. 즉 이전/다음이 실제로 의미를 가지려면 검색 결과에서 대기열을 만드는 경로가 필요하다. 그것을 KM-094에 포함할지, 아니면 KM-097(Queue UI)까지 미루고 KM-094에서는 버튼과 알림·잠금화면 명령 연결만 다룰지 정해야 한다. 알림·잠금화면의 이전/다음 버튼은 KM-037에서 이미 구조가 있고 곡이 하나라 다음 버튼이 비활성으로 나온다.
+**다음 작업: KM-095 (Shuffle).** 인수 조건은 toggle·state visible·queue behavior test다. 셔플 상태를 읽는 것은 KM-090에서 이미 되어 있고(`PlaybackState.shuffleEnabled`) 이번에 토글을 붙인다. 다만 **대기열에 곡이 하나뿐이면 셔플의 queue behavior를 확인할 수 없다.** KM-094에서 대기열 만들기를 KM-097로 미뤘기 때문이다. `PlayerConnection.playQueue`가 여러 곡을 넣을 수 있어 계측 검사로는 순서 동작을 확인할 수 있다. 착수 시 정할 것: queue behavior test를 playQueue를 쓰는 계측 검사로 덮을지, 아니면 KM-097 이후로 미룰지.
 
-**M6 진행 상황:** KM-090·091·092·093 완료. 남은 것은 KM-094(이전/다음)·095(셔플)·096(반복)·097(Queue UI)다. 반복·셔플 상태는 KM-090에서 이미 읽히고 있고 토글 조작이 KM-095·096 몫이다.
+**M6 진행 상황:** KM-090·091·092·093·094 완료. 남은 것은 KM-095(셔플)·096(반복)·097(Queue UI)다.
 
-**화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing의 즐겨찾기·대기열 버튼은 비활성이며 KM-112·097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
+**화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing 조작 줄은 즐겨찾기(비활성)·이전·재생/일시정지·다음(대기열이 한 곡이라 비활성)·대기열(비활성)이다. 즐겨찾기는 KM-112, 대기열은 KM-097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
@@ -1255,7 +1255,19 @@ progress remains synchronized
 
 KM-094 — Previous / Next
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 사용자와 합의해 대기열을 만드는 경로는 KM-097로 미루고 버튼과 명령 연결만 다뤘다.
+
+- 인수 조건: UI button PASS, notification button PASS, lockscreen button PASS, consistent behavior PASS.
+- 지금 대기열에는 한 곡뿐이다(playTrack이 setMediaItem으로 갈아 끼움). 그래도 이전은 뜻이 있다. Media3는 다음 곡이 없을 때 seekToPrevious()를 그 곡의 처음으로 되돌리는 동작으로 정의한다. 이전은 살리고 다음은 비활성이다.
+- 가용성을 앱이 따로 계산하지 않고 Player.isCommandAvailable을 그대로 읽어 PlaybackState.hasPrevious·hasNext로 옮긴다. 화면·알림·잠금화면이 같은 근거를 쓰므로 세 곳이 갈릴 수 없다. consistent behavior를 이 방식으로 만족시킨다.
+- 알림·잠금화면 버튼은 새로 만들지 않았다. Media3 알림 제공자가 같은 가용성으로 버튼을 구성하고 곡이 하나일 때 다음 버튼을 내지 않는다.
+- 아이콘 대신 문자열 버튼("이전"·"다음")을 썼다. material-icons-core에 SkipPrevious·SkipNext가 없고 두 글리프 때문에 extended를 넣지 않는다. 이 화면의 재생·일시정지도 이미 문자열이다.
+- 단위 2개·계측 1개 추가(계측 29개 → 30개).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 26초). 단위 119개·실제 계약 7개·실기기 계측 30개. 린트 오류 0.
+- 실기기 확인: 화면의 이전으로 89678ms → 0, 다음은 89442ms에서 변화 없음. 잠금화면 카드에 다음 버튼이 없고 카드의 이전으로 112639ms → 처음.
+- 결정은 ADR-052에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 

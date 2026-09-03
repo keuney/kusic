@@ -160,6 +160,25 @@ internal class PlayerConnection @Inject constructor(
         controller?.pause()
     }
 
+    /**
+     * 이전. 한 곡만 있을 때 Media3는 그 곡의 처음으로 되돌린다. 알림·잠금화면의 이전 버튼도
+     * 같은 명령을 쓰므로 세 곳의 동작이 갈리지 않는다.
+     */
+    @MainThread
+    fun seekToPrevious() {
+        checkMainThread()
+        val player = controller ?: return
+        if (player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS)) player.seekToPrevious()
+    }
+
+    /** 다음. 다음 곡이 없으면 명령 자체가 없으므로 아무 일도 하지 않는다. */
+    @MainThread
+    fun seekToNext() {
+        checkMainThread()
+        val player = controller ?: return
+        if (player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT)) player.seekToNext()
+    }
+
     @MainThread
     fun seekTo(positionMs: Long) {
         checkMainThread()
@@ -197,6 +216,8 @@ internal class PlayerConnection @Inject constructor(
             ),
             repeatMode = player.repeatMode,
             shuffleEnabled = player.shuffleModeEnabled,
+            hasPrevious = player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS),
+            hasNext = player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT),
         )
     }
 

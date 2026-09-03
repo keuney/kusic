@@ -31,6 +31,8 @@ internal data class PlaybackState(
     val nowPlaying: NowPlaying? = null,
     val repeatMode: RepeatMode = RepeatMode.Off,
     val shuffleEnabled: Boolean = false,
+    val hasPrevious: Boolean = false,
+    val hasNext: Boolean = false,
 ) {
     // 재생과 준비는 phase 하나로 정하고 여기서는 이름만 붙인다. 같은 사실을 두 곳에 두지 않는다.
     val isPlaying: Boolean get() = phase == PlaybackPhase.Playing
@@ -56,6 +58,8 @@ internal fun mapPlaybackState(
     nowPlaying: NowPlaying? = null,
     repeatMode: Int = Player.REPEAT_MODE_OFF,
     shuffleEnabled: Boolean = false,
+    hasPrevious: Boolean = false,
+    hasNext: Boolean = false,
 ): PlaybackState {
     val phase = when {
         hasError -> PlaybackPhase.Unavailable
@@ -74,6 +78,8 @@ internal fun mapPlaybackState(
         nowPlaying = nowPlaying,
         repeatMode = mapRepeatMode(repeatMode),
         shuffleEnabled = shuffleEnabled,
+        hasPrevious = hasPrevious,
+        hasNext = hasNext,
     )
 }
 

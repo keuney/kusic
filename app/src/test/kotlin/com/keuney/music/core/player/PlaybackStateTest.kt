@@ -143,6 +143,32 @@ class PlaybackStateTest {
         assertNull(nowPlayingOf("track-1", "제목", "아티스트", "   ")?.artworkUri)
     }
 
+    @Test
+    fun previousAndNextAvailabilityReachesTheState() {
+        val onlyPrevious = mapPlaybackState(
+            Player.STATE_READY, true, true, 0, 1000, false,
+            hasPrevious = true,
+            hasNext = false,
+        )
+        assertTrue("한 곡뿐이면 이전은 그 곡의 처음으로 갈 수 있다", onlyPrevious.hasPrevious)
+        assertFalse("다음 곡이 없으면 다음은 쓸 수 없다", onlyPrevious.hasNext)
+
+        val both = mapPlaybackState(
+            Player.STATE_READY, true, true, 0, 1000, false,
+            hasPrevious = true,
+            hasNext = true,
+        )
+        assertTrue(both.hasPrevious)
+        assertTrue(both.hasNext)
+    }
+
+    @Test
+    fun theDefaultStateHasNoPreviousOrNext() {
+        // 연결 전에는 어떤 명령도 쓸 수 없다고 본다. 쓸 수 있다고 잘못 보는 쪽이 더 나쁘다.
+        assertFalse(PlaybackState().hasPrevious)
+        assertFalse(PlaybackState().hasNext)
+    }
+
     private fun repeatModeOf(repeatMode: Int) =
         mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, repeatMode = repeatMode)
             .repeatMode

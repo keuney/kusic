@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -124,22 +125,40 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 즐겨찾기 저장은 KM-112가 만든다. 그때까지 눌리지 않는다.
             IconButton(onClick = {}, enabled = false) {
                 Icon(Icons.Filled.FavoriteBorder, contentDescription = stringResource(R.string.player_favorite))
             }
+            // 대기열에 곡이 하나뿐이면 이전은 그 곡의 처음으로, 다음은 명령이 없어 비활성이다.
+            OutlinedButton(
+                onClick = viewModel::previous,
+                enabled = connected && playback.hasPrevious,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.player_previous))
+            }
             if (connection == ConnectionState.Unavailable) {
-                Button(onClick = viewModel::connect) { Text(stringResource(R.string.player_retry)) }
+                Button(onClick = viewModel::connect, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.player_retry))
+                }
             } else {
                 Button(
                     onClick = { if (playback.canPause) viewModel.pause() else viewModel.play() },
                     enabled = connected,
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(if (playback.canPause) R.string.player_pause else R.string.player_play))
                 }
+            }
+            OutlinedButton(
+                onClick = viewModel::next,
+                enabled = connected && playback.hasNext,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.player_next))
             }
             // 대기열 화면은 KM-097이 만든다. 그때까지 눌리지 않는다.
             IconButton(onClick = {}, enabled = false) {

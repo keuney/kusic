@@ -493,3 +493,18 @@
 - 실기기 SM-T220 / Android 14 확인(내장 테스트 음원 120초): 0:06에서 슬라이더를 오른쪽으로 끌어 손을 떼자 화면이 곧바로 1:24~1:26을 보이고 세션 위치가 87353ms였다. 이전 자리(0:06)로 되돌아가는 구간이 없다. 이어서 위치가 1:50까지 계속 진행했다. 왼쪽으로 끌자 0:32(세션 32782ms)로 옮겨지고 다시 0:39까지 진행했다. 화면 캡처는 captures/km-093에 보관했다(저장소 추적 대상 아님).
 - 검증 동안 화면 타임아웃을 600000으로 올리고 끝난 뒤 30000으로 되돌렸으며 재생을 일시정지했다.
 - 결정 ADR-051. 신규 의존성 없음. 다음은 KM-094 Previous / Next다.
+
+## KM-094 완료 — Previous / Next
+
+- 브랜치 `codex/KM-094-previous-next`. 사용자와 합의해 대기열을 만드는 경로는 KM-097로 미루고 버튼과 명령 연결만 다뤘다. `playTrack`이 `setMediaItem`으로 한 곡을 갈아 끼우므로 대기열에는 늘 한 곡뿐이다.
+- 한 곡뿐이어도 이전은 뜻이 있다. Media3는 다음 곡이 없을 때 `seekToPrevious()`를 그 곡의 처음으로 되돌리는 동작으로 정의한다. 이전은 살리고 다음은 비활성이다.
+- 가용성을 앱이 따로 계산하지 않고 `Player.isCommandAvailable`을 그대로 읽어 `PlaybackState.hasPrevious`·`hasNext`로 옮겼다. 화면·알림·잠금화면이 같은 근거를 쓰므로 세 곳이 갈릴 수 없다. 인수 조건 consistent behavior를 이 방식으로 만족시킨다.
+- 알림·잠금화면 버튼은 새로 만들지 않았다. Media3의 알림 제공자가 같은 가용성으로 버튼을 구성하고 곡이 하나일 때 다음 버튼을 내지 않는다. 앱이 자체 버튼을 끼우면 규칙이 둘이 된다.
+- 아이콘 대신 문자열 버튼을 썼다. `material-icons-core`의 클래스 목록을 확인했더니 SkipPrevious·SkipNext가 없다. 두 글리프 때문에 훨씬 큰 extended를 넣지 않고, 이 화면의 재생·일시정지도 이미 문자열이라 표기가 일관된다.
+- 단위 2개 추가: 이전·다음 가용성이 상태까지 도달, 기본 상태에는 둘 다 없음.
+- 계측 1개 추가(`PreviousNextTest`): 한 곡 상태에서 hasPrevious 참·hasNext 거짓, 화면 경로의 이전이 곡을 처음으로 되돌림, 다음은 위치를 되돌리지 않음, 알림에 이전 버튼은 있고 다음 버튼은 없음, 알림의 이전 버튼도 같은 결과를 냄. 계측 29개 → 30개.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 26초). 단위 119개·실제 계약 7개·실기기 계측 30개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 SM-T220 / Android 14 확인: Now Playing의 조작 줄이 즐겨찾기(흐림)·이전(활성)·일시정지·다음(흐림)·대기열(흐림)이다. 슬라이더로 89678ms까지 옮긴 뒤 화면의 이전을 누르면 0으로 돌아가고, 다시 89442ms로 옮긴 뒤 다음을 눌러도 위치가 되돌지 않는다. 잠금화면 미디어 카드에는 이전과 일시정지만 있고 다음 버튼이 없으며, 카드의 이전을 누르면 112639ms에서 다시 처음으로 돌아갔다(keyguard showing=true). 화면 캡처는 captures/km-094에 보관했다(저장소 추적 대상 아님).
+- 함정: `dumpsys media_session`의 상태 줄에는 `position=`과 `buffered position=`이 함께 있어 `grep -o "position=[0-9]*"`가 두 값을 낸다. 실제 재생 위치를 볼 때는 `state=...(n), position=` 형태로 함께 잡아야 한다.
+- 검증 동안 화면 타임아웃을 600000으로 올리고 끝난 뒤 30000으로 되돌렸으며 재생을 일시정지했다.
+- 결정 ADR-052. 신규 의존성 없음. 다음은 KM-095 Shuffle이다.
