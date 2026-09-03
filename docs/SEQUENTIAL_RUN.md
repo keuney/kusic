@@ -301,3 +301,15 @@
 - 판정 결과와 곡별 표, 채택 조건, 재판정 기준을 `docs/SOURCE_PROVIDER.md`에 기록했다. 결정은 ADR-037이며 ARCHITECTURE의 ADR-004 미확정 상태를 닫았다. KM-064 Provider B 평가는 활성화하지 않는다.
 - 채택 조건으로 남긴 제약: 오디오 전용 스트림 불가로 progressive만 사용하며 대역폭이 약 3배다. 완화는 KM-134 캐시와 KM-137 WiFi 전용 재생이다. 공급자 설정은 관찰값이라 `sourceContractTest` 유지가 채택의 전제다. 접근 제한 우회 수단은 도입하지 않는다.
 - 한계: WiFi 연결의 단일 기기·단일 지역 기준이다. 다른 지역, 측정 요금제, 다른 OEM은 별도 검증 대상이다. push는 하지 않았다.
+
+## KM-060 완료 — 소스 오류 매핑
+
+- 브랜치 `codex/KM-060-source-error-mapping`. `data/source/SourceError.kt`에 `SourceFailure`(Network/Parse/NotFound/Restricted/Unknown)와 `Throwable.toAppError()`를 두고, 공급자 예외들이 자기 분류를 들고 다니도록 `SourceFailureAware`를 구현하게 했다.
+- 분류 기준: 연결 실패·타임아웃·5xx·429·408 → Network, 응답 구조 변경·직렬화 실패 → Parse, 404·410·재생 불가 상태 → NotFound, 401·403·로그인/연령/콘텐츠 확인 요구 → Restricted, 나머지 → Unknown. 공급자의 재생 가능 상태는 상태 문자열만 보고 판단하며 응답 원문을 읽지 않는다.
+- 판단 하나를 기록해 둔다. Restricted를 `AppError.GeoRestricted`로 보내지 않았다. PRD의 GeoRestricted는 지역 제한을 뜻하는데 로그인·연령 제한에 그 이름을 붙이면 사용자에게 틀린 이유를 보여준다. Restricted와 NotFound 모두 PlaybackUnavailable로 보낸다. 그 결과 GeoRestricted는 현재 생성되는 곳이 없으며, 응답 문구를 문자열로 판별하는 방식은 쓰지 않기로 했다(ADR-038).
+- 검색 실패 상태가 `AppError`를 함께 들고 다니도록 바꾸고 화면에 다섯 분류별 문구를 넣었다.
+- 단위 검사 12개 추가: 분류별 AppError 매핑 전수 확인, HTTP 상태 분류, 인프라 예외 분류, 원문 메시지 비노출, 공급자 재생 가능 상태별 분류, 검색 실패 분류, 미구현 연산 분류.
+- 검증 중 KM-059 Gate 검사가 간헐적으로 실패했다. 로그를 보니 공급자의 거부(403)가 아니라 특정 트랙의 SocketTimeoutException이었고, 재시도 후에도 재현됐다가 다음 실행에서는 통과했다. 계약 위반과 전송 지연을 구분하도록 판정을 나눴다. 공급자 거부는 0건만 허용하고, 전송 지연은 1회 재시도 후에도 남는 건수를 1건까지 허용하며 결과에 그대로 기록한다.
+- `BackgroundPlaybackTest`도 전체 실행 중 한 번 실패했으나 단독 실행에서 통과했다. 앞선 실행이 중간에 끊긴 영향으로 보이며 코드 변경과 무관하다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 10초). 단위 53개·실제 계약 5개·실기기 계측 24개, 실패/오류 0. 린트 오류 0·경고 19. Gate 판정은 해석 10/10, 중간 구간 10/10(공급자 거부 0, 전송 지연 0).
+- 결정 ADR-038. 신규 의존성 없음. 재생 중 실패의 재해석과 재시도는 KM-061, 타임아웃 값 정책은 KM-062다.

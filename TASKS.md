@@ -823,7 +823,14 @@ M4 — Source Hardening
 
 KM-060 — Source error mapping
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): 공급자·인프라 실패를 SourceFailure 다섯 분류로 좁힌 뒤 도메인 AppError로 바꾸고 화면 문구까지 연결했다. 원문 예외와 메시지는 경계에서 끊긴다.
+
+- 인수 조건: network PASS, parse PASS, not found PASS, restricted PASS, unknown PASS. 단위 검사 12개 추가.
+- Restricted는 GeoRestricted가 아니라 PlaybackUnavailable로 보낸다. 로그인·연령 제한을 "지역 제한"으로 표시하면 사용자에게 틀린 이유가 된다. AppError.GeoRestricted는 지역 제한을 구조적으로 판별할 수 있을 때까지 생성하지 않는다(ADR-038).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 10초). 단위 53개·실제 계약 5개·실기기 계측 24개.
+- KM-059 Gate 검사가 간헐 실패했다. 공급자 거부가 아니라 SocketTimeoutException이었고, 계약 위반과 전송 지연을 구분하도록 판정을 나눴다. 타임아웃 정책 자체는 KM-062 대상이다.
 
 Goal:
 

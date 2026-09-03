@@ -1,6 +1,7 @@
 package com.keuney.music.data.source.providerA.mapper
 
 import com.keuney.music.core.model.PlayableStream
+import com.keuney.music.data.source.SourceFailure
 import com.keuney.music.data.source.providerA.ProviderAStreamException
 import java.net.URI
 import java.time.Instant
@@ -18,11 +19,14 @@ import kotlinx.serialization.json.longOrNull
  */
 internal fun mapStreamResponse(response: JsonObject, now: Instant): PlayableStream {
     val status = (response["playabilityStatus"] as? JsonObject)?.string("status")
-    if (status != "OK") throw ProviderAStreamException("Track is not playable")
+    if (status != "OK") {
+        throw ProviderAStreamException("Track is not playable", playabilityFailure(status))
+    }
     val data = response["streamingData"] as? JsonObject
-        ?: throw ProviderAStreamException("Streaming metadata missing")
+        ?: throw ProviderAStreamException("Streaming metadata missing", SourceFailure.Parse)
     val chosen = progressiveStream(data)
-        ?: throw ProviderAStreamException("No direct audio stream available")
+        // 응답은 정상이지만 재생 가능한 전송 방식이 없다. 소스가 방식을 바꾼 경우다.
+        ?: throw ProviderAStreamException("No direct audio stream available", SourceFailure.Parse)
     val expirySeconds = (data["expiresInSeconds"] as? JsonPrimitive)?.longOrNull?.takeIf { it > 0 }
     return PlayableStream(
         url = checkNotNull(chosen.string("url")),
@@ -30,6 +34,14 @@ internal fun mapStreamResponse(response: JsonObject, now: Instant): PlayableStre
         bitrate = (chosen["bitrate"] as? JsonPrimitive)?.intOrNull?.takeIf { it > 0 },
         expiresAt = expirySeconds?.let { runCatching { now.plusSeconds(it) }.getOrNull() },
     )
+}
+
+/** 공급자의 재생 가능 상태를 분류한다. 상태 값만 보고 응답 원문은 사용하지 않는다. */
+private fun playabilityFailure(status: String?): SourceFailure = when (status) {
+    "LOGIN_REQUIRED", "AGE_CHECK_REQUIRED", "CONTENT_CHECK_REQUIRED" -> SourceFailure.Restricted
+    "UNPLAYABLE", "ERROR" -> SourceFailure.NotFound
+    null -> SourceFailure.Parse
+    else -> SourceFailure.Unknown
 }
 
 /** 오디오가 함께 들어 있는 단일 스트림. 컨테이너가 video/mp4여도 재생에는 오디오만 사용한다. */

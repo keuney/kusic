@@ -3,6 +3,8 @@ package com.keuney.music.data.source.providerA
 import com.keuney.music.core.model.PlayableStream
 import com.keuney.music.core.model.Track
 import com.keuney.music.data.source.MusicSource
+import com.keuney.music.data.source.SourceFailure
+import com.keuney.music.data.source.SourceFailureAware
 import javax.inject.Inject
 
 /**
@@ -26,4 +28,6 @@ internal class ProviderAMusicSource @Inject constructor(
 }
 
 /** Messages are fixed app strings and never include provider response content. */
-internal class ProviderAUnsupportedException : Exception("Source operation not available")
+internal class ProviderAUnsupportedException : Exception("Source operation not available"), SourceFailureAware {
+    override val failure: SourceFailure = SourceFailure.NotFound
+}

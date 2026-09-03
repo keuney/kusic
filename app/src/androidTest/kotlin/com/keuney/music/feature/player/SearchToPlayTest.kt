@@ -4,6 +4,7 @@ import android.content.Intent
 import android.view.KeyEvent
 import androidx.test.platform.app.InstrumentationRegistry
 import com.keuney.music.MainActivity
+import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.PlayableStream
 import com.keuney.music.core.model.SourceType
 import com.keuney.music.core.model.Track
@@ -61,7 +62,11 @@ class SearchToPlayTest {
 
         val failing = viewModelWith(FakeSource(Result.failure(IllegalStateException("원문 노출 금지"))))
         failing.search("실패하는 검색어")
-        assertEquals(SearchUiState.Failed, withTimeout(5_000) { failing.searchState.first { it != SearchUiState.Searching && it != SearchUiState.Idle } })
+        val failed = withTimeout(5_000) {
+            failing.searchState.first { it != SearchUiState.Searching && it != SearchUiState.Idle }
+        }
+        assertTrue("실패 상태가 아님: $failed", failed is SearchUiState.Failed)
+        assertEquals(AppError.Unknown, (failed as SearchUiState.Failed).error)
     }
 
     @Test

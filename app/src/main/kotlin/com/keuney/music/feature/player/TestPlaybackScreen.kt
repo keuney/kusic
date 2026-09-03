@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.keuney.music.R
+import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
@@ -131,7 +132,7 @@ private fun SearchResults(
         SearchUiState.Idle -> Column(modifier) {}
         SearchUiState.Searching -> Text(stringResource(R.string.search_searching), modifier = modifier)
         SearchUiState.Empty -> Text(stringResource(R.string.search_empty), modifier = modifier)
-        SearchUiState.Failed -> Text(stringResource(R.string.search_failed), modifier = modifier)
+        is SearchUiState.Failed -> Text(stringResource(state.error.messageRes()), modifier = modifier)
         is SearchUiState.Results -> LazyColumn(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -153,6 +154,15 @@ private fun SearchResults(
             }
         }
     }
+}
+
+/** 사용자에게 보여줄 문구. 원문 예외나 응답 내용은 여기까지 오지 않는다. */
+private fun AppError.messageRes(): Int = when (this) {
+    AppError.Network -> R.string.error_network
+    AppError.SourceUnavailable -> R.string.error_source_unavailable
+    AppError.PlaybackUnavailable -> R.string.error_playback_unavailable
+    AppError.GeoRestricted -> R.string.error_geo_restricted
+    AppError.Unknown -> R.string.error_unknown
 }
 
 private fun formatTime(milliseconds: Long): String {

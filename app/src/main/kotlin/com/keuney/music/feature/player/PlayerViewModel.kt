@@ -2,11 +2,13 @@ package com.keuney.music.feature.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlayerConnection
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.data.source.MusicSource
+import com.keuney.music.data.source.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -23,7 +25,7 @@ internal sealed interface SearchUiState {
     data object Searching : SearchUiState
     data class Results(val tracks: List<Track>) : SearchUiState
     data object Empty : SearchUiState
-    data object Failed : SearchUiState
+    data class Failed(val error: AppError) : SearchUiState
 }
 
 /**
@@ -76,7 +78,7 @@ internal class PlayerViewModel @Inject constructor(
             val tracks = source.search(trimmed)
             mutableSearch.value = tracks.fold(
                 onSuccess = { if (it.isEmpty()) SearchUiState.Empty else SearchUiState.Results(it) },
-                onFailure = { SearchUiState.Failed },
+                onFailure = { SearchUiState.Failed(it.toAppError()) },
             )
         }
     }

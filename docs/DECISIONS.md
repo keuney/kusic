@@ -265,6 +265,16 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-038 — 소스 오류 매핑 (KM-060)
+
+- 공급자와 인프라의 실패를 `SourceFailure` 다섯 분류(Network, Parse, NotFound, Restricted, Unknown)로 먼저 좁힌 뒤 도메인 `AppError`로 바꾼다. 원문 예외와 메시지는 이 경계에서 끊기며 UI로 넘어가지 않는다(AGENTS.md 12).
+- 분류 기준: 연결 실패·타임아웃·5xx·429·408은 Network, 응답 구조 변경과 직렬화 실패는 Parse, 404·410과 재생 불가 상태는 NotFound, 401·403과 로그인/연령/콘텐츠 확인 요구는 Restricted, 나머지는 Unknown이다. 공급자의 재생 가능 상태는 상태 문자열만 보고 판단하며 응답 원문을 읽지 않는다.
+- `AppError` 매핑에서 **Restricted를 GeoRestricted로 보내지 않는다.** PRD의 GeoRestricted는 지역 제한을 뜻하는데 로그인·연령 제한을 그 이름으로 표시하면 사용자에게 틀린 이유를 보여준다. Restricted와 NotFound 모두 PlaybackUnavailable("이 곡은 재생할 수 없습니다")로 보낸다.
+- 그 결과 `AppError.GeoRestricted`는 현재 생성되는 곳이 없다. 공급자가 지역 제한을 구조적으로 알려주지 않기 때문이다. 응답 문구를 문자열로 판별하는 방식은 쓰지 않는다. 지역 제한을 따로 표시해야 한다면 판별 가능한 신호를 먼저 찾거나 PRD의 오류 분류를 바꿔야 한다.
+- 재생 가능한 전송 방식이 없는 응답은 Parse로 분류해 SourceUnavailable이 된다. 상태는 정상인데 앱이 쓸 수 있는 형식이 없는 것은 소스가 방식을 바꾼 경우다.
+- 화면은 다섯 분류별 문구를 보여준다. 검색 실패 상태가 `AppError`를 함께 들고 다니도록 바꿨다.
+- 검증 중 KM-059 Gate 검사가 간헐적으로 실패했다. 원인은 공급자의 거부가 아니라 특정 트랙의 SocketTimeoutException이었다. 계약 위반과 전송 지연을 구분하도록 판정을 나눴다. 공급자 거부는 한 건도 허용하지 않고, 재시도 후에도 남는 전송 지연만 1건까지 허용하며 결과에 건수를 그대로 기록한다. 타임아웃 값 자체의 정책은 KM-062에서 다룬다.
+
 ### ADR-037 — Provider A를 v0.1 source로 채택 (KM-059 Gate PASS)
 
 - KM-059 Gate를 통과했다. 여러 아티스트 10곡 전부 스트림 해석과 파일 중간 지점 구간 요청에 성공했고, 실기기에서 큐 자동 전환과 81분 트랙의 먼 지점 이어 재생을 확인했다. 판정 근거와 곡별 결과는 `docs/SOURCE_PROVIDER.md`에 기록했다. ARCHITECTURE의 ADR-004(Source Provider 선택) 미확정 상태를 이 결정으로 닫는다.
