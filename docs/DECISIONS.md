@@ -265,6 +265,15 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-042 — SearchRepository 경계 (KM-070)
+
+- ARCHITECTURE 6의 `SearchRepository` 계약을 그대로 쓴다. 인터페이스는 `core/search`, 구현은 `data/repository`에 둔다(ARCHITECTURE 4의 트리).
+- 이 경계의 존재 이유는 실패 표현을 바꾸는 데 있다. 이전에는 ViewModel이 `data.source.toAppError`를 직접 불러 화면 계층이 데이터 계층 함수에 의존했다. 이제 repository가 모든 실패를 `AppErrorException`으로 감싸 돌려주므로 화면은 `AppError`만 안다.
+- `Result<List<Track>>` 서명은 ARCHITECTURE와 동일하게 유지한다. `Result`의 실패는 Throwable이어야 하므로 도메인 오류를 실어 나를 얇은 예외 타입 `AppErrorException`을 `core/model`에 둔다. 원문 예외와 메시지는 담지 않는다.
+- repository는 얇게 둔다. 검색어 정리와 빈 검색어 처리는 이미 공급자 구현에 있고, 옮기면 같은 규칙이 두 곳에 생긴다. 지금 repository의 책임은 위임과 오류 변환뿐이다. 로컬/원격 조합과 캐시 전략은 필요해질 때 여기에 붙인다.
+- 취소는 실패로 바꾸지 않고 그대로 전파한다. 취소를 오류로 만들면 화면이 실패 문구를 띄우고 불필요한 재시도를 유도한다(ADR-040과 같은 이유).
+- POC 화면의 ViewModel을 이 경계 뒤로 옮겼다. 별도의 SearchViewModel과 화면 분리는 KM-071·KM-072 범위다.
+
 ### ADR-041 — 소스 계약 검사 스위트 (KM-063)
 
 - 계약 검사는 별도 Gradle 작업 `sourceContractTest`로 실행하고 일반 `test`에서는 `*SourceContractTest`를 제외한다. 실제 외부 요청이므로 매 실행 네트워크를 확인하며 결과를 캐시하지 않는다(AGENTS.md 17).

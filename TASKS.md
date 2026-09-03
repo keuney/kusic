@@ -959,7 +959,15 @@ M5 — Search UX
 
 KM-070 — SearchRepository
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): ARCHITECTURE 6의 계약대로 인터페이스는 core/search, 구현은 data/repository에 두고 Hilt로 바인딩했다. POC 화면의 ViewModel을 이 경계 뒤로 옮겼다.
+
+- 인수 조건: MusicSource injected PASS, error mapping PASS(모든 실패를 AppErrorException으로 감싼다), unit tests PASS(6개 추가).
+- 이 경계의 실익은 실패 표현이다. 이전에는 ViewModel이 data.source.toAppError를 직접 불러 화면 계층이 데이터 계층 함수에 의존했다. 이제 화면은 AppError만 안다.
+- repository는 얇게 둔다. 검색어 정리와 빈 검색어 처리는 이미 공급자 구현에 있어 옮기지 않았다. 취소는 실패로 바꾸지 않고 전파한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 51초). 단위 64개·실제 계약 7개·실기기 계측 29개.
+- 결정은 ADR-042에 기록했다. 신규 의존성 없음. SearchViewModel 분리는 KM-071이다.
 
 Goal:
 

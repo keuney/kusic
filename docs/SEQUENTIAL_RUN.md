@@ -348,3 +348,14 @@
 - 함께 고친 것: 계측 4개(`MusicServiceTest`, `MusicSessionTest`, `PlayerConnectionTest`, `TestAudioPlaybackTest`)가 `@AndroidEntryPoint`인 MusicService에 연결하면서 `HiltAndroidRule`이 없었다. 앞선 테스트가 컴포넌트를 정리하면 "The component was not created"로 실패하는 구조라 순서에 따라 간헐적으로 깨졌다. 네 곳에 규칙을 추가했다. 앞서 두 차례 관찰한 전체 실행 중 단발 실패의 원인이 이것이다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 17초). 단위 58개·실제 계약 7개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19.
 - 결정 ADR-041. 신규 의존성 없음. M4 Source Hardening 완료. push는 하지 않았다.
+
+## KM-070 완료 — SearchRepository 경계
+
+- 브랜치 `codex/KM-070-search-repository`. 인터페이스 `core/search/SearchRepository`, 구현 `data/repository/SearchRepositoryImpl`, 바인딩 `di/RepositoryModule`을 추가했다. ARCHITECTURE 6의 서명과 4의 트리를 그대로 따랐다.
+- 이 경계의 실익은 실패 표현을 바꾸는 데 있다. 이전에는 `PlayerViewModel`이 `data.source.toAppError`를 직접 불러 화면 계층이 데이터 계층 함수에 의존했다. 이제 repository가 모든 실패를 `AppErrorException`으로 감싸 돌려주므로 화면은 `AppError`만 안다.
+- `Result<List<Track>>` 서명은 ARCHITECTURE와 동일하게 유지했다. Result의 실패는 Throwable이어야 하므로 도메인 오류를 실어 나를 얇은 예외 타입 `AppErrorException`을 core/model에 뒀다. 원문 예외와 메시지는 담지 않는다.
+- repository를 얇게 유지했다. 검색어 정리와 빈 검색어 처리는 이미 공급자 구현에 있고 옮기면 같은 규칙이 두 곳에 생긴다. 지금 책임은 위임과 오류 변환뿐이며, 로컬/원격 조합과 캐시 전략은 필요해질 때 붙인다.
+- 취소는 실패로 바꾸지 않고 전파한다. 취소를 오류로 만들면 화면이 실패 문구를 띄우고 불필요한 재시도를 유도한다.
+- 단위 6개 추가: 성공 결과 그대로 전달과 검색어 전달, 다섯 분류의 도메인 오류 매핑, 인프라 예외 매핑, 던져진 예외도 감싸기, 원문 메시지 비노출, 취소 전파.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 51초). 단위 64개·실제 계약 7개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19.
+- 결정 ADR-042. 신규 의존성 없음. SearchViewModel 분리는 KM-071, 화면 분리는 KM-072다. push는 하지 않았다.

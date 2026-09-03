@@ -5,7 +5,7 @@ import android.view.KeyEvent
 import androidx.test.platform.app.InstrumentationRegistry
 import com.keuney.music.MainActivity
 import com.keuney.music.core.model.AppError
-import com.keuney.music.core.model.PlayableStream
+import com.keuney.music.core.model.AppErrorException
 import com.keuney.music.core.model.SourceType
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.ConnectionState
@@ -14,7 +14,7 @@ import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlayerConnection
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.core.settings.ThemePreference
-import com.keuney.music.data.source.MusicSource
+import com.keuney.music.core.search.SearchRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject
@@ -39,7 +39,7 @@ class SearchToPlayTest {
     val hilt = HiltAndroidRule(this)
 
     @Inject
-    lateinit var source: MusicSource
+    lateinit var searchRepository: SearchRepository
 
     @Test
     fun searchStateMovesFromSearchingToResults(): Unit = runBlocking {
@@ -60,13 +60,13 @@ class SearchToPlayTest {
         empty.search("결과 없는 검색어")
         assertEquals(SearchUiState.Empty, withTimeout(5_000) { empty.searchState.first { it != SearchUiState.Searching && it != SearchUiState.Idle } })
 
-        val failing = viewModelWith(FakeSource(Result.failure(IllegalStateException("원문 노출 금지"))))
+        val failing = viewModelWith(FakeSource(Result.failure(AppErrorException(AppError.Network))))
         failing.search("실패하는 검색어")
         val failed = withTimeout(5_000) {
             failing.searchState.first { it != SearchUiState.Searching && it != SearchUiState.Idle }
         }
         assertTrue("실패 상태가 아님: $failed", failed is SearchUiState.Failed)
-        assertEquals(AppError.Unknown, (failed as SearchUiState.Failed).error)
+        assertEquals(AppError.Network, (failed as SearchUiState.Failed).error)
     }
 
     @Test
@@ -89,7 +89,7 @@ class SearchToPlayTest {
             Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
         val connection = PlayerConnection(context)
-        val viewModel = PlayerViewModel(connection, source, FakeSettings(), NetworkPolicy(FakeSettings()) { false })
+        val viewModel = PlayerViewModel(connection, searchRepository, FakeSettings(), NetworkPolicy(FakeSettings()) { false })
         try {
             instrumentation.runOnMainSync { connection.connect() }
             withTimeout(10_000) { connection.state.first { it == ConnectionState.Connected } }
@@ -130,7 +130,7 @@ class SearchToPlayTest {
         }
     }
 
-    private fun viewModelWith(fake: MusicSource) = PlayerViewModel(
+    private fun viewModelWith(fake: SearchRepository) = PlayerViewModel(
         PlayerConnection(InstrumentationRegistry.getInstrumentation().targetContext),
         fake,
         FakeSettings(),
@@ -146,7 +146,7 @@ class SearchToPlayTest {
 
     private fun track(id: String) = Track(id, "제목 $id", "아티스트", null, 180_000, SourceType.Remote)
 
-    private class FakeSource(private val result: Result<List<Track>>) : MusicSource {
+    private class FakeSource(private val result: Result<List<Track>>) : SearchRepository {
         var calls = 0
             private set
 
@@ -154,13 +154,6 @@ class SearchToPlayTest {
             calls++
             return result
         }
-
-        override suspend fun getTrack(trackId: String): Result<Track> = Result.failure(UnsupportedOperationException())
-        override suspend fun resolveStream(trackId: String): Result<PlayableStream> =
-            Result.failure(UnsupportedOperationException())
-
-        override suspend fun getRelated(trackId: String): Result<List<Track>> =
-            Result.failure(UnsupportedOperationException())
     }
 
     private companion object {
