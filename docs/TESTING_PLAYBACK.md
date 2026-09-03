@@ -87,3 +87,16 @@ $serial = '여기에 기기 식별자 입력'
 검사 날짜, 앱 변경 사항, 모델/API, 실기기/에뮬레이터 구분, USB 충전 여부, 명령·종료 코드·테스트 수, 각 조건 PASS/FAIL, 미검증 항목을 `docs/SEQUENTIAL_RUN.md` 또는 해당 작업 기록에 남긴다. 에뮬레이터만 통과한 백그라운드/화면 꺼짐 검사는 실기기 완료로 표시하지 않는다.
 
 수동 검사 후 앱이나 미디어 카드에서 일시정지한다. 자동 검사는 자체 정리 절차를 수행한다. 실패 시 먼저 실패 보고서와 해당 앱 상태를 확인하고 최소 수정 후 영향 검사와 전체 검사를 다시 실행한다.
+
+## Git Bash에서 ADB를 쓸 때
+
+Git Bash는 `/sdcard/...` 같은 인자를 Windows 경로로 바꿔 버려 `adb shell`과 `adb pull`이 엉뚱한 경로를 가리킨다. 해당 명령에만 경로 변환을 끈다.
+
+```bash
+MSYS_NO_PATHCONV=1 "$ANDROID_HOME/platform-tools/adb.exe" shell uiautomator dump /sdcard/ui.xml
+MSYS_NO_PATHCONV=1 "$ANDROID_HOME/platform-tools/adb.exe" pull /sdcard/ui.xml captures/ui.xml
+```
+
+같은 셸에서 Gradle을 실행할 때는 이 변수를 켜 두면 안 된다. `JAVA_HOME` 같은 유닉스 경로가 Windows 경로로 바뀌지 않아 Wrapper가 JDK를 찾지 못한다. ADB 명령에만 앞에 붙인다.
+
+기기 화면이 꺼져 있으면 `uiautomator dump`가 잠금화면을 덤프한다. 깨우고 잠금을 푼 뒤 확인한다. 화면 크기는 `adb shell wm size`로 확인하고 좌표를 계산한다. 이 기기(SM-T220)는 800x1340이다.
