@@ -18,13 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 55 / 미착수 22. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 22에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 56 / 미착수 21. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 21에는 최종 게이트 KM-200이 포함된다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110 완료).**
+**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110·111 완료).**
 
-**다음 작업: KM-111 (Library repository).** 인수 조건은 repository interfaces·Flow-based observation·tests다. KM-110이 표까지 만들었고 DAO는 없으므로 이 작업에서 DAO와 저장소를 함께 만든다. ARCHITECTURE 4의 트리대로 DAO는 `core/database/dao`, 저장소 인터페이스는 `core/library`(검색이 `core/search`에 있는 것과 같은 방식), 구현은 `data/repository`다. AGENTS.md 10대로 ViewModel은 DAO를 직접 부르지 않는다. 착수 전에 정해야 할 미결 사항은 없다.
+**다음 작업: KM-112 (Favorites).** 인수 조건은 add/remove·Library display·app restart persistence다. 데이터 계층은 KM-111이 다 만들었으므로(`LibraryRepository.favorites`·`isFavorite`·`setFavorite`) 이 작업은 화면 연결이다. 할 일: Now Playing의 비활성 즐겨찾기 버튼을 살리고(그때 "아직 준비되지 않은 기능입니다." 문구도 지운다), 라이브러리 탭에 즐겨찾기 목록을 보여준다. **라이브러리 탭은 지금 자리표시자이고 KM-116(Library screen)이 그 화면의 소속이다.** 즐겨찾기 목록을 KM-112에서 라이브러리 탭에 바로 넣을지, KM-116까지 미루고 Now Playing 버튼만 살릴지 착수 시 정해야 한다. 인수 조건에 Library display가 있으니 전자가 자연스럽다.
 
-**KM-110에서 정한 것:** 표는 tracks·favorites·playlists·playlist_items·playback_history 다섯 개다. `search_history` 표는 만들지 않았다(최근 검색어는 DataStore, ADR-046). 마이그레이션은 명시적이며 SQL은 Room이 내보낸 스키마 파일에서 옮긴다. 표를 바꿀 때도 같은 방식으로 하고 `KeuneyMigrationTest`가 결과를 검증한다. DAO 사용처가 아직 없어 기기에 실제 `keuney.db` 파일은 만들어지지 않은 상태다.
+**KM-111에서 정한 것:** 라이브러리 데이터 계층은 `LibraryRepository` 하나로 M7의 세 기능(즐겨찾기·재생목록·재생 기록)을 모두 덮는다. 읽기는 Flow, 쓰기는 Track을 받으며 곡 메타데이터 저장은 저장소가 알아서 한다. 시각도 저장소가 읽는다. KM-112~115는 화면과 정책만 붙이면 된다.
 
 **남은 화면 작업:** 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing의 즐겨찾기 버튼은 비활성이며 KM-112에서 살린다(그때 "아직 준비되지 않은 기능입니다." 문구도 지운다). WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다. 내장 테스트 음원은 artworkUri가 없어 미니 플레이어에서 자리표시자 색으로 보인다.
 
@@ -1393,7 +1393,19 @@ DB test
 
 KM-111 — Library repository
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): DAO 넷을 core/library/LibraryRepository 하나로 묶었다. 구현은 data/repository/LibraryRepositoryImpl이다.
+
+- 인수 조건: repository interfaces PASS, Flow-based observation PASS(읽기는 모두 Flow), tests PASS(단위 11개·계측 8개).
+- DAO는 저장소 구현만 주입받는다. 화면과 ViewModel의 그래프에는 DAO가 올라가지 않으며 DAO 타입도 internal이다(AGENTS.md 10).
+- 쓰기는 Track을 받고 구현이 곡을 먼저 저장한다. 세 표가 tracks를 외래 키로 가리키므로 곡이 없으면 쓰기가 실패한다. 부르는 쪽이 그 순서를 알 필요가 없다.
+- 시각은 저장소가 읽고 검사에서는 주입해 고정한다. 어디에서도 가리키지 않는 곡은 정리하며 다른 곳이 가리키면 남는다.
+- 최근 재생은 곡별로 가장 최근 시각만 남겨 묶는다(KM-115 중복 정책의 데이터 계층 몫). 언제 기록할지는 KM-115가 정한다.
+- ARCHITECTURE 4가 LibraryRepositoryImpl 하나를 지정하므로 M7의 세 기능을 한 인터페이스에 담았다. KM-112~115는 화면과 정책만 붙인다.
+- core/model/Playlist를 추가했다(ARCHITECTURE 4의 트리에 있던 파일).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 33초). 단위 140개·실제 계약 7개·실기기 계측 43개. 린트 오류 0.
+- 결정은 ADR-057에 기록했다. 신규 의존성 없음. 화면 변경 없음.
 
 Goal:
 

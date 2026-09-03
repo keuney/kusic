@@ -1,7 +1,9 @@
 package com.keuney.music.di
 
+import com.keuney.music.core.library.LibraryRepository
 import com.keuney.music.core.search.SearchHistoryRepository
 import com.keuney.music.core.search.SearchRepository
+import com.keuney.music.data.repository.LibraryRepositoryImpl
 import com.keuney.music.data.repository.SearchHistoryRepositoryImpl
 import com.keuney.music.data.repository.SearchRepositoryImpl
 import dagger.Binds
@@ -22,4 +24,8 @@ internal abstract class RepositoryModule {
     abstract fun bindSearchHistoryRepository(
         repository: SearchHistoryRepositoryImpl,
     ): SearchHistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLibraryRepository(repository: LibraryRepositoryImpl): LibraryRepository
 }

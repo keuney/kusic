@@ -570,3 +570,20 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 34초). 단위 129개·실제 계약 7개·실기기 계측 35개, 실패/오류 0. 린트 오류 0·경고 22.
 - 실기기 마이그레이션 확인은 계측 검사가 담당한다. 실제 `keuney.db`는 아직 기기에 없다. 데이터베이스를 여는 코드가 없어(DAO 사용처가 KM-111부터) 파일이 만들어지지 않았기 때문이다. 계측 검사는 진짜 버전 1 파일을 만들어 마이그레이션을 돌리므로 같은 경로를 기기에서 확인한다.
 - 결정 ADR-056. 신규 의존성 1개(검사 전용 room-testing). 다음은 KM-111 Library repository다.
+
+## KM-111 완료 — Library repository
+
+- 브랜치 `codex/KM-111-library-repository`. DAO 넷을 `core/database/dao`에 두고 `core/library/LibraryRepository` 하나로 묶었다. 구현은 `data/repository/LibraryRepositoryImpl`이다.
+- DAO는 저장소 구현만 주입받는다. 화면과 ViewModel의 그래프에는 DAO가 올라가지 않으며 DAO 타입도 internal이다(AGENTS.md 10).
+- 읽기는 모두 Flow다. 쓰기는 `Track`을 받고 구현이 곡을 먼저 저장한다. 세 표가 tracks를 외래 키로 가리키므로 곡이 없으면 쓰기가 실패한다.
+- 시각은 저장소가 읽고 검사에서는 주입해 고정한다. 화면이 시계를 넘기면 화면마다 다른 시계를 쓸 수 있다.
+- 어디에서도 가리키지 않는 곡은 정리한다. 아직 다른 곳에서 가리키면 남는다.
+- 최근 재생은 곡별로 가장 최근 시각만 남겨 묶는다. 같은 곡이 여러 번 나오면 "최근 재생"이 쓸모없어진다. 언제 기록할지는 KM-115가 정한다.
+- 재생목록 자리 번호를 정하는 것과 담는 것을 한 트랜잭션에 뒀다. 둘로 나뉘면 같은 자리가 두 번 나온다.
+- `core/model/Playlist`를 추가했다(ARCHITECTURE 4의 트리에 있던 파일). 담긴 곡 수를 함께 들고 곡 목록은 따로 읽는다.
+- 단위 11개 추가: 즐겨찾기가 곡을 먼저 저장, 해제 시 행 제거와 곡 정리, 도메인 타입으로 반환, 즐겨찾기 여부 관찰, 재생목록의 곡 수, 만들 때 시각 기록, 담을 때 곡 먼저 저장, 재생 기록의 곡 저장과 시각, 기록 지우기와 곡 정리, 알 수 없는 source는 Remote, 왕복 후 메타데이터 유지.
+- 계측 8개 추가(`LibraryDaoTest`, 메모리 데이터베이스): 즐겨찾기 최신순 관찰과 해제, 같은 곡 두 번 즐겨찾기해도 한 행, 재생목록 담은 순서 유지와 빼기, 같은 곡 두 번 담기와 한 번에 빼기, 이름 변경과 삭제 시 항목까지 삭제, 최근 재생 곡별 한 번 최신순과 개수 제한과 지우기, 곡 삭제 시 즐겨찾기·기록 함께 삭제, 다른 곳이 가리키면 곡이 남음. 계측 35개 → 43개.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 33초). 단위 140개·실제 계약 7개·실기기 계측 43개, 실패/오류 0. 린트 오류 0·경고 22.
+- 화면 변경은 없다. M7의 세 기능을 한 인터페이스에 담았으므로 KM-112~115는 화면과 정책만 붙인다.
+- 함정: Room 메모리 데이터베이스도 SQLite 기본대로 외래 키가 꺼져 있다. 실제 앱과 같게 동작을 확인하려면 `PRAGMA foreign_keys = ON`을 켜야 한다.
+- 결정 ADR-057. 신규 의존성 없음. 다음은 KM-112 Favorites다.
