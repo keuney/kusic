@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -170,6 +171,15 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // 켜짐·꺼짐이 눈에 보여야 한다. 선택 상태를 가진 칩으로 둔다.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = playback.shuffleEnabled,
+                onClick = { viewModel.setShuffleEnabled(!playback.shuffleEnabled) },
+                enabled = connected,
+                label = { Text(stringResource(R.string.player_shuffle)) },
+            )
+        }
         // WiFi 전용 설정(KM-137)은 설정 화면(KM-153)이 생기면 그쪽으로 옮긴다.
         Row(
             modifier = Modifier.fillMaxWidth(),

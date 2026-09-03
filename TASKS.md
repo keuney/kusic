@@ -18,13 +18,15 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 51 / 미착수 26. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 26에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 52 / 미착수 25. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 25에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-095 (Shuffle).** 인수 조건은 toggle·state visible·queue behavior test다. 셔플 상태를 읽는 것은 KM-090에서 이미 되어 있고(`PlaybackState.shuffleEnabled`) 이번에 토글을 붙인다. 다만 **대기열에 곡이 하나뿐이면 셔플의 queue behavior를 확인할 수 없다.** KM-094에서 대기열 만들기를 KM-097로 미뤘기 때문이다. `PlayerConnection.playQueue`가 여러 곡을 넣을 수 있어 계측 검사로는 순서 동작을 확인할 수 있다. 착수 시 정할 것: queue behavior test를 playQueue를 쓰는 계측 검사로 덮을지, 아니면 KM-097 이후로 미룰지.
+**다음 작업: KM-096 (Repeat).** 인수 조건은 off·one·all·state persistence optional이다. 반복 상태를 읽는 것은 KM-090에서 이미 되어 있고(`PlaybackState.repeatMode`) 이번에 세 상태를 도는 토글을 붙인다. KM-095의 셔플 칩 옆에 같은 방식으로 두면 된다. 착수 시 정할 것: state persistence는 optional인데 PRD 34의 DataStore 항목에는 반복 모드가 들어 있다. 지금 저장할지(설정 저장소가 이미 있으니 어렵지 않다) 미룰지 정해야 한다.
 
-**M6 진행 상황:** KM-090·091·092·093·094 완료. 남은 것은 KM-095(셔플)·096(반복)·097(Queue UI)다.
+**M6 진행 상황:** KM-090~095 완료. 남은 것은 KM-096(반복)·097(Queue UI)다.
 
-**화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing 조작 줄은 즐겨찾기(비활성)·이전·재생/일시정지·다음(대기열이 한 곡이라 비활성)·대기열(비활성)이다. 즐겨찾기는 KM-112, 대기열은 KM-097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
+**KM-097 착수 시 알아야 할 제약(ADR-053):** 컨트롤러가 받는 Timeline에는 셔플 순서가 실려 오지 않는다. 대기열 화면은 넣은 순서만 보여줄 수 있고 셔플이 켜졌을 때의 실제 재생 순서는 보여줄 수 없다. 순서를 보여줄지, 셔플 중에는 순서 표시를 감출지 정해야 한다. 또한 화면에서 대기열을 만드는 경로가 아직 없다(playTrack은 setMediaItem으로 한 곡을 갈아 끼우고, playQueue는 Gate 검증용이다). 그 경로를 KM-097에서 만든다.
+
+**화면 구성 현황:** 하단 탭 홈·검색·라이브러리에 전체 화면 `now-playing`. 홈(KM-151)과 라이브러리(KM-116)는 자리표시자다. Now Playing 조작 줄은 즐겨찾기(비활성)·이전·재생/일시정지·다음(대기열이 한 곡이라 비활성)·대기열(비활성)이고 그 아래 셔플 칩이 있다. 즐겨찾기는 KM-112, 대기열은 KM-097에서 살린다. WiFi 전용 스위치는 Now Playing에 있고 KM-153 설정 화면으로 옮긴다.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
@@ -1281,7 +1283,18 @@ consistent behavior
 
 KM-095 — Shuffle
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): PlayerConnection.setShuffleEnabled과 Now Playing의 선택 상태 칩을 붙였다.
+
+- 인수 조건: toggle PASS, state visible PASS(켜짐은 채워진 칩·꺼짐은 테두리 칩), queue behavior test **부분 충족**.
+- 화면의 켜짐 표시는 세션이 돌려준 PlaybackState.shuffleEnabled만 근거로 한다. 눌렀다는 사실을 따로 기억하면 세션이 거절했을 때 화면이 거짓을 보인다.
+- **섞인 재생 순서는 UI 계층에서 관찰할 수 없다.** 세션이 컨트롤러에 보내는 Timeline에 셔플 순서가 실려 오지 않는다(RemotableTimeline이 선형 순서로 되돌아감). 네 곡 대기열을 열 번 다시 섞어도 컨트롤러가 보는 다음 곡은 매번 넣은 순서였다. 그래서 계측 검사는 토글이 세션까지 닿는 것과 셔플을 켜고 끄어도 대기열이 그대로인 것까지만 고정하고, 섞인 순서 자체는 고정하지 않았다. 상세는 ADR-053.
+- **KM-097에도 같은 제약이 걸린다.** 컨트롤러만 보는 대기열 화면은 넣은 순서만 보여줄 수 있다.
+- 셔플 상태는 영구 저장하지 않는다. PRD 34의 DataStore 항목에도 셔플은 없다.
+- 단위 1개·계측 1개 추가(계측 30개 → 31개).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 39초). 단위 120개·실제 계약 7개·실기기 계측 31개. 린트 오류 0.
+- 결정은 ADR-053에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 

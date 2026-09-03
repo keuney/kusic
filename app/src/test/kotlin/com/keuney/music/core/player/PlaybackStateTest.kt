@@ -169,6 +169,17 @@ class PlaybackStateTest {
         assertFalse(PlaybackState().hasNext)
     }
 
+    @Test
+    fun shuffleStateIsWhatTheScreenShows() {
+        // 화면의 토글 표시는 세션이 돌려준 값만 근거로 한다. 눌렀다는 사실을 따로 기억하지 않는다.
+        val on = mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, shuffleEnabled = true)
+        val off = mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, shuffleEnabled = false)
+
+        assertTrue(on.shuffleEnabled)
+        assertFalse(off.shuffleEnabled)
+        assertFalse("연결 전에는 꺼진 것으로 본다", PlaybackState().shuffleEnabled)
+    }
+
     private fun repeatModeOf(repeatMode: Int) =
         mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, repeatMode = repeatMode)
             .repeatMode

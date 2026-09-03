@@ -45,6 +45,7 @@ internal class PlayerViewModel @Inject constructor(
     fun seekTo(positionMs: Long) = connection.seekTo(positionMs)
     fun previous() = connection.seekToPrevious()
     fun next() = connection.seekToNext()
+    fun setShuffleEnabled(enabled: Boolean) = connection.setShuffleEnabled(enabled)
 
     /** 대기열에는 Track ID와 표시용 metadata만 전달한다. 스트림 주소는 서비스가 해석한다. */
     fun playTrack(track: Track) =

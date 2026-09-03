@@ -508,3 +508,18 @@
 - 함정: `dumpsys media_session`의 상태 줄에는 `position=`과 `buffered position=`이 함께 있어 `grep -o "position=[0-9]*"`가 두 값을 낸다. 실제 재생 위치를 볼 때는 `state=...(n), position=` 형태로 함께 잡아야 한다.
 - 검증 동안 화면 타임아웃을 600000으로 올리고 끝난 뒤 30000으로 되돌렸으며 재생을 일시정지했다.
 - 결정 ADR-052. 신규 의존성 없음. 다음은 KM-095 Shuffle이다.
+
+## KM-095 완료 — Shuffle
+
+- 브랜치 `codex/KM-095-shuffle`. `PlayerConnection.setShuffleEnabled`를 붙이고 Now Playing에 선택 상태를 가진 `FilterChip`을 뒀다. 켜짐은 채워진 칩, 꺼짐은 테두리 칩이다.
+- 화면의 켜짐 표시는 세션이 돌려준 `PlaybackState.shuffleEnabled`만 근거로 한다. 눌렀다는 사실을 따로 기억하면 세션이 거절했을 때 화면이 거짓을 보인다.
+- 사용자 요청대로 queue behavior를 `playQueue` 계측 검사로 덮으려 했고, 그 과정에서 중요한 한계를 확인했다. **섞인 재생 순서는 컨트롤러에서 관찰할 수 없다.** 세션이 보내는 `Timeline`에 셔플 순서가 실려 오지 않아(`RemotableTimeline`이 선형 순서로 되돌아감) 컨트롤러에 다음 곡을 물으면 늘 넣은 순서가 나온다.
+- 확인 과정: 처음에는 "셔플을 켜면 대기열 전부를 한 번씩 지난다"로 썼는데 Media3가 섞인 순서에서 현재 곡의 자리를 그대로 두므로 앞으로만 지나가면 전부를 만나지 못해 실패했다. 다음으로 "열 번 다시 섞으면 다음 곡이 달라진다"로 바꿨더니 열 번 모두 넣은 순서였다. 그 사이 "컨트롤러가 다음이 있다고 보는데 넘어가지 못하는" 상태도 관찰했다(hasNext=true, phase=Buffering인데 15초 동안 이동 없음). 두 결과가 함께 가리키는 것은 컨트롤러가 셔플 순서를 모른다는 사실이다.
+- 그래서 계측 검사는 관찰 가능한 범위로 확정했다. 토글이 세션까지 닿아 상태로 돌아오는 것과, 셔플을 켜고 끄어도 대기열 내용·컨트롤러가 보는 순서가 그대로인 것이다. 섞인 순서 자체는 고정하지 않고 한계를 검사 문서와 ADR-053에 적었다.
+- 계측 검사를 앞선 계측이 남긴 상태에 의존하지 않게 만들었다. 시작할 때 대기열을 다시 넣고, 모든 대기를 `withTimeoutOrNull`과 설명이 붙은 assert로 바꿔 실패 지점이 드러나게 했다. 처음 판은 단독 실행에서는 통과하고 전체 스위트에서 5초 대기에 걸렸는데 메시지가 없어 원인을 알 수 없었다.
+- 단위 1개 추가: 화면의 셔플 표시는 세션이 돌려준 값만 근거로 하며 연결 전에는 꺼짐.
+- 계측 1개 추가(`ShuffleTest`). 계측 30개 → 31개.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 39초). 단위 120개·실제 계약 7개·실기기 계측 31개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 SM-T220 / Android 14 확인: Now Playing을 아래로 밀면 셔플 칩이 나온다. 누르면 테두리 칩에서 채워진 칩으로 바뀌고 다시 누르면 되돌아간다. 화면 캡처는 captures/km-095에 보관했다(저장소 추적 대상 아님).
+- 함정: Compose `FilterChip`의 선택 상태는 `uiautomator dump`의 `selected`/`checked`에 나오지 않는다. 화면 캡처로 확인해야 한다.
+- 결정 ADR-053. 신규 의존성 없음. 다음은 KM-096 Repeat다.

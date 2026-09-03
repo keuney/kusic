@@ -160,6 +160,16 @@ internal class PlayerConnection @Inject constructor(
         controller?.pause()
     }
 
+    /** 셔플. 명령이 없으면 아무 일도 하지 않는다. */
+    @MainThread
+    fun setShuffleEnabled(enabled: Boolean) {
+        checkMainThread()
+        val player = controller ?: return
+        if (player.isCommandAvailable(Player.COMMAND_SET_SHUFFLE_MODE)) {
+            player.shuffleModeEnabled = enabled
+        }
+    }
+
     /**
      * 이전. 한 곡만 있을 때 Media3는 그 곡의 처음으로 되돌린다. 알림·잠금화면의 이전 버튼도
      * 같은 명령을 쓰므로 세 곳의 동작이 갈리지 않는다.
