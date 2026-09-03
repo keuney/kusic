@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -25,20 +24,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
-import com.keuney.music.feature.search.SearchScreen
-import com.keuney.music.feature.search.SearchViewModel
 import com.keuney.music.ui.format.formatDuration
 
+/**
+ * 전체 화면 재생 확인 화면. 실제 Now Playing 화면은 KM-092가 대신한다.
+ *
+ * 검색은 KM-150에서 자기 탭으로 옮겼으므로 여기에는 재생만 남는다. 미니 플레이어는 하단
+ * 내비게이션 위에 있고 이 화면에서는 접히므로 재생·일시정지 버튼을 여기에 둔다.
+ */
 @Composable
-internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: SearchViewModel) {
+internal fun TestPlaybackScreen(viewModel: PlayerViewModel) {
     val connection by viewModel.connectionState.collectAsStateWithLifecycle()
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
     val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
     val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
     val connected = connection == ConnectionState.Connected
-    val pauseAction = playback.playWhenReady &&
-        playback.phase != PlaybackPhase.Ended && playback.phase != PlaybackPhase.Unavailable
     val status = when (connection) {
         ConnectionState.Connecting -> R.string.player_connecting
         ConnectionState.Disconnected -> R.string.player_disconnected
@@ -53,11 +54,17 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: Sea
         }
     }
     Column(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.destination_now_playing), style = MaterialTheme.typography.headlineSmall)
+        playback.nowPlaying?.let { nowPlaying ->
+            Text(nowPlaying.title, style = MaterialTheme.typography.titleMedium)
+            if (nowPlaying.artist.isNotBlank()) {
+                Text(nowPlaying.artist, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         Text(stringResource(status))
         Slider(
             value = draggedPosition ?: playback.positionMs.toFloat(),
@@ -71,24 +78,14 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: Sea
             enabled = connected && playback.durationMs > 0,
         )
         Text("${formatDuration(playback.positionMs)} / ${formatDuration(playback.durationMs)}")
-        val nowPlaying = playback.nowPlaying
-        when {
-            connection == ConnectionState.Unavailable ->
-                Button(onClick = viewModel::connect) { Text(stringResource(R.string.player_retry)) }
-            // 재생·일시정지는 미니 플레이어가 들고 있다. 같은 버튼을 두 곳에 두지 않는다.
-            nowPlaying != null -> MiniPlayer(
-                nowPlaying = nowPlaying,
-                isPlaying = pauseAction,
-                enabled = connected,
-                onPlayPause = { if (pauseAction) viewModel.pause() else viewModel.play() },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            // 대기열이 비어 있으면 보여줄 곡이 없으므로 버튼만 둔다.
-            else -> Button(
-                onClick = { if (pauseAction) viewModel.pause() else viewModel.play() },
+        if (connection == ConnectionState.Unavailable) {
+            Button(onClick = viewModel::connect) { Text(stringResource(R.string.player_retry)) }
+        } else {
+            Button(
+                onClick = { if (playback.canPause) viewModel.pause() else viewModel.play() },
                 enabled = connected,
             ) {
-                Text(stringResource(if (pauseAction) R.string.player_pause else R.string.player_play))
+                Text(stringResource(if (playback.canPause) R.string.player_pause else R.string.player_play))
             }
         }
         Row(
@@ -106,11 +103,5 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: Sea
                 color = MaterialTheme.colorScheme.error,
             )
         }
-        SearchScreen(
-            viewModel = searchViewModel,
-            selectEnabled = connected,
-            onSelect = viewModel::playTrack,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
     }
 }

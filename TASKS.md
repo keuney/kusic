@@ -18,18 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 47 / 미착수 30. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 30에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 48 / 미착수 29. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 29에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-092 (Now Playing screen).** 인수 조건은 artwork·title·artist·transport controls·progress·favorite·queue button이다. 착수 전에 정할 것이 있다.
-
-1. **화면 전환.** Now Playing은 독립 화면이어야 하는데 내비게이션은 여전히 KM-150(M9)이다. KM-072·091과 같은 제약이며, 지금까지는 백로그 순서를 지켜 왔다. 이번에는 목적 화면 자체를 만드는 작업이라 순서를 지키면 "화면은 만들되 갈 수 없는 상태"가 된다. KM-150을 당겨올지 판단이 필요하다.
-2. **favorite·queue button.** favorite는 Room 기반 즐겨찾기(KM-112, M7)가 있어야 실제로 저장된다. queue button은 Queue UI(KM-097)가 목적지다. 둘 다 이 작업보다 뒤에 있는 기능이라 버튼만 두고 동작을 비워 둘지, 해당 작업까지 미룰지 정해야 한다.
-
-**KM-091에서 남긴 것:** 미니 플레이어의 "tap opens Now Playing"은 KM-092·150 몫이다. 내장 테스트 음원은 artworkUri가 없어 미니 플레이어에서 자리표시자로 보인다. `playQueue`는 이미지 주소를 받지 않는다.
-
-**M5 검색 완료 (KM-070~074).** 검색과 재생이 여전히 한 화면에 함께 배치된다. 내비게이션으로 화면을 실제로 나누는 것은 KM-150(M9)이다.
+**다음 작업: KM-092 (Now Playing screen).** 사용자와 정한 것: KM-150을 앞당겨 화면 전환을 이미 붙였고, favorite·queue 버튼은 자리만 두고 동작은 각 소속 작업(KM-112 즐겨찾기, KM-097 Queue UI)까지 미룬다. 현재 `now-playing` 목적지에는 임시 `feature/player/TestPlaybackScreen`이 있으며 KM-092가 이를 대체한다. 착수 시 함께 정할 것: 전체 화면에서 하단 내비게이션을 감출지(지금은 보인다). WiFi 전용 스위치는 지금 이 화면에 있고 설정 화면(KM-153)이 생기면 옮긴다.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
+
+**내장 테스트 음원은 artworkUri가 없어** 미니 플레이어에서 자리표시자 색으로 보인다. 알림은 기존대로 artworkData를 쓴다. `playQueue`는 이미지 주소를 받지 않는다(Gate 검증용 진입점).
 
 **진행 방식(이 세션에서 사용자와 합의한 것):**
 
@@ -37,7 +32,7 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 - 작업 완료 시 TASKS.md 상태·완료 기록, docs/DECISIONS.md의 ADR, docs/SEQUENTIAL_RUN.md 기록, 필요하면 README를 함께 갱신한다.
 - 필수 검증은 `test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`이며 종료 코드 0을 확인한다.
 
-**백로그 순서를 벗어난 작업:** KM-134(스트리밍 캐시)와 KM-137(네트워크 사용 정책)은 M8 소속이지만 progressive 전환의 대역폭 부담을 줄이기 위해 사용자 요청으로 앞당겨 완료했다. KM-137은 이 과정에서 새로 추가한 작업이다. KM-064(Provider B 평가)는 KM-059 Gate가 PASS라 활성화하지 않는다.
+**백로그 순서를 벗어난 작업:** KM-134(스트리밍 캐시)와 KM-137(네트워크 사용 정책)은 M8 소속이지만 progressive 전환의 대역폭 부담을 줄이기 위해 사용자 요청으로 앞당겨 완료했다. KM-137은 이 과정에서 새로 추가한 작업이다. KM-150(앱 내비게이션)은 M9 소속이지만 KM-092가 갈 수 있는 화면을 필요로 해 사용자 요청으로 앞당겨 완료했다. KM-064(Provider B 평가)는 KM-059 Gate가 PASS라 활성화하지 않는다.
 
 **원격 저장소:** `origin`은 https://github.com/keuney/kusic.git 이다. 2026-09-03 사용자 요청으로 첫 push를 했다. 그 전에 로컬 `master`를 `main`으로 바꿨으므로 본선은 `main`이고 upstream은 `origin/main`이다. push는 외부 공개에 해당하므로 이후에도 사용자가 명시적으로 요청할 때만 한다. push 전에 추적 파일에 키·토큰·자격증명이 없는지 확인했다.
 
@@ -1546,7 +1541,21 @@ M9 — Polish & Release
 
 KM-150 — App navigation
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 사용자 요청으로 M9에서 앞당겼다. KM-092를 하려면 갈 수 있는 화면이 있어야 한다.
+
+- 인수 조건: player state survives navigation PASS. 검색 탭에서 재생 후 홈 탭으로 옮겨도 미니 플레이어가 남고 세션 위치가 15250 → 33293 → 63591로 계속 진행했다.
+- navigation/Destinations.kt와 navigation/KeuneyNavHost.kt 추가. 하단 탭 홈·검색·라이브러리에 전체 화면 목적지 now-playing이 붙는다. 시작 목적지는 검색이다.
+- 신규 의존성 둘: androidx.navigation:navigation-compose 2.10.0(안정판), androidx.compose.material:material-icons-core(Compose BOM 관리). 아이콘은 NavigationBarItem 필수 인자이며 필요한 세 개가 core 집합에 있어 extended는 쓰지 않았다.
+- ViewModel은 Activity가 만들어 내려준다. 목적지마다 새로 만들면 탭 이동 때 상태가 끊긴다. hilt-navigation-compose도 필요 없다.
+- 홈·라이브러리는 자리표시자다. 내용은 KM-151·KM-116이다.
+- 미니 플레이어를 하단 내비게이션 위로 옮기고 전체 화면에서는 접는다. KM-091에서 미뤄 둔 "tap opens Now Playing"이 채워졌다.
+- TestPlaybackScreen에서 검색을 떼어 검색 탭으로 옮겼다. 이 화면은 KM-092가 대체한다. WiFi 전용 스위치는 KM-153에서 설정으로 옮긴다.
+- 하단 내비게이션은 Now Playing에서도 보인다. 전체 화면에서 감출지는 KM-092에서 정한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(6분 43초). 단위 110개·실제 계약 7개·실기기 계측 28개. 린트 오류 0.
+- UI 자동 검사는 넣지 않았다. Compose UI 검사 의존성이 없고 AGENTS.md 16이 UI 검사 최소화를 요구한다. 실기기 눈 확인으로 다뤘다.
+- 결정은 ADR-049에 기록했다.
 
 Bottom navigation:
 

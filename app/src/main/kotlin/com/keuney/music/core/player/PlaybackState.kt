@@ -35,6 +35,15 @@ internal data class PlaybackState(
     // 재생과 준비는 phase 하나로 정하고 여기서는 이름만 붙인다. 같은 사실을 두 곳에 두지 않는다.
     val isPlaying: Boolean get() = phase == PlaybackPhase.Playing
     val isBuffering: Boolean get() = phase == PlaybackPhase.Buffering
+
+    /**
+     * 지금 버튼이 일시정지로 보여야 하는지. 재생을 요청한 상태라도 곡이 끝났거나 재생할 수 없으면
+     * 다시 재생을 눌러야 한다. 이 계산을 화면마다 되풀이하지 않는다.
+     */
+    val canPause: Boolean
+        get() = playWhenReady &&
+            phase != PlaybackPhase.Ended &&
+            phase != PlaybackPhase.Unavailable
 }
 
 internal fun mapPlaybackState(

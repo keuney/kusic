@@ -68,6 +68,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.room.runtime)
@@ -88,6 +89,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.androidx.navigation.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)

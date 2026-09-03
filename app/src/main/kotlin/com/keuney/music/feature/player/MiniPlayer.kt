@@ -1,5 +1,6 @@
 package com.keuney.music.feature.player
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,10 +21,8 @@ import com.keuney.music.core.player.NowPlaying
 import com.keuney.music.ui.components.Artwork
 
 /**
- * 지금 재생 중인 곡을 한 줄로 보여주고 재생·일시정지를 제공한다.
- *
- * 눌러서 Now Playing으로 가는 동작은 아직 없다. 화면 전환이 필요하고 내비게이션은 KM-150,
- * 목적 화면은 KM-092다. KM-072와 같은 이유로 백로그 순서를 지킨다.
+ * 지금 재생 중인 곡을 한 줄로 보여주고 재생·일시정지를 제공한다. 줄을 누르면 [onClick]으로
+ * 전체 화면 플레이어로 간다. 재생·일시정지 버튼은 자기 몫만 처리하고 줄 이동을 일으키지 않는다.
  */
 @Composable
 internal fun MiniPlayer(
@@ -31,10 +30,11 @@ internal fun MiniPlayer(
     isPlaying: Boolean,
     enabled: Boolean,
     onPlayPause: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -265,6 +265,19 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-049 — 앱 내비게이션 (KM-150)
+
+- KM-092(Now Playing)를 하려면 갈 수 있는 화면이 있어야 하므로 사용자 요청으로 M9의 KM-150을 앞당겼다. KM-072·091에서 미뤄 둔 화면 분리가 여기서 이루어진다.
+- `androidx.navigation:navigation-compose` 2.10.0(안정판)을 추가했다. 하단 탭 세 개에 전체 화면 목적지가 붙고 앞으로 Queue UI·설정이 더해지므로 뒤로 가기 스택과 상태 저장을 직접 만들 이유가 없다. 손으로 만든 라우터는 결국 같은 것을 나쁘게 다시 구현한다.
+- `androidx.compose.material:material-icons-core`를 추가했다. `NavigationBarItem`은 아이콘이 필수이며 필요한 Home·Search·List는 core 집합에 있다. extended는 쓰지 않는다. 이 산출물은 1.7.8에서 멈췄지만 현재 쓰는 Compose BOM이 관리하는 안정판이다. BOM에서 빠지면 벡터 드로어블을 직접 만든다.
+- ViewModel은 Activity가 만들어 내려준다. 목적지마다 `hiltViewModel()`로 새로 만들면 탭을 옮길 때 검색·재생 상태가 끊기는데, KM-150의 인수 조건이 바로 재생 상태가 유지되는 것이다. 그래서 `hilt-navigation-compose`도 필요하지 않다.
+- 탭 이동은 쌓지 않는다. 시작 목적지까지 `popUpTo`하고 `saveState`/`restoreState`로 탭별 상태를 남긴다. 뒤로 가기를 여러 번 눌러야 앱을 벗어나는 일이 없다.
+- 시작 목적지는 검색이다. 홈(KM-151)과 라이브러리(KM-116)는 아직 내용이 없어 "준비되지 않은 화면" 자리표시자만 둔다. 세 탭은 KM-150의 사양이므로 자리표시자를 두는 것이 미래 기능 선구현은 아니다.
+- 미니 플레이어는 하단 내비게이션 위에 두고 전체 화면 플레이어에서는 접는다. 같은 것을 위아래로 두 번 보여주지 않는다. 이로써 KM-091에서 미뤄 둔 "눌러서 Now Playing"이 채워진다.
+- 하단 내비게이션은 Now Playing 목적지에서도 남겨 뒀다. 지금 그 자리는 KM-092가 대신할 임시 화면이라 탭을 항상 닿게 두는 편이 낫다. 전체 화면에서 감출지는 KM-092에서 정한다.
+- `PlaybackState.canPause`를 더했다. 내비게이션 셸과 전체 화면이 같은 계산(재생 요청 중이고 끝나지도 재생 불가도 아님)을 되풀이하지 않게 한다.
+- `TestPlaybackScreen`에서 검색을 떼어 검색 탭으로 옮겼다. 이 화면은 KM-092가 실제 Now Playing으로 대체한다. WiFi 전용 스위치는 설정 화면(KM-153)이 생기면 옮긴다.
+
 ### ADR-048 — 미니 플레이어와 세션 앨범 이미지 (KM-091)
 
 - 대기열 항목에 앨범 이미지 주소를 넣는다. `PlayerConnection.playTrack`이 `artworkUri`를 함께 받아 `MediaMetadata.setArtworkUri`로 세션에 넣고, 상태로 다시 읽어 화면에 준다. ADR-047에서 미뤄 둔 것을 사용자 결정에 따라 이번에 넣었다.

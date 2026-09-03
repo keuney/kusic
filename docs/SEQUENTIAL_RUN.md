@@ -445,3 +445,20 @@
 - 함정: 삼성 잠금화면의 미디어 카드는 `uiautomator dump`의 접근성 트리에 나오지 않는다. 스크린샷 좌표로 눌러야 하며, 상태 변화는 `dumpsys media_session`의 `state=`로 확인한다.
 - 검증 동안 화면 타임아웃을 600000으로 올리고 끝난 뒤 30000으로 되돌렸다.
 - 결정 ADR-048. 신규 의존성 없음. 다음은 KM-092 Now Playing screen이다.
+
+## KM-150 완료 — App navigation (백로그 순서 앞당김)
+
+- 브랜치 `codex/KM-150-app-navigation`. 사용자 요청으로 M9의 KM-150을 앞당겼다. KM-092를 하려면 갈 수 있는 화면이 있어야 한다. KM-072·091에서 미뤄 둔 화면 분리를 여기서 했다.
+- `navigation/Destinations.kt`와 `navigation/KeuneyNavHost.kt`를 추가했다. 하단 내비게이션 홈·검색·라이브러리에 전체 화면 목적지 `now-playing`이 붙는다. 시작 목적지는 검색이다.
+- 신규 의존성 둘: `androidx.navigation:navigation-compose` 2.10.0(안정판)과 `androidx.compose.material:material-icons-core`(Compose BOM 관리). 아이콘은 `NavigationBarItem`의 필수 인자이며 Home·Search·List가 core 집합에 있어 extended는 쓰지 않았다. icons-core는 1.7.8에서 멈춘 산출물이지만 현재 BOM이 관리하는 안정판이다.
+- ViewModel은 Activity가 만들어 내려준다. 목적지마다 새로 만들면 탭 이동 때 상태가 끊기는데 인수 조건이 바로 그 유지다. 그래서 `hilt-navigation-compose`도 필요 없다.
+- 탭 이동은 시작 목적지까지 `popUpTo` + `saveState`/`restoreState` + `launchSingleTop`이다. 뒤로 가기를 여러 번 눌러야 앱을 벗어나는 일이 없다.
+- 홈·라이브러리는 "아직 준비되지 않은 화면입니다." 자리표시자다. 내용은 KM-151·KM-116이다.
+- 미니 플레이어를 하단 내비게이션 위로 옮기고 전체 화면 플레이어에서는 접는다. 줄을 누르면 `now-playing`으로 간다. KM-091에서 미뤄 둔 "tap opens Now Playing"이 채워졌다.
+- `TestPlaybackScreen`에서 검색을 떼고 재생만 남겼다. 현재 곡 제목·아티스트를 함께 보여준다. 이 화면은 KM-092가 대체한다. WiFi 전용 스위치는 KM-153에서 설정으로 옮긴다.
+- `PlaybackState.canPause`를 더해 셸과 전체 화면이 같은 계산을 되풀이하지 않게 했다.
+- 하단 내비게이션은 Now Playing에서도 보인다. 임시 화면이라 탭을 항상 닿게 두는 편이 낫다고 판단했고, 전체 화면에서 감출지는 KM-092에서 정한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(6분 43초). 단위 110개·실제 계약 7개·실기기 계측 28개, 실패/오류 0. 린트 오류 0·경고 22(변동 없음).
+- 실기기 SM-T220 / Android 14 확인: 하단 탭 세 개가 아이콘·이름과 함께 나오고 검색 탭이 시작 화면이다. 검색 탭에서 곡을 골라 재생한 뒤 홈 탭으로 옮겨도 미니 플레이어가 앨범 이미지·제목·아티스트와 함께 남고 세션은 PLAYING을 유지하며 위치가 15250 → 33293 → 63591로 계속 진행했다(인수 조건 player state survives navigation PASS). 미니 플레이어를 누르면 전체 화면으로 가고 그 화면에서는 미니 플레이어가 접힌다. 뒤로 가기를 누르면 떠났던 홈 탭으로 돌아오고 재생은 그대로다. 화면 캡처는 captures/km-150에 보관했다(저장소 추적 대상 아님).
+- UI 자동 검사는 넣지 않았다. Compose UI 검사 의존성이 없고 AGENTS.md 16이 UI 검사를 최소화하라고 한다. 내비게이션은 실기기 눈 확인으로 다뤘다.
+- 결정 ADR-049. 다음은 KM-092 Now Playing screen이다.

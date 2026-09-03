@@ -13,8 +13,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.keuney.music.ui.theme.KeuneyMusicTheme
 import dagger.hilt.android.AndroidEntryPoint
 import com.keuney.music.feature.player.PlayerViewModel
-import com.keuney.music.feature.player.TestPlaybackScreen
 import com.keuney.music.feature.search.SearchViewModel
+import com.keuney.music.navigation.KeuneyNavHost
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KeuneyMusicTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    TestPlaybackScreen(playerViewModel, searchViewModel)
+                    KeuneyNavHost(playerViewModel, searchViewModel)
                 }
             }
         }
