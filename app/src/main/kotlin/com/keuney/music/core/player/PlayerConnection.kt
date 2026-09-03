@@ -126,6 +126,30 @@ internal class PlayerConnection @Inject constructor(
         player.play()
     }
 
+    /** Gate 검증과 이후 큐 작업의 최소 진입점. 대기열에도 Track ID와 metadata만 넣는다. */
+    @MainThread
+    fun playQueue(tracks: List<Triple<String, String, String>>) {
+        checkMainThread()
+        if (tracks.isEmpty()) return
+        val player = controller ?: return
+        player.setMediaItems(
+            tracks.map { (id, title, artist) ->
+                MediaItem.Builder()
+                    .setMediaId(id)
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setArtist(artist).build())
+                    .build()
+            },
+        )
+        player.prepare()
+        player.play()
+    }
+
+    @MainThread
+    fun currentMediaId(): String? {
+        checkMainThread()
+        return controller?.currentMediaItem?.mediaId
+    }
+
     @MainThread
     fun pause() {
         checkMainThread()

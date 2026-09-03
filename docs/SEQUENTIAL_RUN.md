@@ -290,3 +290,14 @@
 - 검증 중 회귀 1건을 잡았다. 재생 경로가 설정을 읽게 되면서 계측 테스트마다 DataStore가 다시 생성돼 "multiple DataStores active for the same file"로 실패했다. 캐시와 같은 이유이며 DataStore도 프로세스 단위 보관으로 바꿨다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 5초). 단위 41개·실제 계약 4개·실기기 계측 22개, 실패/오류 0. 린트 오류 0·경고 19.
 - 결정 ADR-036. 설정 UI는 KM-153 Settings로 옮긴다. 실제 측정 요금제(모바일 데이터) 기기 검증은 아직 하지 않았고 계측은 연결 확인을 대체한 검사다. push는 하지 않았다.
+
+## KM-059 완료 — Provider A Gate PASS
+
+- 브랜치 `codex/KM-059-provider-a-gate`. 검색어 5종에서 상위 결과를 모아 중복 없는 10곡을 구성했다. 서로 다른 아티스트 10종, 가장 긴 곡 4883초(81분)로 요구 조건(복수 아티스트, 긴 곡 1개 이상)을 채웠다.
+- 소스 판정은 `sourceContractTest`에 `ProviderAGateSourceContractTest`를 추가해 수행했다. 해석 10/10, 파일 중간 지점 구간 요청 10/10. 앞부분만 받아도 통과하던 구멍을 막기 위해 먼저 앞부분 응답의 Content-Range로 전체 길이를 얻고 그 절반 지점을 요청한다. 파일 끝을 넘는 요청과 실제 거부를 구분한다.
+- 첫 실행에서 1곡이 실패했는데 HTTP 상태가 아니라 전송 예외였다. 응답 코드를 그대로 기록하도록 고치고 재실행하니 206으로 통과했다. 일시적 네트워크 오류이며 공급자의 구조적 거부와 구분해 기록했다.
+- 기기 판정은 `ProviderAGateDeviceTest` 2개다. 두 곡을 대기열에 넣고 첫 곡 끝으로 이동해 자동 전환과 다음 곡 재생을 확인했고, 81분 트랙을 종료 2분 전 지점으로 이동해 이어 재생을 확인했다.
+- Gate 검증을 위해 `PlayerConnection.playQueue`와 `currentMediaId`를 추가했다. 대기열에도 Track ID와 metadata만 넣는다. 큐 UI와 이전/다음 조작은 KM-094·KM-097 범위이며 여기서는 구성과 자동 전환만 다룬다.
+- 판정 결과와 곡별 표, 채택 조건, 재판정 기준을 `docs/SOURCE_PROVIDER.md`에 기록했다. 결정은 ADR-037이며 ARCHITECTURE의 ADR-004 미확정 상태를 닫았다. KM-064 Provider B 평가는 활성화하지 않는다.
+- 채택 조건으로 남긴 제약: 오디오 전용 스트림 불가로 progressive만 사용하며 대역폭이 약 3배다. 완화는 KM-134 캐시와 KM-137 WiFi 전용 재생이다. 공급자 설정은 관찰값이라 `sourceContractTest` 유지가 채택의 전제다. 접근 제한 우회 수단은 도입하지 않는다.
+- 한계: WiFi 연결의 단일 기기·단일 지역 기준이다. 다른 지역, 측정 요금제, 다른 OEM은 별도 검증 대상이다. push는 하지 않았다.

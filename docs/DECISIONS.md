@@ -265,6 +265,16 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-037 — Provider A를 v0.1 source로 채택 (KM-059 Gate PASS)
+
+- KM-059 Gate를 통과했다. 여러 아티스트 10곡 전부 스트림 해석과 파일 중간 지점 구간 요청에 성공했고, 실기기에서 큐 자동 전환과 81분 트랙의 먼 지점 이어 재생을 확인했다. 판정 근거와 곡별 결과는 `docs/SOURCE_PROVIDER.md`에 기록했다. ARCHITECTURE의 ADR-004(Source Provider 선택) 미확정 상태를 이 결정으로 닫는다.
+- 채택하되 다음을 v0.1의 알려진 제약으로 명시한다. 오디오 전용 스트림을 쓸 수 없어 영상이 포함된 progressive 형식만 재생하며(ADR-034), 대역폭이 오디오 전용의 약 3배다. 완화 수단은 KM-134 캐시와 KM-137 WiFi 전용 재생이다.
+- 공급자 설정은 비공개 프로토콜의 관찰값이며 안정된 API 계약이 아니다. `sourceContractTest`가 검색·해석·구간 요청을 실제로 확인하고 클라이언트 종류별 결과를 남겨 깨짐을 먼저 드러낸다. 이 검사를 유지하는 것이 채택의 전제다.
+- PO token 등 공급자의 접근 제한을 우회하는 수단은 도입하지 않는다. 이 방침 때문에 오디오 전용 제약이 유지된다.
+- KM-064 Provider B 평가는 활성화하지 않는다. `docs/SOURCE_PROVIDER.md`의 재판정 기준에 해당하는 상황이 생기면 그때 활성화한다.
+- Gate 검증을 위해 `PlayerConnection.playQueue`와 `currentMediaId`를 추가했다. 큐 UI와 이전/다음 조작은 KM-094·KM-097 범위이며 여기서는 대기열 구성과 자동 전환만 다룬다.
+- 첫 실행에서 1곡의 구간 요청이 전송 예외로 실패했으나 재실행에서 통과했다. 응답 코드를 그대로 기록하도록 검사를 고쳐 일시적 오류와 구조적 거부를 구분한다.
+
 ### ADR-036 — WiFi 전용 재생 (KM-137)
 
 - progressive 전환으로 곡당 데이터가 8~25MB가 되어 사용자가 데이터 사용을 통제할 수 있어야 한다(ADR-034). 설정 하나를 DataStore에 저장하며 기본값은 꺼짐이다. 기존 동작을 바꾸지 않는다.
@@ -372,7 +382,7 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 | ADR-001 | Kotlin 및 Compose | 기존 설계에 명시 |
 | ADR-002 | MediaLibraryService의 재생 소유권 | 기존 설계에 명시 |
 | ADR-003 | MusicSource 추상화 | 기존 설계에 명시 |
-| ADR-004 | Source Provider 선택 | 미확정, Provider Gate 결과 필요 |
+| ADR-004 | Source Provider 선택 | 확정, ADR-037에서 Provider A 채택 |
 | ADR-005 | 스트림 URL 영구 저장 금지 | 기존 설계에 명시 |
 | ADR-006 | Room 기반 로컬 저장 | 기존 설계에 명시 |
 | ADR-007 | v0.1 로그인 제외 | 기존 설계에 명시 |

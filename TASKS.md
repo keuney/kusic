@@ -786,7 +786,16 @@ Home 후 playback 유지
 
 KM-059 — Provider A Gate
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): PASS. Provider A를 v0.1 source로 채택한다. 판정 근거와 곡별 결과는 docs/SOURCE_PROVIDER.md, 기술 결정은 ADR-037에 기록했다.
+
+- Test set: 검색어 5종에서 모은 중복 없는 10곡, 서로 다른 아티스트 10종, 가장 긴 곡 4883초(81분). 큐 재생 확인.
+- 소스 판정: 해석 10/10, 파일 중간 지점 구간 요청 10/10. 앞부분만 받아도 통과하지 않도록 전체 길이의 절반 지점을 요청한다.
+- 기기 판정: 큐 두 곡의 자동 전환 PASS, 81분 트랙의 종료 2분 전 지점 이어 재생 PASS.
+- 인수 조건: 결과를 docs/SOURCE_PROVIDER.md에 기록 PASS, PASS 시 채택 ADR 작성 PASS(ADR-037). KM-064는 활성화하지 않으며 재판정 기준을 문서에 남겼다.
+- 채택 조건: 오디오 전용 스트림 불가로 progressive만 사용하며 대역폭이 약 3배다(ADR-034). 완화는 KM-134 캐시와 KM-137 WiFi 전용 재생이다. 공급자 설정은 관찰값이라 sourceContractTest 유지가 채택의 전제다.
+- Gate 검증을 위해 PlayerConnection에 playQueue/currentMediaId를 추가했다. 큐 UI와 이전/다음은 KM-094·KM-097 범위다.
 
 Goal:
 
