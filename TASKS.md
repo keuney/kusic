@@ -18,9 +18,12 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 45 / 미착수 32. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 32에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 46 / 미착수 31. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 31에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-090 (Player UI state adapter).** M5 검색이 끝나 M6 Player UX로 넘어간다. MediaController 상태를 PlayerUiState로 옮기며 인수 조건은 current Track·playing·buffering·duration·position·repeat·shuffle이다. 현재 `core/player/PlaybackState`가 phase·position·duration·playWhenReady까지는 이미 담고 있으나 현재 곡 메타데이터와 repeat·shuffle은 없다. 즉 이 작업의 실제 내용은 PlaybackState 확장과 그 매핑 검사다. 착수 전에 정해야 할 미결 사항은 없다.
+**다음 작업: KM-091 (Mini Player).** 인수 조건은 artwork·title·play/pause·tap opens Now Playing이다. 착수 전에 정할 것이 둘 있다.
+
+1. **앨범 이미지.** KM-090에서 대기열 항목에 이미지 주소를 넣지 않았다(ADR-047). 미니 플레이어에 이미지를 넣으려면 `PlayerConnection.playTrack`이 `Track.artworkUrl`을 함께 보내야 하고, 그러면 알림·잠금화면 이미지가 자리표시자에서 실제 이미지로 바뀌므로 KM-037·038에서 검증한 것을 다시 확인해야 한다.
+2. **tap opens Now Playing.** 화면 전환이 필요한데 내비게이션은 KM-150(M9)이고 KM-092(Now Playing)도 아직이다. KM-072와 같은 제약이다. 미니 플레이어를 지금 화면 안에 넣고 tap 동작은 KM-092·150에서 붙이거나, KM-150을 당겨오는 두 길이 있다. KM-072에서는 백로그 순서를 지키는 쪽으로 합의했다.
 
 **M5 검색 완료 (KM-070~074).** 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀으며, 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이다. 사용자와 합의한 순서다.
 
@@ -1134,7 +1137,19 @@ M6 — Player UX
 
 KM-090 — Player UI state adapter
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): core/player/PlaybackState에 현재 곡·반복·셔플을 더하고 playing·buffering을 이름 붙여 드러냈다.
+
+- 인수 조건: current Track PASS(NowPlaying), playing PASS, buffering PASS, duration PASS, position PASS, repeat PASS(RepeatMode Off/One/All), shuffle PASS.
+- PlayerUiState를 새 타입으로 만들지 않고 이미 있는 PlaybackState를 확장했다. 이 타입이 ARCHITECTURE 19가 요구하는 Media3 → UI 매퍼의 결과이며, 같은 것을 가리키는 상태 타입을 둘로 두지 않는다. 이름은 ARCHITECTURE 4의 PlaybackStateMapper.kt에 맞춘다.
+- 현재 곡은 NowPlaying(mediaId, title, artist)다. Track을 재구성하지 않는다. 세션에서 오는 것은 대기열 metadata뿐이라 source나 길이를 지어내면 안 된다.
+- 앨범 이미지는 아직 대기열 항목에 넣지 않는다. 넣으면 알림 이미지 동작이 바뀌어 KM-037·038 검증을 다시 해야 하므로 KM-091·092에서 함께 다룬다.
+- playing·buffering은 phase에서 읽는 계산 속성이다. 같은 사실을 두 곳에 두지 않는다.
+- 반복·셔플을 바꾸는 조작은 넣지 않았다. KM-095·096 범위다. 따라서 실기기에서는 세션 기본값(꺼짐)까지만 확인되고 켠 상태 매핑은 단위 검사로 고정했다.
+- 단위 8개·계측 1개 추가(계측 26개 → 27개). 새 필드를 쓰는 화면은 아직 없고 소비는 KM-091부터다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 3초). 단위 108개·실제 계약 7개·실기기 계측 27개. 린트 오류 0.
+- 결정은 ADR-047에 기록했다. 신규 의존성 없음.
 
 Goal:
 

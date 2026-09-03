@@ -167,6 +167,7 @@ internal class PlayerConnection @Inject constructor(
 
     private fun updatePlayback() {
         val player = controller ?: return
+        val item = player.currentMediaItem
         mutablePlayback.value = mapPlaybackState(
             playerState = player.playbackState,
             isPlaying = player.isPlaying,
@@ -174,6 +175,13 @@ internal class PlayerConnection @Inject constructor(
             positionMs = player.currentPosition,
             durationMs = player.duration,
             hasError = player.playerError != null,
+            nowPlaying = nowPlayingOf(
+                mediaId = item?.mediaId,
+                title = item?.mediaMetadata?.title?.toString(),
+                artist = item?.mediaMetadata?.artist?.toString(),
+            ),
+            repeatMode = player.repeatMode,
+            shuffleEnabled = player.shuffleModeEnabled,
         )
     }
 

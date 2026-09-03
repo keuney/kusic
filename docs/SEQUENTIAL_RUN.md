@@ -411,3 +411,19 @@
 - 실기기 SM-T220 / Android 14에서 인수 조건 3개를 확인했다. "iu" 검색 후 검색어를 비우면 "최근 검색어"에 iu 칩이 나오고, "bts"를 더 검색하면 bts가 앞에 온다(x=43 대 x=127). 앱을 force-stop하고 다시 켜도 두 칩이 남는다. 칩을 누르면 그 검색어로 다시 검색된다. "지우기"를 누르면 목록이 사라지고 재시작 후에도 비어 있다. 화면 캡처와 UI 덤프는 captures/km-074에 보관했다(저장소 추적 대상 아님).
 - 함정: 기기 화면 타임아웃이 30초라 여러 단계를 이어 검증할 수 없었다. 검증 동안만 600000으로 올리고 끝난 뒤 30000으로 되돌렸다. 또한 검색 입력창에 포커스가 없는 상태에서 `input keyevent 66`을 보내면 그 키가 포커스를 가진 다른 위젯으로 가서 WiFi 전용 스위치가 켜지는 일이 있었다. 좌표는 매번 `uiautomator dump`로 확인하고, 검색 실행은 ENTER 대신 검색 버튼 좌표를 눌러 검증했다.
 - 결정 ADR-046. M5 검색 완료. 다음은 M6 Player UX의 KM-090이다.
+
+## KM-090 완료 — Player UI state adapter
+
+- 브랜치 `codex/KM-090-player-ui-state`. `core/player/PlaybackState`에 현재 곡·반복·셔플을 더하고 `playing`·`buffering`을 이름 붙여 드러냈다. `PlayerConnection.updatePlayback`이 MediaController에서 이 값들을 함께 읽는다.
+- TASKS의 `PlayerUiState`를 새 타입으로 만들지 않았다. 이미 있는 `PlaybackState`가 ARCHITECTURE 19의 매퍼 결과이고, 같은 것을 가리키는 상태 타입이 둘이면 화면이 어느 쪽을 봐야 하는지가 흐려진다. 이름은 ARCHITECTURE 4의 `PlaybackStateMapper.kt`에 맞춰 그대로 뒀다.
+- 현재 곡은 `NowPlaying(mediaId, title, artist)`다. `Track`을 재구성하지 않는다. 세션에서 오는 것은 대기열에 넣은 metadata뿐이라 `source`나 길이를 복원할 수 없고, 없는 값을 지어내면 화면이 사실이 아닌 것을 믿는다.
+- 앨범 이미지는 아직 대기열 항목에 넣지 않는다. 넣으면 알림 이미지 동작이 바뀌어 KM-037·038 검증을 다시 해야 하므로, 이미지가 실제로 필요해지는 KM-091·092에서 함께 다룬다.
+- `playing`·`buffering`은 `phase`에서 읽는 계산 속성이다. 같은 사실을 두 곳에 두지 않는다.
+- 반복은 `RepeatMode(Off/One/All)`이며 알 수 없는 상수는 꺼짐으로 본다. 반복을 켠 것으로 잘못 보는 쪽이 더 나쁘다.
+- 매퍼 새 인자는 기본값을 주어 뒤에 붙였다. 기존 호출과 검사가 그대로 컴파일된다.
+- 단위 8개 추가: phase에서 나오는 playing/buffering, 반복 세 가지와 알 수 없는 값, 셔플 양방향, 기본 상태에 곡·반복·셔플 없음, 대기열 항목이 현재 곡이 됨, 빈 ID/빈 문자열/공백은 곡 없음, 제목·아티스트 없음은 빈 문자열, 세 값이 상태까지 도달.
+- 계측 1개 추가(`PlaybackStateAdapterTest`): 실제 세션 값이 화면 상태로 오는지 확인한다. 연결 전 곡 없음 → 연결 후 내장 테스트 음원이 현재 곡(제목·아티스트 비어 있지 않음) → 반복 꺼짐·셔플 꺼짐 → 재생 시 isPlaying이고 isBuffering이 아니며 길이 120초 → 일시정지에도 위치와 현재 곡 유지 → 연결 해제 시 곡 정보 사라짐. 계측 26개 → 27개.
+- 반복·셔플을 켠 상태는 실기기에서 만들 수 없다. 조작이 KM-095·096 소속이라 설정 함수를 만들지 않았기 때문이다. 세션 기본값까지만 기기에서 확인하고 켠 상태의 매핑은 단위 검사로 고정했다.
+- 새 필드를 쓰는 화면은 아직 없다. 소비는 KM-091 Mini Player부터다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 3초). 단위 108개·실제 계약 7개·실기기 계측 27개, 실패/오류 0. 린트 오류 0·경고 21(새 코드에서 발생한 경고 없음).
+- 결정 ADR-047. 신규 의존성 없음. 다음은 KM-091 Mini Player다.
