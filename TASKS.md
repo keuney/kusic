@@ -18,16 +18,11 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 53 / 미착수 24. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 24에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 54 / 미착수 23. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 23에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-097 (Queue UI).** M6의 마지막이다. 인수 조건은 show list·current item highlight·remove·reorder if practical이다. 착수 전에 알아야 할 것이 둘 있다.
+**M6 Player UX 완료 (KM-090~097).** 남은 마일스톤은 M7 Library, M8 Cache/Network(KM-134·137은 이미 완료), M9 Polish/Release(KM-150은 이미 완료)다.
 
-1. **화면에서 대기열을 만드는 경로가 아직 없다.** `playTrack`은 `setMediaItem`으로 한 곡을 갈아 끼우고 `playQueue`는 Gate 검증용 진입점이라 화면에서 쓰이지 않는다. 대기열 화면을 만들려면 먼저 대기열이 있어야 하므로, 검색 결과에서 여러 곡을 넣는 경로를 이 작업에 포함해야 한다. KM-094에서 미뤄 둔 것이 여기로 왔다.
-2. **섞인 재생 순서는 보여줄 수 없다(ADR-053).** 컨트롤러가 받는 Timeline에 셔플 순서가 실려 오지 않는다. 대기열 화면은 넣은 순서만 보여줄 수 있다. 셔플이 켜졌을 때 순서 표시를 어떻게 할지(그대로 두기, 안내 문구, 감추기) 정해야 한다.
-
-또한 대기열을 상태로 노출하려면 `PlaybackState`에 대기열 목록과 현재 위치가 필요하다. 지금은 현재 곡 하나만 있다.
-
-**M6 진행 상황:** KM-090~096 완료. 남은 것은 KM-097(Queue UI) 하나다.
+**다음 작업: KM-110 (Room schema).** 인수 조건은 schema export configured·DB test다. 현재 `KeuneyDatabase`는 자리표시 엔티티 `SchemaBaseline` 하나만 두고 버전 1이며 스키마 내보내기와 계측 검사(`KeuneyDatabaseTest`)는 이미 있다. 이 작업의 실제 내용은 실제 엔티티를 넣고 버전을 2로 올리며 마이그레이션 전략을 정하는 것이다. 착수 시 정할 것: (1) 아래 KM-110 항목을 볼 것 — `SearchHistoryEntity`는 필요하지 않다, (2) 자리표시 엔티티 `SchemaBaseline`을 지울지(지우면 마이그레이션에서 테이블 삭제가 필요하다), (3) v0.1에 설치 기반이 사용자 한 명뿐이라 `fallbackToDestructiveMigration`으로 갈지 명시적 마이그레이션을 쓸지.
 
 **KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
@@ -1333,7 +1328,18 @@ state persistence optional
 
 KM-097 — Queue UI
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): feature/player/QueueScreen과 queue 목적지를 추가하고, 사용자 요청으로 대기열을 만드는 경로까지 포함했다.
+
+- 인수 조건: show list PASS, current item highlight PASS(배경색과 "재생 중" 문구), remove PASS, reorder PASS(위·아래 버튼. 끌어서 옮기기는 넣지 않았고 인수 조건은 "가능하면"이다).
+- 대기열 생성 경로: playQueue(tracks, startIndex)가 검색 결과 전체를 넣고 고른 자리부터 재생한다. 검색 결과 항목이 고른 곡 하나가 아니라 목록과 자리를 넘긴다. playQueue 인자를 Triple 목록에서 List<Track>으로 바꿨다. KM-094에서 미뤄 둔 것이 여기서 해결됐고, 대기열이 생겨 다음 버튼도 활성이 된다.
+- PlaybackState에 queue와 queueIndex를 더했다. 목록은 Timeline 창 순서(넣은 순서)이며 대기열 밖 자리는 -1로 정리한다. 대기열은 바뀔 때만 다시 읽는다.
+- 셔플이 켜졌을 때의 실제 재생 순서는 보여주지 않는다(ADR-053). 넣은 순서를 그대로 보여주고 안내 문구를 붙인다. 순서를 감추면 빼기·옮기기를 할 수 없다.
+- KM-092에서 비활성으로 뒀던 대기열 버튼이 살아났다. 즐겨찾기는 여전히 비활성이며 KM-112에서 살린다.
+- 단위 3개·계측 1개 추가(계측 32개 → 33개). ShuffleTest의 셔플 켠 상태 확인을 순회에서 대기열 목록으로 바꿨다. 컨트롤러 순회는 셔플이 켜지면 결정적이지 않다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 5초). 단위 129개·실제 계약 7개·실기기 계측 33개. 린트 오류 0.
+- 결정은 ADR-055에 기록했다. 신규 의존성 없음. M6 Player UX 완료.
 
 Goal:
 

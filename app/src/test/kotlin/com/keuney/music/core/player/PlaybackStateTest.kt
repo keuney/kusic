@@ -180,6 +180,47 @@ class PlaybackStateTest {
         assertFalse("연결 전에는 꺼진 것으로 본다", PlaybackState().shuffleEnabled)
     }
 
+    @Test
+    fun theQueueAndTheCurrentPositionReachTheState() {
+        val queue = listOf(
+            NowPlaying("a", "제목 a", "아티스트"),
+            NowPlaying("b", "제목 b", "아티스트"),
+        )
+        val state = mapPlaybackState(
+            Player.STATE_READY, true, true, 0, 1000, false,
+            queue = queue,
+            queueIndex = 1,
+        )
+
+        assertEquals(queue, state.queue)
+        assertEquals(1, state.queueIndex)
+    }
+
+    @Test
+    fun aPositionOutsideTheQueueIsTreatedAsNone() {
+        val queue = listOf(NowPlaying("a", "제목 a", "아티스트"))
+
+        // Media3는 대기열이 비면 현재 자리를 0으로 돌려준다. 화면이 없는 항목을 가리키면 안 된다.
+        assertEquals(
+            -1,
+            mapPlaybackState(Player.STATE_IDLE, false, false, 0, 0, false, queueIndex = 0).queueIndex,
+        )
+        assertEquals(
+            -1,
+            mapPlaybackState(
+                Player.STATE_READY, true, true, 0, 1000, false,
+                queue = queue,
+                queueIndex = 5,
+            ).queueIndex,
+        )
+    }
+
+    @Test
+    fun theDefaultStateHasAnEmptyQueue() {
+        assertEquals(emptyList<NowPlaying>(), PlaybackState().queue)
+        assertEquals(-1, PlaybackState().queueIndex)
+    }
+
     private fun repeatModeOf(repeatMode: Int) =
         mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, repeatMode = repeatMode)
             .repeatMode

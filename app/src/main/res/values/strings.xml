@@ -18,6 +18,13 @@
     <string name="player_repeat_off">반복 없음</string>
     <string name="player_repeat_all">전체 반복</string>
     <string name="player_repeat_one">한 곡 반복</string>
+    <string name="queue_title">대기열</string>
+    <string name="queue_empty">대기열이 비어 있습니다.</string>
+    <string name="queue_shuffle_notice">셔플이 켜져 있어 실제 재생 순서는 이 순서와 다릅니다.</string>
+    <string name="queue_now_playing">재생 중</string>
+    <string name="queue_remove">대기열에서 빼기</string>
+    <string name="queue_move_up">위로 옮기기</string>
+    <string name="queue_move_down">아래로 옮기기</string>
     <string name="search_hint">검색어</string>
     <string name="search_action">검색</string>
     <string name="search_searching">검색 중</string>

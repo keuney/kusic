@@ -31,6 +31,7 @@ import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.feature.player.MiniPlayer
 import com.keuney.music.feature.player.PlayerViewModel
 import com.keuney.music.feature.player.NowPlayingScreen
+import com.keuney.music.feature.player.QueueScreen
 import com.keuney.music.feature.search.SearchScreen
 import com.keuney.music.feature.search.SearchViewModel
 
@@ -52,13 +53,14 @@ internal fun KeuneyNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val connected = connection == ConnectionState.Connected
     val nowPlaying = playback.nowPlaying
-    val onNowPlaying = currentRoute == NOW_PLAYING_ROUTE
+    // 전체 화면 목적지에서는 하단을 비운다.
+    val onFullScreen = currentRoute == NOW_PLAYING_ROUTE || currentRoute == QUEUE_ROUTE
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             // 전체 화면 플레이어는 하단을 비워 앨범 이미지에 자리를 준다. 뒤로 가기와 화면 안의
             // 뒤로 버튼으로 떠났던 탭으로 돌아간다.
-            if (!onNowPlaying) Column {
+            if (!onFullScreen) Column {
                 // 같은 것을 위아래로 두 번 보여주지 않는다.
                 if (nowPlaying != null) {
                     HorizontalDivider()
@@ -95,13 +97,21 @@ internal fun KeuneyNavHost(
                 SearchScreen(
                     viewModel = searchViewModel,
                     selectEnabled = connected,
-                    onSelect = playerViewModel::playTrack,
+                    // 고른 곡부터 재생하고 나머지 결과를 대기열에 남긴다.
+                    onSelect = playerViewModel::playTracks,
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
             }
             composable(TopLevelDestination.Library.route) { NotReadyScreen() }
             composable(NOW_PLAYING_ROUTE) {
                 NowPlayingScreen(
+                    viewModel = playerViewModel,
+                    onBack = { navController.popBackStack() },
+                    onOpenQueue = { navController.navigate(QUEUE_ROUTE) },
+                )
+            }
+            composable(QUEUE_ROUTE) {
+                QueueScreen(
                     viewModel = playerViewModel,
                     onBack = { navController.popBackStack() },
                 )

@@ -47,12 +47,15 @@ import com.keuney.music.ui.format.formatDuration
 /**
  * 전체 화면 플레이어. 미니 플레이어를 눌러 들어오고 뒤로 가기로 떠났던 탭으로 돌아간다.
  *
- * 즐겨찾기와 대기열 버튼은 자리만 있고 눌리지 않는다. 즐겨찾기 저장은 KM-112, 대기열 화면은
- * KM-097 소속이라 여기서 만들지 않는다. 사용자와 합의한 범위다.
- * 이전·다음은 KM-094, 끌어서 탐색의 인수 조건은 KM-093이다.
+ * 즐겨찾기 버튼은 자리만 있고 눌리지 않는다. 즐겨찾기 저장은 KM-112 소속이라 여기서 만들지
+ * 않는다. 사용자와 합의한 범위다. 대기열 버튼은 KM-097에서 대기열 화면으로 연결했다.
  */
 @Composable
-internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
+internal fun NowPlayingScreen(
+    viewModel: PlayerViewModel,
+    onBack: () -> Unit,
+    onOpenQueue: () -> Unit,
+) {
     val connection by viewModel.connectionState.collectAsStateWithLifecycle()
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
     val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
@@ -162,11 +165,11 @@ internal fun NowPlayingScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
             ) {
                 Text(stringResource(R.string.player_next))
             }
-            // 대기열 화면은 KM-097이 만든다. 그때까지 눌리지 않는다.
-            IconButton(onClick = {}, enabled = false) {
+            IconButton(onClick = onOpenQueue, enabled = connected) {
                 Icon(Icons.Filled.List, contentDescription = stringResource(R.string.player_queue))
             }
         }
+        // 비활성인 즐겨찾기가 고장으로 보이지 않게 이유를 적는다. KM-112에서 살리면 지운다.
         Text(
             text = stringResource(R.string.player_not_ready_action),
             style = MaterialTheme.typography.bodySmall,

@@ -21,3 +21,6 @@ internal enum class TopLevelDestination(
 
 /** 하단 내비게이션에 없는 전체 화면 목적지. 미니 플레이어를 눌러 들어온다. */
 internal const val NOW_PLAYING_ROUTE = "now-playing"
+
+/** 전체 화면 플레이어의 대기열 버튼으로 들어온다. */
+internal const val QUEUE_ROUTE = "queue"

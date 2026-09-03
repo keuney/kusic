@@ -38,6 +38,13 @@ internal data class PlaybackState(
     val shuffleEnabled: Boolean = false,
     val hasPrevious: Boolean = false,
     val hasNext: Boolean = false,
+    /**
+     * 대기열에 넣은 순서다. 셔플이 켜졌을 때의 실제 재생 순서는 여기 담을 수 없다(ADR-053).
+     * 세션이 컨트롤러에 보내는 Timeline에 셔플 순서가 실려 오지 않는다.
+     */
+    val queue: List<NowPlaying> = emptyList(),
+    /** [queue]에서 현재 곡의 자리. 대기열이 비어 있으면 -1이다. */
+    val queueIndex: Int = -1,
 ) {
     // 재생과 준비는 phase 하나로 정하고 여기서는 이름만 붙인다. 같은 사실을 두 곳에 두지 않는다.
     val isPlaying: Boolean get() = phase == PlaybackPhase.Playing
@@ -65,6 +72,8 @@ internal fun mapPlaybackState(
     shuffleEnabled: Boolean = false,
     hasPrevious: Boolean = false,
     hasNext: Boolean = false,
+    queue: List<NowPlaying> = emptyList(),
+    queueIndex: Int = -1,
 ): PlaybackState {
     val phase = when {
         hasError -> PlaybackPhase.Unavailable
@@ -85,6 +94,9 @@ internal fun mapPlaybackState(
         shuffleEnabled = shuffleEnabled,
         hasPrevious = hasPrevious,
         hasNext = hasNext,
+        queue = queue,
+        // 대기열 밖을 가리키는 자리는 없는 것으로 본다.
+        queueIndex = queueIndex.takeIf { it in queue.indices } ?: -1,
     )
 }
 

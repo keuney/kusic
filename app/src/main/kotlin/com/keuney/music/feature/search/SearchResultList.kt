@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,20 +22,23 @@ import com.keuney.music.core.model.Track
 import com.keuney.music.ui.components.Artwork
 import com.keuney.music.ui.format.formatDuration
 
-/** 검색 결과 곡 목록. 항목을 고르면 [onSelect]로 넘긴다. 재생 여부는 이 목록이 판단하지 않는다. */
+/**
+ * 검색 결과 곡 목록. 항목을 고르면 목록 전체와 그 자리를 [onSelect]로 넘긴다. 받는 쪽이 대기열을
+ * 만들 수 있어야 하므로 고른 곡만 넘기지 않는다. 재생 여부는 이 목록이 판단하지 않는다.
+ */
 @Composable
 internal fun SearchResultList(
     tracks: List<Track>,
     selectEnabled: Boolean,
-    onSelect: (Track) -> Unit,
+    onSelect: (tracks: List<Track>, index: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(tracks, key = Track::id) { track ->
+        itemsIndexed(tracks, key = { _, track -> track.id }) { index, track ->
             SearchResultItem(
                 track = track,
                 selectEnabled = selectEnabled,
-                onSelect = onSelect,
+                onSelect = { onSelect(tracks, index) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -46,12 +49,12 @@ internal fun SearchResultList(
 private fun SearchResultItem(
     track: Track,
     selectEnabled: Boolean,
-    onSelect: (Track) -> Unit,
+    onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
-            .clickable(enabled = selectEnabled) { onSelect(track) }
+            .clickable(enabled = selectEnabled, onClick = onSelect)
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,

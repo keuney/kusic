@@ -36,7 +36,7 @@ class ProviderAGateDeviceTest {
 
             connect(connection)
             instrumentation.runOnMainSync {
-                connection.playQueue(tracks.map { Triple(it.id, it.title, it.artist) })
+                connection.playQueue(tracks)
             }
             withTimeout(60_000) {
                 connection.playback.first { it.phase == PlaybackPhase.Playing && it.positionMs > 1_000 }

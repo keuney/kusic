@@ -9,6 +9,8 @@ import androidx.annotation.MainThread
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
+import com.keuney.music.core.model.Track
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
@@ -34,8 +36,15 @@ internal class PlayerConnection @Inject constructor(
     val state: StateFlow<ConnectionState> = mutableState.asStateFlow()
     private val mutablePlayback = MutableStateFlow(PlaybackState())
     val playback: StateFlow<PlaybackState> = mutablePlayback.asStateFlow()
+    /** 대기열은 바뀔 때만 다시 읽는다. 위치 갱신은 250ms마다 오므로 매번 만들면 낭비다. */
+    private var queue: List<NowPlaying> = emptyList()
+    private var queueStale = true
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = updatePlayback()
+
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            queueStale = true
+        }
     }
     private val positionUpdate = object : Runnable {
         override fun run() {
@@ -69,6 +78,8 @@ internal class PlayerConnection @Inject constructor(
                 controller = future.get()
                 if (controller?.isConnected == true) {
                     mutableState.value = ConnectionState.Connected
+                    // 붙는 순간의 대기열은 알림 없이 이미 있다.
+                    queueStale = true
                     controller?.addListener(playerListener)
                     positionUpdate.run()
                 } else {
@@ -96,6 +107,8 @@ internal class PlayerConnection @Inject constructor(
         mainHandler.removeCallbacks(positionUpdate)
         controller?.removeListener(playerListener)
         controller = null
+        queue = emptyList()
+        queueStale = true
         mutableState.value = ConnectionState.Disconnected
         mutablePlayback.value = PlaybackState()
         future?.let(MediaController::releaseFuture)
@@ -130,22 +143,58 @@ internal class PlayerConnection @Inject constructor(
         player.play()
     }
 
-    /** Gate 검증과 이후 큐 작업의 최소 진입점. 대기열에도 Track ID와 metadata만 넣는다. */
+    /**
+     * 대기열을 통째로 갈아 끼우고 [startIndex]부터 재생한다. 대기열에도 Track ID와 표시용
+     * metadata만 넣는다. 실제 재생 주소는 서비스가 항목을 열 때 해석한다.
+     */
     @MainThread
-    fun playQueue(tracks: List<Triple<String, String, String>>) {
+    fun playQueue(tracks: List<Track>, startIndex: Int = 0) {
         checkMainThread()
         if (tracks.isEmpty()) return
         val player = controller ?: return
         player.setMediaItems(
-            tracks.map { (id, title, artist) ->
+            tracks.map { track ->
                 MediaItem.Builder()
-                    .setMediaId(id)
-                    .setMediaMetadata(trackMetadata(title, artist, artworkUri = null))
+                    .setMediaId(track.id)
+                    .setMediaMetadata(trackMetadata(track.title, track.artist, track.artworkUrl))
                     .build()
             },
+            startIndex.coerceIn(tracks.indices),
+            0,
         )
         player.prepare()
         player.play()
+    }
+
+    /** 대기열에서 그 자리의 곡으로 넘어간다. 목록에서 항목을 눌렀을 때 쓴다. */
+    @MainThread
+    fun seekToQueueItem(index: Int) {
+        checkMainThread()
+        val player = controller ?: return
+        if (index !in 0 until player.mediaItemCount) return
+        player.seekTo(index, 0)
+        player.play()
+    }
+
+    /** 대기열에서 한 곡을 뺀다. 지금 재생 중인 곡을 빼면 Media3가 다음 곡으로 넘어간다. */
+    @MainThread
+    fun removeQueueItem(index: Int) {
+        checkMainThread()
+        val player = controller ?: return
+        if (!player.isCommandAvailable(Player.COMMAND_CHANGE_MEDIA_ITEMS)) return
+        if (index !in 0 until player.mediaItemCount) return
+        player.removeMediaItem(index)
+    }
+
+    /** 대기열에서 한 곡을 다른 자리로 옮긴다. */
+    @MainThread
+    fun moveQueueItem(from: Int, to: Int) {
+        checkMainThread()
+        val player = controller ?: return
+        if (!player.isCommandAvailable(Player.COMMAND_CHANGE_MEDIA_ITEMS)) return
+        val count = player.mediaItemCount
+        if (from !in 0 until count || to !in 0 until count || from == to) return
+        player.moveMediaItem(from, to)
     }
 
     @MainThread
@@ -210,6 +259,10 @@ internal class PlayerConnection @Inject constructor(
 
     private fun updatePlayback() {
         val player = controller ?: return
+        if (queueStale) {
+            queue = player.readQueue()
+            queueStale = false
+        }
         val item = player.currentMediaItem
         mutablePlayback.value = mapPlaybackState(
             playerState = player.playbackState,
@@ -228,7 +281,25 @@ internal class PlayerConnection @Inject constructor(
             shuffleEnabled = player.shuffleModeEnabled,
             hasPrevious = player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS),
             hasNext = player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT),
+            queue = queue,
+            queueIndex = player.currentMediaItemIndex,
         )
+    }
+
+    /** 대기열을 화면이 쓸 목록으로 읽는다. 넣은 순서 그대로다. */
+    private fun Player.readQueue(): List<NowPlaying> {
+        val timeline = currentTimeline
+        if (timeline.isEmpty) return emptyList()
+        val window = Timeline.Window()
+        return (0 until timeline.windowCount).mapNotNull { index ->
+            val item = timeline.getWindow(index, window).mediaItem
+            nowPlayingOf(
+                mediaId = item.mediaId,
+                title = item.mediaMetadata.title?.toString(),
+                artist = item.mediaMetadata.artist?.toString(),
+                artworkUri = item.mediaMetadata.artworkUri?.toString(),
+            )
+        }
     }
 
     private fun checkMainThread() {

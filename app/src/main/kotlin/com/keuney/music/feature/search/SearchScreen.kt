@@ -32,13 +32,14 @@ import com.keuney.music.core.model.Track
 
 /**
  * 검색어 입력과 검색 결과만 담당한다. 재생 제어는 이 화면 밖에 있고, 결과를 고른 뒤 무엇을 할지는
- * [onSelect]로 넘긴다. 화면 전환이 붙기 전이라 지금은 플레이어 화면 안에 배치된다(KM-150).
+ * [onSelect]로 넘긴다. 고른 항목 하나가 아니라 결과 목록 전체와 그 안의 자리를 넘기므로 받는 쪽이
+ * 대기열을 만들 수 있다(KM-097).
  */
 @Composable
 internal fun SearchScreen(
     viewModel: SearchViewModel,
     selectEnabled: Boolean,
-    onSelect: (Track) -> Unit,
+    onSelect: (tracks: List<Track>, index: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -112,7 +113,7 @@ private fun RecentQueries(
 private fun SearchResults(
     state: SearchUiState,
     selectEnabled: Boolean,
-    onSelect: (Track) -> Unit,
+    onSelect: (tracks: List<Track>, index: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {

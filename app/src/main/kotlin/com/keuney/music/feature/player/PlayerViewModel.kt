@@ -60,5 +60,15 @@ internal class PlayerViewModel @Inject constructor(
     fun playTrack(track: Track) =
         connection.playTrack(track.id, track.title, track.artist, track.artworkUrl)
 
+    /**
+     * 목록에서 한 곡을 골랐을 때 그 곡부터 재생하고 나머지를 대기열에 남긴다. 한 곡만 갈아
+     * 끼우면 이전·다음과 대기열 화면이 쓸 것이 없다.
+     */
+    fun playTracks(tracks: List<Track>, startIndex: Int) = connection.playQueue(tracks, startIndex)
+
+    fun seekToQueueItem(index: Int) = connection.seekToQueueItem(index)
+    fun removeFromQueue(index: Int) = connection.removeQueueItem(index)
+    fun moveInQueue(from: Int, to: Int) = connection.moveQueueItem(from, to)
+
     override fun onCleared() = connection.disconnect()
 }
