@@ -45,7 +45,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.flowOf
 import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
+import com.keuney.music.core.player.PlaybackFailure
 import com.keuney.music.core.player.PlaybackPhase
+import com.keuney.music.core.player.PlaybackState
 import com.keuney.music.core.player.RepeatMode
 import com.keuney.music.core.player.toTrack
 import com.keuney.music.feature.library.AddToPlaylistDialog
@@ -125,7 +127,7 @@ internal fun NowPlayingScreen(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(stringResource(statusRes(connection, playback.phase)))
+        Text(stringResource(statusRes(connection, playback)))
         Slider(
             value = shownPositionMs.toFloat(),
             onValueChange = { draggedPosition = it },
@@ -177,6 +179,12 @@ internal fun NowPlayingScreen(
             if (connection == ConnectionState.Unavailable) {
                 Button(onClick = viewModel::connect, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.player_retry))
+                }
+            } else if (playback.failure != null) {
+                // 멈춘 자리에서 다시 준비시킨다. 네트워크 때문이면 연결이 돌아올 때 저절로
+                // 이어지지만(ADR-063), 기다리지 않고 지금 눌러 볼 수도 있어야 한다.
+                Button(onClick = viewModel::play, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.player_retry_playback))
                 }
             } else {
                 Button(
@@ -269,16 +277,27 @@ private fun repeatLabelRes(mode: RepeatMode): Int = when (mode) {
     RepeatMode.One -> R.string.player_repeat_one
 }
 
-private fun statusRes(connection: ConnectionState, phase: PlaybackPhase): Int = when (connection) {
+/**
+ * 지금 무슨 일이 일어나고 있는지 한 줄로 말한다.
+ *
+ * 재생이 멈췄을 때는 왜 멈췄는지까지 말한다. 기다리면 되는 것과 다른 곡을 골라야 하는 것이
+ * 같은 문구로 보이면 사용자는 무엇을 해야 할지 알 수 없다.
+ */
+private fun statusRes(connection: ConnectionState, playback: PlaybackState): Int = when (connection) {
     ConnectionState.Connecting -> R.string.player_connecting
     ConnectionState.Disconnected -> R.string.player_disconnected
     ConnectionState.Unavailable -> R.string.player_unavailable
-    ConnectionState.Connected -> when (phase) {
-        PlaybackPhase.Idle -> R.string.player_idle
-        PlaybackPhase.Buffering -> R.string.player_buffering
-        PlaybackPhase.Playing -> R.string.player_playing
-        PlaybackPhase.Paused -> R.string.player_paused
-        PlaybackPhase.Ended -> R.string.player_ended
-        PlaybackPhase.Unavailable -> R.string.player_unavailable
+    ConnectionState.Connected -> when (playback.failure) {
+        PlaybackFailure.Network -> R.string.player_network_lost
+        PlaybackFailure.Source -> R.string.player_source_unavailable
+        null -> when (playback.phase) {
+            PlaybackPhase.Idle -> R.string.player_idle
+            PlaybackPhase.Buffering -> R.string.player_buffering
+            PlaybackPhase.Playing -> R.string.player_playing
+            PlaybackPhase.Paused -> R.string.player_paused
+            PlaybackPhase.Ended -> R.string.player_ended
+            // 이유 없는 재생 불가는 없다. 남겨 두는 것은 phase 하나만 보고 그릴 때를 위해서다.
+            PlaybackPhase.Unavailable -> R.string.player_unavailable
+        }
     }
 }

@@ -270,7 +270,7 @@ internal class PlayerConnection @Inject constructor(
             playWhenReady = player.playWhenReady,
             positionMs = player.currentPosition,
             durationMs = player.duration,
-            hasError = player.playerError != null,
+            failure = playbackFailureOf(player.playerError?.errorCode),
             nowPlaying = nowPlayingOf(
                 mediaId = item?.mediaId,
                 title = item?.mediaMetadata?.title?.toString(),

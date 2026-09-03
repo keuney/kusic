@@ -4,6 +4,8 @@
     <string name="player_connecting">플레이어 연결 중</string>
     <string name="player_disconnected">연결 대기</string>
     <string name="player_unavailable">재생할 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="player_network_lost">네트워크가 끊겼습니다. 연결되면 이어서 재생합니다.</string>
+    <string name="player_source_unavailable">이 곡을 재생할 수 없습니다.</string>
     <string name="player_idle">재생 대기</string>
     <string name="player_buffering">준비 중</string>
     <string name="player_playing">재생 중</string>
@@ -12,6 +14,7 @@
     <string name="player_play">재생</string>
     <string name="player_pause">일시정지</string>
     <string name="player_retry">다시 연결</string>
+    <string name="player_retry_playback">다시 시도</string>
     <string name="player_previous">이전</string>
     <string name="player_next">다음</string>
     <string name="player_shuffle">셔플</string>

@@ -11,10 +11,10 @@ import org.junit.Test
 class PlaybackStateTest {
     @Test
     fun focusSuppressionIsPausedEvenWhenPlaybackIsRequested() {
-        val suppressed = mapPlaybackState(Player.STATE_READY, false, true, 500, 1000, false)
+        val suppressed = mapPlaybackState(Player.STATE_READY, false, true, 500, 1000, null)
         assertEquals(PlaybackPhase.Paused, suppressed.phase)
         assertTrue(suppressed.playWhenReady)
-        val resumed = mapPlaybackState(Player.STATE_READY, true, true, 500, 1000, false)
+        val resumed = mapPlaybackState(Player.STATE_READY, true, true, 500, 1000, null)
         assertEquals(PlaybackPhase.Playing, resumed.phase)
     }
 
@@ -28,33 +28,33 @@ class PlaybackStateTest {
             Triple(Player.STATE_ENDED, false, PlaybackPhase.Ended),
         )
         cases.forEach { (state, playing, expected) ->
-            assertEquals(expected, mapPlaybackState(state, playing, playing, 100, 1000, false).phase)
+            assertEquals(expected, mapPlaybackState(state, playing, playing, 100, 1000, null).phase)
         }
         assertEquals(
             PlaybackPhase.Unavailable,
-            mapPlaybackState(Player.STATE_IDLE, false, false, 0, 0, true).phase,
+            mapPlaybackState(Player.STATE_IDLE, false, false, 0, 0, PlaybackFailure.Source).phase,
         )
     }
 
     @Test
     fun normalizesUnknownDurationAndOutOfRangePosition() {
-        assertEquals(0L, mapPlaybackState(Player.STATE_IDLE, false, false, 500, C.TIME_UNSET, false).durationMs)
-        assertEquals(0L, mapPlaybackState(Player.STATE_IDLE, false, false, 500, C.TIME_UNSET, false).positionMs)
-        assertEquals(0L, mapPlaybackState(Player.STATE_READY, false, false, -20, 1000, false).positionMs)
-        assertEquals(1000L, mapPlaybackState(Player.STATE_READY, true, true, 2000, 1000, false).positionMs)
+        assertEquals(0L, mapPlaybackState(Player.STATE_IDLE, false, false, 500, C.TIME_UNSET, null).durationMs)
+        assertEquals(0L, mapPlaybackState(Player.STATE_IDLE, false, false, 500, C.TIME_UNSET, null).positionMs)
+        assertEquals(0L, mapPlaybackState(Player.STATE_READY, false, false, -20, 1000, null).positionMs)
+        assertEquals(1000L, mapPlaybackState(Player.STATE_READY, true, true, 2000, 1000, null).positionMs)
     }
 
     @Test
     fun playingAndBufferingFollowThePhase() {
-        val playing = mapPlaybackState(Player.STATE_READY, true, true, 100, 1000, false)
+        val playing = mapPlaybackState(Player.STATE_READY, true, true, 100, 1000, null)
         assertTrue(playing.isPlaying)
         assertFalse(playing.isBuffering)
 
-        val buffering = mapPlaybackState(Player.STATE_BUFFERING, false, true, 100, 1000, false)
+        val buffering = mapPlaybackState(Player.STATE_BUFFERING, false, true, 100, 1000, null)
         assertTrue(buffering.isBuffering)
         assertFalse(buffering.isPlaying)
 
-        val paused = mapPlaybackState(Player.STATE_READY, false, false, 100, 1000, false)
+        val paused = mapPlaybackState(Player.STATE_READY, false, false, 100, 1000, null)
         assertFalse(paused.isPlaying)
         assertFalse(paused.isBuffering)
     }
@@ -71,11 +71,11 @@ class PlaybackStateTest {
     @Test
     fun shuffleIsCarriedThrough() {
         assertTrue(
-            mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, shuffleEnabled = true)
+            mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, null, shuffleEnabled = true)
                 .shuffleEnabled,
         )
         assertFalse(
-            mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, shuffleEnabled = false)
+            mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, null, shuffleEnabled = false)
                 .shuffleEnabled,
         )
     }
@@ -118,7 +118,7 @@ class PlaybackStateTest {
             true,
             100,
             1000,
-            false,
+            null,
             nowPlaying = NowPlaying("track-1", "제목", "아티스트"),
             repeatMode = Player.REPEAT_MODE_ALL,
             shuffleEnabled = true,
@@ -146,7 +146,7 @@ class PlaybackStateTest {
     @Test
     fun previousAndNextAvailabilityReachesTheState() {
         val onlyPrevious = mapPlaybackState(
-            Player.STATE_READY, true, true, 0, 1000, false,
+            Player.STATE_READY, true, true, 0, 1000, null,
             hasPrevious = true,
             hasNext = false,
         )
@@ -154,7 +154,7 @@ class PlaybackStateTest {
         assertFalse("다음 곡이 없으면 다음은 쓸 수 없다", onlyPrevious.hasNext)
 
         val both = mapPlaybackState(
-            Player.STATE_READY, true, true, 0, 1000, false,
+            Player.STATE_READY, true, true, 0, 1000, null,
             hasPrevious = true,
             hasNext = true,
         )
@@ -172,8 +172,8 @@ class PlaybackStateTest {
     @Test
     fun shuffleStateIsWhatTheScreenShows() {
         // 화면의 토글 표시는 세션이 돌려준 값만 근거로 한다. 눌렀다는 사실을 따로 기억하지 않는다.
-        val on = mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, shuffleEnabled = true)
-        val off = mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, shuffleEnabled = false)
+        val on = mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, null, shuffleEnabled = true)
+        val off = mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, null, shuffleEnabled = false)
 
         assertTrue(on.shuffleEnabled)
         assertFalse(off.shuffleEnabled)
@@ -187,7 +187,7 @@ class PlaybackStateTest {
             NowPlaying("b", "제목 b", "아티스트"),
         )
         val state = mapPlaybackState(
-            Player.STATE_READY, true, true, 0, 1000, false,
+            Player.STATE_READY, true, true, 0, 1000, null,
             queue = queue,
             queueIndex = 1,
         )
@@ -203,12 +203,12 @@ class PlaybackStateTest {
         // Media3는 대기열이 비면 현재 자리를 0으로 돌려준다. 화면이 없는 항목을 가리키면 안 된다.
         assertEquals(
             -1,
-            mapPlaybackState(Player.STATE_IDLE, false, false, 0, 0, false, queueIndex = 0).queueIndex,
+            mapPlaybackState(Player.STATE_IDLE, false, false, 0, 0, null, queueIndex = 0).queueIndex,
         )
         assertEquals(
             -1,
             mapPlaybackState(
-                Player.STATE_READY, true, true, 0, 1000, false,
+                Player.STATE_READY, true, true, 0, 1000, null,
                 queue = queue,
                 queueIndex = 5,
             ).queueIndex,
@@ -222,6 +222,6 @@ class PlaybackStateTest {
     }
 
     private fun repeatModeOf(repeatMode: Int) =
-        mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, false, repeatMode = repeatMode)
+        mapPlaybackState(Player.STATE_READY, true, true, 0, 1000, null, repeatMode = repeatMode)
             .repeatMode
 }

@@ -2,6 +2,8 @@ package com.keuney.music.core.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultDataSource
@@ -13,6 +15,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.C
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -61,6 +64,12 @@ class MusicService : MediaLibraryService() {
     /** 그 작업이 어느 곡을 위한 것인지. 이 값이 있고 작업도 있으면 그 곡은 이미 처리했다. */
     private var historyItemId: String? = null
 
+    /** 끊긴 재생을 연결이 돌아왔을 때 이어 붙일지 정하는 규칙. */
+    private val recovery = NetworkRecovery()
+
+    /** 등록에 성공한 연결 감시. onDestroy에서 풀어야 하므로 들고 있는다. */
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
     override fun onCreate() {
         super.onCreate()
         val servicePlayer = ExoPlayer.Builder(this)
@@ -104,14 +113,47 @@ class MusicService : MediaLibraryService() {
         serviceScope.launch {
             settings.repeatMode.collectLatest { servicePlayer.repeatMode = it.toPlayerRepeatMode() }
         }
-        // 기록은 재생을 소유한 이곳에서 남긴다. 화면이 닫혀도 배경 재생은 이어지기 때문이다.
+        // 기록과 회복은 재생을 소유한 이곳에서 한다. 화면이 닫혀도 배경 재생은 이어지기 때문이다.
         servicePlayer.addListener(
             object : Player.Listener {
                 override fun onEvents(player: Player, events: Player.Events) {
                     scheduleHistory(player)
                 }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    // 멈춘 순간의 뜻을 여기서 남긴다. 나중에 보면 사용자가 그 뒤에 멈춘 것인지
+                    // 오류로 멈춘 것인지 갈라낼 수 없다.
+                    recovery.onError(playbackFailureOf(error.errorCode), servicePlayer.playWhenReady)
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_READY) recovery.onReady()
+                }
             },
         )
+        registerNetworkCallback(servicePlayer)
+    }
+
+    /**
+     * 연결이 돌아오면 끊겨서 멈춘 재생을 이어 붙인다.
+     *
+     * 시간을 두고 되풀이해 보지 않고 연결이 돌아왔다는 사실을 기다린다. 끊긴 동안의 재시도는
+     * 어차피 실패하고, 얼마 만에 돌아올지는 알 수 없다.
+     *
+     * 다시 [ExoPlayer.prepare]하면 멈춘 자리부터 준비하고, 듣던 중이었으므로 그대로 이어진다.
+     * 무엇을 이어 붙일지는 [NetworkRecovery]가 정한다.
+     */
+    private fun registerNetworkCallback(player: ExoPlayer) {
+        val manager = getSystemService(ConnectivityManager::class.java) ?: return
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                // 콜백은 다른 스레드로 온다. 플레이어는 만든 스레드에서만 만진다.
+                serviceScope.launch { if (recovery.onNetworkAvailable()) player.prepare() }
+            }
+        }
+        // 감시를 걸지 못해도 재생은 되어야 한다. 자동 회복만 없는 상태로 남는다.
+        runCatching { manager.registerDefaultNetworkCallback(callback) }
+            .onSuccess { networkCallback = callback }
     }
 
     /**
@@ -203,6 +245,12 @@ class MusicService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
     override fun onDestroy() {
+        networkCallback?.let { callback ->
+            runCatching {
+                getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(callback)
+            }
+        }
+        networkCallback = null
         historyJob?.cancel()
         serviceScope.cancel()
         player?.release()

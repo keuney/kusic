@@ -14,17 +14,19 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 ---
 
-## 재개 지점 (2026-09-03 기준)
+## 재개 지점 (2026-09-04 기준)
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 61 / 미착수 16. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 16에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 62 / 미착수 15. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 15에는 최종 게이트 KM-200이 포함된다.
 
 **M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116).**
 
-**다음 작업: KM-130 (Bluetooth controls).** M8 Stability & Device Behavior의 첫 작업이다. M8에서 KM-134(스트리밍 캐시)와 KM-137(네트워크 사용 정책)은 이미 완료했으므로 남은 것은 KM-130·131·132·133·135·136이다.
+**다음 작업: KM-133 (Activity/process lifecycle regression).** M8에서 KM-134·137은 앞당겨 완료했고 KM-132도 끝났으므로 남은 것은 KM-130·131·133·135·136이다.
 
-**KM-130 착수 전에 알아야 할 것:** AGENTS.md 20이 Bluetooth 조작을 에뮬레이터 통과만으로 완료 처리하지 말라고 한다. 실제 블루투스 기기(이어폰·스피커)가 필요하며 지금 검증 환경에 그런 기기가 있는지 모른다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 이 작업의 핵심이다. 기기가 없으면 AGENTS.md 20대로 구현 완료 여부와 남은 실기기 검증을 나누어 보고해야 한다. 사용자에게 블루투스 기기 사용 가능 여부를 먼저 물어보는 것이 좋다.
+**KM-130·131을 건너뛴 이유:** 사용자에게 물었고 실제 블루투스 기기가 없다는 답을 받았다(2026-09-04). AGENTS.md 20이 Bluetooth 조작과 headset disconnect를 에뮬레이터 통과만으로 완료 처리하지 말라고 하므로 기기가 생길 때까지 미룬다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 그 작업들의 핵심이다.
+
+**KM-132에서 정한 것:** 재생 실패는 `PlaybackFailure`로 네트워크와 소스를 가른다. 화면 문구와 자동 회복 여부가 이 값 하나를 본다. 연결이 돌아오면 서비스가 이어 붙이되 사용자가 멈춰 둔 재생은 되살리지 않는다.
 
 **KM-116에서 정한 것:** 요약 화면의 곡 구획은 다섯 개까지만 보여주고 전체는 `library-section/{section}` 목적지에서 본다. 목록 정리(즐겨찾기 해제)는 전체 목록 화면에서만 한다. 요약 화면의 줄에는 조작 버튼을 두지 않는다.
 
@@ -1575,7 +1577,20 @@ accidental speaker playback 방지
 
 KM-132 — Network reconnect
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-04): 끊김을 견디는 부분은 이미 있었고, 멈춘 뒤에 무엇이 잘못됐는지 알리고 연결이 돌아오면 이어 붙이는 부분을 더했다.
+
+- 인수 조건: temporary loss PASS(버퍼로 이어짐, 기기 확인). reconnect PASS(연결 감시로 이어 붙임). reasonable recovery or clear failure PASS(네트워크/소스 문구를 나누고 자동 회복 + 다시 시도 버튼).
+- 짧은 끊김은 ExoPlayer가 스스로 다시 읽어 보고 그 사이 버퍼로 이어진다. 여기에는 손대지 않았다.
+- 상태에 PlaybackFailure(Network/Source)를 실어 문구를 갈랐다. 연결 실패·시간 초과만 네트워크로 본다. 분류하지 못한 입출력 오류는 연결이 돌아와도 같은 실패를 되풀이하므로 네트워크로 보지 않는다.
+- TrackStreamResolver가 해석 실패를 DataSourceException의 오류 코드로 바꿔 던진다. 이전에는 연결이 끊겨서 주소를 못 푼 것과 곡 자체를 못 가져오는 것이 같은 IOException이었다.
+- 회복은 ConnectivityManager 기본 연결 감시로 한다. 네트워크 때문에 멈췄고 그때 듣던 중이던 재생만 되살리며, 자동 시도는 연속 3회까지다(NetworkRecovery). 사용자가 멈춰 둔 재생은 되살리지 않는다.
+- ACCESS_NETWORK_STATE를 manifest에 선언했다. 지금까지 요금제 확인은 의존성이 병합해 준 권한으로 동작하고 있었다.
+- 단위 10개 추가. 연결을 끊었다 붙이는 일은 계측에서 만들 수 없어 규칙만 단위로 고정하고 실제 동작은 기기에서 확인했다.
+- 실기기 SM-T220 / Android 14: 재생 중 WiFi를 끄면 버퍼로 이어지고, 버퍼 밖으로 옮기면 네트워크 문구와 "다시 시도"가 나오며, WiFi를 켜면 화면을 건드리지 않아도 20초 만에 이어서 재생됐다. 오프라인에서 새 곡을 고르는 경로도 같았다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 16초). 단위 171개·실제 계약 7개·실기기 계측 45개. 린트 오류 0.
+- 결정은 ADR-063에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 

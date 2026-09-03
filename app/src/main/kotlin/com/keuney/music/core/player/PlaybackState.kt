@@ -45,6 +45,8 @@ internal data class PlaybackState(
     val queue: List<NowPlaying> = emptyList(),
     /** [queue]에서 현재 곡의 자리. 대기열이 비어 있으면 -1이다. */
     val queueIndex: Int = -1,
+    /** 재생이 멈춘 이유. 멈추지 않았으면 null이다. 문구와 회복 판단이 이 값 하나를 본다. */
+    val failure: PlaybackFailure? = null,
 ) {
     // 재생과 준비는 phase 하나로 정하고 여기서는 이름만 붙인다. 같은 사실을 두 곳에 두지 않는다.
     val isPlaying: Boolean get() = phase == PlaybackPhase.Playing
@@ -66,7 +68,7 @@ internal fun mapPlaybackState(
     playWhenReady: Boolean,
     positionMs: Long,
     durationMs: Long,
-    hasError: Boolean,
+    failure: PlaybackFailure?,
     nowPlaying: NowPlaying? = null,
     repeatMode: Int = Player.REPEAT_MODE_OFF,
     shuffleEnabled: Boolean = false,
@@ -76,7 +78,7 @@ internal fun mapPlaybackState(
     queueIndex: Int = -1,
 ): PlaybackState {
     val phase = when {
-        hasError -> PlaybackPhase.Unavailable
+        failure != null -> PlaybackPhase.Unavailable
         playerState == Player.STATE_BUFFERING -> PlaybackPhase.Buffering
         playerState == Player.STATE_ENDED -> PlaybackPhase.Ended
         isPlaying -> PlaybackPhase.Playing
@@ -97,6 +99,7 @@ internal fun mapPlaybackState(
         queue = queue,
         // 대기열 밖을 가리키는 자리는 없는 것으로 본다.
         queueIndex = queueIndex.takeIf { it in queue.indices } ?: -1,
+        failure = failure,
     )
 }
 
