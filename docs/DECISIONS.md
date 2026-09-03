@@ -265,6 +265,15 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-043 — SearchViewModel 분리 (KM-071)
+
+- 검색을 `PlayerViewModel`에서 떼어 `feature/search/SearchViewModel`로 옮겼다. 상태 이름을 TASKS의 정의에 맞춰 Idle/Loading/Success/Empty/Error로 바꿨다. 상태는 `StateFlow`로만 노출하고 화면은 읽기만 한다(AGENTS.md 11).
+- 분리의 실익은 검사 가능성이다. `PlayerViewModel`은 `PlayerConnection`을 통해 Android `Handler`/`Looper`에 묶여 있어 ViewModel 검사를 전부 계측으로 돌려야 했다. 검색만 떼면 재생 의존성이 사라져 일반 단위 검사로 확인할 수 있다. 실행이 빠르고 기기 없이도 돈다.
+- 이를 위해 `kotlinx-coroutines-test`를 테스트 전용 의존성으로 추가했다. `viewModelScope`가 `Dispatchers.Main`을 쓰므로 검사에서 이를 대체해야 한다. coroutines와 같은 버전을 쓰며 앱 산출물에는 들어가지 않는다.
+- 새 검색은 이전 검색을 취소한다. 취소하지 않으면 늦게 도착한 이전 결과가 새 결과를 덮어쓴다. 이 동작을 단위 검사로 고정했다.
+- 검색 상태 전이 검사를 계측에서 일반 단위로 옮겼다. 계측에는 실제 검색 → 선택 → 재생 → Home 유지의 end-to-end 하나만 남긴다. 같은 것을 두 곳에서 검사하지 않는다.
+- 화면은 아직 POC 하나이며 두 ViewModel을 함께 받는다. 검색 화면 분리와 결과 목록 추출은 KM-072·KM-073 범위다.
+
 ### ADR-042 — SearchRepository 경계 (KM-070)
 
 - ARCHITECTURE 6의 `SearchRepository` 계약을 그대로 쓴다. 인터페이스는 `core/search`, 구현은 `data/repository`에 둔다(ARCHITECTURE 4의 트리).

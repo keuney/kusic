@@ -2,40 +2,22 @@ package com.keuney.music.feature.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.keuney.music.core.model.AppError
-import com.keuney.music.core.model.AppErrorException
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlayerConnection
 import com.keuney.music.core.settings.SettingsRepository
-import com.keuney.music.core.search.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-internal sealed interface SearchUiState {
-    data object Idle : SearchUiState
-    data object Searching : SearchUiState
-    data class Results(val tracks: List<Track>) : SearchUiState
-    data object Empty : SearchUiState
-    data class Failed(val error: AppError) : SearchUiState
-}
-
-/**
- * KM-058 수직 슬라이스. 검색은 MusicSource를 직접 호출하며 KM-070의 SearchRepository와
- * KM-071의 SearchViewModel이 이 자리를 대체한다.
- */
+/** 재생과 재생 관련 설정만 담당한다. 검색은 SearchViewModel이 맡는다. */
 @HiltViewModel
 internal class PlayerViewModel @Inject constructor(
     private val connection: PlayerConnection,
-    private val searchRepository: SearchRepository,
     private val settings: SettingsRepository,
     private val networkPolicy: NetworkPolicy,
 ) : ViewModel() {
@@ -56,38 +38,14 @@ internal class PlayerViewModel @Inject constructor(
         viewModelScope.launch { settings.setWifiOnlyPlayback(enabled) }
     }
 
-    private val mutableSearch = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
-    val searchState: StateFlow<SearchUiState> = mutableSearch.asStateFlow()
-    private var searchJob: Job? = null
-
     fun connect() = connection.connect()
     fun disconnect() = connection.disconnect()
     fun play() = connection.play()
     fun pause() = connection.pause()
     fun seekTo(positionMs: Long) = connection.seekTo(positionMs)
 
-    fun search(query: String) {
-        val trimmed = query.trim()
-        searchJob?.cancel()
-        if (trimmed.isEmpty()) {
-            mutableSearch.value = SearchUiState.Idle
-            return
-        }
-        mutableSearch.value = SearchUiState.Searching
-        searchJob = viewModelScope.launch {
-            val tracks = searchRepository.search(trimmed)
-            mutableSearch.value = tracks.fold(
-                onSuccess = { if (it.isEmpty()) SearchUiState.Empty else SearchUiState.Results(it) },
-                onFailure = { SearchUiState.Failed((it as? AppErrorException)?.error ?: AppError.Unknown) },
-            )
-        }
-    }
-
     /** 대기열에는 Track ID와 metadata만 전달한다. 스트림 주소는 서비스가 해석한다. */
     fun playTrack(track: Track) = connection.playTrack(track.id, track.title, track.artist)
 
-    override fun onCleared() {
-        searchJob?.cancel()
-        connection.disconnect()
-    }
+    override fun onCleared() = connection.disconnect()
 }

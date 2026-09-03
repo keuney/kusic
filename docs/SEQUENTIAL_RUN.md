@@ -359,3 +359,15 @@
 - 단위 6개 추가: 성공 결과 그대로 전달과 검색어 전달, 다섯 분류의 도메인 오류 매핑, 인프라 예외 매핑, 던져진 예외도 감싸기, 원문 메시지 비노출, 취소 전파.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 51초). 단위 64개·실제 계약 7개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19.
 - 결정 ADR-042. 신규 의존성 없음. SearchViewModel 분리는 KM-071, 화면 분리는 KM-072다. push는 하지 않았다.
+
+## KM-071 완료 — SearchViewModel 분리
+
+- 브랜치 `codex/KM-071-search-viewmodel`. 검색을 `PlayerViewModel`에서 떼어 `feature/search/SearchViewModel`로 옮겼다. 상태 이름을 TASKS 정의에 맞춰 Idle/Loading/Success/Empty/Error로 바꾸고 `StateFlow`로만 노출한다.
+- 분리의 실익은 검사 가능성이다. `PlayerViewModel`은 `PlayerConnection`을 통해 Android Handler/Looper에 묶여 있어 ViewModel 검사를 전부 계측으로 돌려야 했다. 검색만 떼면 재생 의존성이 사라져 일반 단위 검사로 확인할 수 있고 기기 없이 빠르게 돈다.
+- `kotlinx-coroutines-test`를 테스트 전용으로 추가했다. `viewModelScope`가 `Dispatchers.Main`을 쓰므로 검사에서 대체해야 한다. coroutines와 같은 버전이며 앱 산출물에는 들어가지 않는다. 오프라인 캐시에 없어 이 의존성 한 번은 네트워크로 받았다.
+- 단위 9개 추가: 초기 Idle, Loading을 거쳐 Success, 결과 없음은 Empty, 실패는 도메인 오류를 실은 Error, 예상 밖 실패는 Unknown, 빈 검색어는 repository 미호출, 검색어 trim, 늦게 도착한 이전 결과가 새 결과를 덮지 않음, clear로 Idle 복귀.
+- 마지막 항목이 실제 동작 결정이다. 새 검색이 이전 검색을 취소하지 않으면 늦게 온 이전 결과가 화면을 덮는다. 취소를 넣고 검사로 고정했다.
+- 검색 상태 전이 검사를 계측에서 단위로 옮겼다. 계측에는 실제 검색 → 선택 → 재생 → Home 유지 end-to-end 하나만 남겼다. 같은 것을 두 곳에서 검사하지 않는다. 계측 29개 → 26개.
+- 화면은 아직 POC 하나이며 두 ViewModel을 함께 받는다. MainActivity가 둘 다 만들어 전달한다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(6분 20초). 단위 73개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 19.
+- 결정 ADR-043. 검색 화면 분리는 KM-072, 결과 목록 추출은 KM-073이다. push는 하지 않았다.

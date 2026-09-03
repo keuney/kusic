@@ -32,12 +32,14 @@ import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
+import com.keuney.music.feature.search.SearchUiState
+import com.keuney.music.feature.search.SearchViewModel
 
 @Composable
-internal fun TestPlaybackScreen(viewModel: PlayerViewModel) {
+internal fun TestPlaybackScreen(viewModel: PlayerViewModel, searchViewModel: SearchViewModel) {
     val connection by viewModel.connectionState.collectAsStateWithLifecycle()
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
-    val search by viewModel.searchState.collectAsStateWithLifecycle()
+    val search by searchViewModel.state.collectAsStateWithLifecycle()
     val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
     val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
@@ -109,7 +111,7 @@ internal fun TestPlaybackScreen(viewModel: PlayerViewModel) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(onClick = { viewModel.search(query) }, enabled = query.isNotBlank()) {
+        Button(onClick = { searchViewModel.search(query) }, enabled = query.isNotBlank()) {
             Text(stringResource(R.string.search_action))
         }
         SearchResults(
@@ -130,10 +132,10 @@ private fun SearchResults(
 ) {
     when (state) {
         SearchUiState.Idle -> Column(modifier) {}
-        SearchUiState.Searching -> Text(stringResource(R.string.search_searching), modifier = modifier)
+        SearchUiState.Loading -> Text(stringResource(R.string.search_searching), modifier = modifier)
         SearchUiState.Empty -> Text(stringResource(R.string.search_empty), modifier = modifier)
-        is SearchUiState.Failed -> Text(stringResource(state.error.messageRes()), modifier = modifier)
-        is SearchUiState.Results -> LazyColumn(
+        is SearchUiState.Error -> Text(stringResource(state.error.messageRes()), modifier = modifier)
+        is SearchUiState.Success -> LazyColumn(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {

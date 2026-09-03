@@ -1,20 +1,18 @@
-package com.keuney.music.feature.player
+package com.keuney.music.feature.search
 
 import android.content.Intent
 import android.view.KeyEvent
 import androidx.test.platform.app.InstrumentationRegistry
 import com.keuney.music.MainActivity
-import com.keuney.music.core.model.AppError
-import com.keuney.music.core.model.AppErrorException
-import com.keuney.music.core.model.SourceType
-import com.keuney.music.core.model.Track
 import com.keuney.music.core.player.ConnectionState
-import com.keuney.music.core.player.PlaybackPhase
+import com.keuney.music.core.player.MusicService
 import com.keuney.music.core.player.NetworkPolicy
+import com.keuney.music.core.player.PlaybackPhase
 import com.keuney.music.core.player.PlayerConnection
+import com.keuney.music.core.search.SearchRepository
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.core.settings.ThemePreference
-import com.keuney.music.core.search.SearchRepository
+import com.keuney.music.feature.player.PlayerViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import javax.inject.Inject
@@ -30,8 +28,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * KM-058 인수 조건: query 입력 → results 표시 → result 선택 → playback 시작 → Home 후 유지.
- * 마지막 검사는 기기의 실제 네트워크와 공급자 응답에 의존한다.
+ * KM-058 인수 조건의 기기 검증: 실제 검색 → 결과 선택 → 재생 → Home 후 유지.
+ * 검색 상태 전이 자체는 SearchViewModelTest가 일반 단위 검사로 다룬다.
  */
 @HiltAndroidTest
 class SearchToPlayTest {
@@ -42,45 +40,6 @@ class SearchToPlayTest {
     lateinit var searchRepository: SearchRepository
 
     @Test
-    fun searchStateMovesFromSearchingToResults(): Unit = runBlocking {
-        val viewModel = viewModelWith(FakeSource(Result.success(listOf(track("a"), track("b")))))
-
-        assertEquals(SearchUiState.Idle, viewModel.searchState.value)
-        viewModel.search("아이유")
-        val results = withTimeout(5_000) {
-            viewModel.searchState.first { it is SearchUiState.Results } as SearchUiState.Results
-        }
-
-        assertEquals(listOf("a", "b"), results.tracks.map(Track::id))
-    }
-
-    @Test
-    fun emptyResultsAndFailuresAreShownWithoutRawErrors(): Unit = runBlocking {
-        val empty = viewModelWith(FakeSource(Result.success(emptyList())))
-        empty.search("결과 없는 검색어")
-        assertEquals(SearchUiState.Empty, withTimeout(5_000) { empty.searchState.first { it != SearchUiState.Searching && it != SearchUiState.Idle } })
-
-        val failing = viewModelWith(FakeSource(Result.failure(AppErrorException(AppError.Network))))
-        failing.search("실패하는 검색어")
-        val failed = withTimeout(5_000) {
-            failing.searchState.first { it != SearchUiState.Searching && it != SearchUiState.Idle }
-        }
-        assertTrue("실패 상태가 아님: $failed", failed is SearchUiState.Failed)
-        assertEquals(AppError.Network, (failed as SearchUiState.Failed).error)
-    }
-
-    @Test
-    fun blankQueryReturnsToIdleWithoutCallingTheSource(): Unit = runBlocking {
-        val fake = FakeSource(Result.success(listOf(track("a"))))
-        val viewModel = viewModelWith(fake)
-
-        viewModel.search("   ")
-
-        assertEquals(SearchUiState.Idle, viewModel.searchState.value)
-        assertEquals(0, fake.calls)
-    }
-
-    @Test
     fun realQueryResultStartsPlaybackAndKeepsPlayingAfterHome(): Unit = runBlocking {
         hilt.inject()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -89,18 +48,19 @@ class SearchToPlayTest {
             Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
         val connection = PlayerConnection(context)
-        val viewModel = PlayerViewModel(connection, searchRepository, FakeSettings(), NetworkPolicy(FakeSettings()) { false })
+        val player = PlayerViewModel(connection, FakeSettings(), NetworkPolicy(FakeSettings()) { false })
+        val search = SearchViewModel(searchRepository)
         try {
             instrumentation.runOnMainSync { connection.connect() }
             withTimeout(10_000) { connection.state.first { it == ConnectionState.Connected } }
 
-            viewModel.search(QUERY)
+            search.search(QUERY)
             val results = withTimeout(30_000) {
-                viewModel.searchState.first { it is SearchUiState.Results } as SearchUiState.Results
+                search.state.first { it is SearchUiState.Success } as SearchUiState.Success
             }
             assertTrue("검색 결과가 비어 있음", results.tracks.isNotEmpty())
 
-            instrumentation.runOnMainSync { viewModel.playTrack(results.tracks.first()) }
+            instrumentation.runOnMainSync { player.playTrack(results.tracks.first()) }
             withTimeout(40_000) {
                 connection.playback.first { it.phase == PlaybackPhase.Playing && it.positionMs > 1_000 }
             }
@@ -119,7 +79,7 @@ class SearchToPlayTest {
             // 서비스 대기열은 다른 계측 테스트와 공유하므로 내장 테스트 음원으로 되돌린다.
             instrumentation.runOnMainSync {
                 connection.pause()
-                connection.playTrack(TEST_TONE_MEDIA_ID, "테스트 오디오", "Keuney Music")
+                connection.playTrack(MusicService.TEST_TONE_MEDIA_ID, "테스트 오디오", "Keuney Music")
             }
             runCatching { withTimeout(10_000) { connection.playback.first { it.durationMs > 100_000 } } }
             instrumentation.runOnMainSync {
@@ -130,13 +90,6 @@ class SearchToPlayTest {
         }
     }
 
-    private fun viewModelWith(fake: SearchRepository) = PlayerViewModel(
-        PlayerConnection(InstrumentationRegistry.getInstrumentation().targetContext),
-        fake,
-        FakeSettings(),
-        NetworkPolicy(FakeSettings()) { false },
-    )
-
     private class FakeSettings : SettingsRepository {
         override val theme: Flow<ThemePreference> = MutableStateFlow(ThemePreference.System)
         override suspend fun setTheme(theme: ThemePreference) = Unit
@@ -144,20 +97,7 @@ class SearchToPlayTest {
         override suspend fun setWifiOnlyPlayback(enabled: Boolean) = Unit
     }
 
-    private fun track(id: String) = Track(id, "제목 $id", "아티스트", null, 180_000, SourceType.Remote)
-
-    private class FakeSource(private val result: Result<List<Track>>) : SearchRepository {
-        var calls = 0
-            private set
-
-        override suspend fun search(query: String): Result<List<Track>> {
-            calls++
-            return result
-        }
-    }
-
     private companion object {
         const val QUERY = "아이유"
-        const val TEST_TONE_MEDIA_ID = "known-test-tone"
     }
 }

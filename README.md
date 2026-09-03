@@ -98,7 +98,7 @@ SDK가 준비되어 있지 않다면 Android SDK Manager로 `platforms;android-3
 .\gradlew.bat assembleRelease
 ```
 
-KM-070 검증에서 단위 64개·실제 계약 7개·실기기 계측 29개와 lint·assembleDebug·assembleRelease가 모두 통과했다(종료 코드 0). 린트는 오류 0개·경고 19개이며 경고를 억제하지 않았다. 작업별 추가 검증과 한계는 순차 구현 기록을 참고한다.
+KM-071 검증에서 단위 73개·실제 계약 7개·실기기 계측 26개와 lint·assembleDebug·assembleRelease가 모두 통과했다(종료 코드 0). 린트는 오류 0개·경고 19개이며 경고를 억제하지 않았다. 작업별 추가 검증과 한계는 순차 구현 기록을 참고한다.
 
 이전 빌드의 메타스페이스 부족을 해결하기 위해 프로젝트 JVM 힙·메타스페이스 한도를 각각 1GB로 설정했다(ADR-012).
 

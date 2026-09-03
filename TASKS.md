@@ -983,7 +983,16 @@ unit tests
 
 KM-071 — SearchViewModel
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): 검색을 PlayerViewModel에서 떼어 feature/search/SearchViewModel로 옮기고 상태 이름을 사양대로 맞췄다.
+
+- 인수 조건: SearchUiState 다섯 상태 PASS(Idle/Loading/Success/Empty/Error), StateFlow PASS(읽기 전용 노출), unit tests PASS(9개 추가).
+- 분리의 실익은 검사 가능성이다. PlayerViewModel은 PlayerConnection을 통해 Handler/Looper에 묶여 ViewModel 검사를 전부 계측으로 돌려야 했다. 검색만 떼니 일반 단위 검사로 확인된다.
+- 새 검색은 이전 검색을 취소한다. 늦게 도착한 이전 결과가 새 결과를 덮어쓰지 않는 것을 단위 검사로 고정했다.
+- 검색 상태 검사를 계측에서 단위로 옮기고, 계측에는 실제 검색 → 선택 → 재생 → Home 유지 end-to-end 하나만 남겼다. 계측 29개 → 26개.
+- 신규 테스트 의존성 kotlinx-coroutines-test(앱 산출물 미포함). `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(6분 20초). 단위 73개·실제 계약 7개·실기기 계측 26개.
+- 결정은 ADR-043에 기록했다. 검색 화면 분리는 KM-072, 결과 목록 추출은 KM-073이다.
 
 Goal:
 
