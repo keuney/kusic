@@ -881,7 +881,16 @@ infinite retry 없음
 
 KM-062 — Network timeout policy
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-02): 대기 상한을 NetworkTimeouts 한곳에 모으고 메타데이터 요청과 재생 요청으로 나눠 적용했다. 취소는 상한과 무관하게 즉시 존중한다.
+
+- 인수 조건: connect/read/request timeout PASS(메타데이터 10/20/30초, 재생 10/20초), coroutine cancellation honored PASS(검색·주소 해석 모두 CancellationException을 전파하며 취소된 요청은 상한을 기다리지 않는다).
+- 재생 쪽 바이트 대기를 media3 기본 8초에서 20초로 늘렸다. KM-059·KM-060 검증에서 공급자가 전송을 늦게 시작하는 것을 실제로 관찰했고, 기본값이면 그런 곡이 곧바로 끊긴다.
+- 상한을 넘긴 실패는 KM-061의 재해석·1회 재시도로 이어지고 그래도 실패하면 Network 오류로 표시된다.
+- 단위 검사 5개 추가. 검사에서만 짧은 값을 주입해 실제 동작을 빠르게 확인하며, 상한을 그대로 기다리는 느린 검사를 만들지 않았다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 2초). 단위 58개·실제 계약 5개·실기기 계측 29개.
+- 결정은 ADR-040에 기록했다. 신규 의존성 없음.
 
 Goal:
 

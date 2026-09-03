@@ -16,6 +16,7 @@ import androidx.media3.common.MediaMetadata
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.keuney.music.R
+import com.keuney.music.data.network.NetworkTimeouts
 import com.keuney.music.MainActivity
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -103,7 +104,10 @@ class MusicService : MediaLibraryService() {
     private fun resolvingDataSourceFactory() = ResolvingDataSource.Factory(
         DefaultDataSource.Factory(
             this,
-            DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true),
+            DefaultHttpDataSource.Factory()
+                .setAllowCrossProtocolRedirects(true)
+                .setConnectTimeoutMs(NetworkTimeouts.CONNECT_MS)
+                .setReadTimeoutMs(NetworkTimeouts.PLAYBACK_READ_MS),
         ),
         trackStreamResolver,
     )

@@ -325,3 +325,14 @@
 - 계측 5개 추가: 열기 실패 후 재해석, 읽기 실패 후 이어받기와 내용 일치, 열기 두 번째 실패의 종점 처리, 읽기 두 번째 실패의 종점 처리, 정상 스트림은 다시 열지 않음. 네트워크 없이 상위 소스를 흉내 내 결정적으로 검사한다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(4분 53초). 단위 53개·실제 계약 5개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19.
 - 결정 ADR-039. 신규 의존성 없음. 한계: 실제 만료 시각까지 기다리는 장시간 재생은 검증하지 않았고 KM-136의 30분 연속 재생 검사 대상이다. 타임아웃 값 정책은 KM-062다. push는 하지 않았다.
+
+## KM-062 완료 — 네트워크 대기와 취소 정책
+
+- 브랜치 `codex/KM-062-timeout-policy`. 흩어져 있던 대기 값을 `data/network/NetworkTimeouts`로 모으고 요청 성격에 따라 나눴다. 메타데이터 요청은 연결 10초·바이트 대기 20초·요청 전체 30초, 재생 요청은 연결 10초·바이트 대기 20초다.
+- 재생 쪽 바이트 대기를 media3 기본 8초에서 20초로 늘렸다. KM-059·KM-060 검증에서 공급자가 전송을 늦게 시작해 SocketTimeoutException이 나는 것을 실제로 관찰했고, 기본값이면 그런 곡은 곧바로 끊긴다. 다만 무한정 늘리지는 않는다. 스로틀링으로 전송이 사실상 멈춘 경우까지 기다리면 사용자는 멈춘 화면을 보게 된다.
+- 상한을 넘긴 실패는 KM-061의 재해석·1회 재시도로 이어지고, 그래도 실패하면 KM-060의 Network 오류로 표시된다. 세 작업이 한 경로로 이어진다.
+- 취소는 상한과 무관하게 즉시 존중한다. 검색과 주소 해석 모두 `CancellationException`을 실패 값으로 삼키지 않고 전파하며, 취소된 요청이 30초 상한을 기다리지 않는 것을 검사로 확인했다.
+- 검사를 위해 `createMusicHttpClient`가 대기 값을 인자로 받게 했다. 기본값은 정책 그대로이고 검사에서만 짧은 값을 넣는다. 상한을 실제로 기다리는 느린 검사를 만들지 않았다.
+- 단위 검사 5개 추가: 기본값이 정책과 일치, 값 사이의 대소 관계, 상한 초과 시 Network 오류, 상한 안의 응답 성공, 취소 시 즉시 중단.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --offline --continue --no-daemon --console=plain`: PASS, 종료 코드 0(5분 2초). 단위 58개·실제 계약 5개·실기기 계측 29개, 실패/오류 0. 린트 오류 0·경고 19. Gate 판정은 해석 10/10, 중간 구간 10/10(공급자 거부 0, 전송 지연 0).
+- 결정 ADR-040. 신규 의존성 없음. 한계: 늘린 재생 대기 값이 실제 스로틀링 상황에서 충분한지는 KM-136의 30분 연속 재생에서 다시 본다. push는 하지 않았다.
