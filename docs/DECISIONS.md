@@ -265,6 +265,17 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-045 — 검색 결과 목록과 이미지 로딩 (KM-073)
+
+- 결과 항목을 `feature/search/SearchResultList`로 뺐다. 목록은 곡을 그리는 일만 하고 고른 항목을 `onSelect`로 넘긴다. 재생 여부는 목록이 판단하지 않는다.
+- 앨범 이미지 표시에 `io.coil-kt.coil3:coil-network-okhttp`를 추가했다. Coil 3은 네트워크 fetcher를 본체에서 떼어 별도 산출물로 옮겼기 때문에 `coil-compose`만으로는 `https` 이미지가 조용히 실패한다. 기존 `ui/components/Artwork`(Coil)가 쓰이지 않고 있었고 `Track.artworkUrl`은 이미 검색 mapper가 채우고 있었으므로, 이번 인수 조건의 artwork 표시를 위해 필요한 최소 추가다.
+- ktor 대신 okhttp 변형을 골랐다. OkHttp는 `ktor-client-okhttp`로 이미 classpath에 있어 실제로 늘어나는 것은 Coil의 얇은 fetcher뿐이다. ktor 변형을 쓰면 이미지 로딩이 앱의 `HttpClient` 구성과 얽히는데, 그 구성은 공급자 요청용 헤더와 대기 정책을 갖고 있어 이미지에 그대로 적용할 이유가 없다. Coil 버전과 같은 `coil` 버전 참조를 쓴다.
+- 별도 `ImageLoader` 등록 코드는 넣지 않았다. 산출물만 추가하면 Coil이 fetcher를 스스로 찾는다. 실기기에서 실제 섬네일이 그려지는 것을 확인해 판단했다.
+- 이미지는 장식으로 두고 `contentDescription`을 비웠다. 제목이 바로 옆에 있어 읽어 주면 같은 내용이 두 번 나온다. 접근성 전반 점검은 KM-154다.
+- 제목은 두 줄까지, 부제는 한 줄까지 그리고 넘치면 줄인다. 검색 결과 제목은 아주 길 수 있어 제한이 없으면 한 항목이 화면을 다 차지한다.
+- 부제 조립을 `trackSubtitle`로 떼어 단위 검사로 고정했다. 길이는 아는 경우에만 붙이고, 아티스트와 길이가 모두 없으면 빈 문자열이며 그때는 줄 자체를 그리지 않는다. 공급자가 둘 다 주지 않는 결과가 실제로 있다.
+- 이미지 로딩에는 WiFi 전용 설정(KM-137)을 적용하지 않는다. 그 설정은 재생 대역폭을 막는 것이고 섬네일은 재생이 아니다. 필요해지면 별도 작업으로 다룬다.
+
 ### ADR-044 — 검색 화면 분리 (KM-072)
 
 - 검색어 입력과 결과 표시를 `feature/search/SearchScreen`으로 옮겼다. `TestPlaybackScreen`에는 재생 제어만 남는다. 검색 화면은 `SearchViewModel`만 알고, 결과를 고른 뒤 무엇을 할지는 `onSelect` 콜백으로 밖에 맡긴다. 재생 의존성을 검색 화면에 들이지 않는다.

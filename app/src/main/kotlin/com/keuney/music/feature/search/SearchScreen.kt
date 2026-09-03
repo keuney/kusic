@@ -1,12 +1,8 @@
 package com.keuney.music.feature.search
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.keuney.music.R
 import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.Track
-import com.keuney.music.ui.format.formatDuration
 
 /**
  * 검색어 입력과 검색 결과만 담당한다. 재생 제어는 이 화면 밖에 있고, 결과를 고른 뒤 무엇을 할지는
@@ -93,28 +88,12 @@ private fun SearchResults(
             color = MaterialTheme.colorScheme.error,
             modifier = modifier,
         )
-        is SearchUiState.Success -> LazyColumn(
+        is SearchUiState.Success -> SearchResultList(
+            tracks = state.tracks,
+            selectEnabled = selectEnabled,
+            onSelect = onSelect,
             modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items(state.tracks, key = Track::id) { track ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = selectEnabled) { onSelect(track) }
-                        .padding(vertical = 8.dp),
-                ) {
-                    Text(track.title, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        listOfNotNull(
-                            track.artist.takeIf(String::isNotBlank),
-                            track.durationMs?.let(::formatDuration),
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        }
+        )
     }
 }
 

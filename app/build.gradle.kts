@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.serialization.json)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.runtime.compose)
 

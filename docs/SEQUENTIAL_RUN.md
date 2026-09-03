@@ -384,3 +384,15 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 38초). 단위 79개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 20(신규 파일에서 발생한 경고 없음).
 - 실기기 SM-T220 / Android 14에서 다섯 상태를 눈으로 확인했다. Idle(결과 없음), 입력 후 검색 버튼 → Loading(진행 표시와 "검색 중"), Success(제목·아티스트·길이 18:24/3:42/5:07), 검색어 삭제 → Idle 복귀와 버튼 비활성, 없는 검색어를 키보드 검색 키로 실행 → Empty("결과가 없습니다."), WiFi를 끈 뒤 검색 → Error(오류 색 "네트워크에 연결할 수 없습니다."). 확인 후 WiFi를 되돌려 연결을 확인했다. 화면 캡처는 captures/km-072에 보관했다(저장소 추적 대상 아님).
 - 결정 ADR-044. 신규 의존성 없음. 결과 목록 추출은 KM-073, 최근 검색어 저장은 KM-074다. push는 하지 않았다.
+
+## KM-073 완료 — SearchResultList
+
+- 브랜치 `codex/KM-073-search-result-list`. 결과 항목을 `feature/search/SearchResultList`로 빼고 앨범 이미지·제목·아티스트·아는 경우의 길이를 그린다. `SearchScreen`의 Success 분기는 이 목록을 부른다.
+- 함정: `coil-compose`만으로는 원격 이미지가 그려지지 않는다. Coil 3은 네트워크 fetcher를 별도 산출물로 옮겼고, 없으면 오류 없이 자리표시자만 남는다. `io.coil-kt.coil3:coil-network-okhttp`를 추가해 해결했다. OkHttp는 `ktor-client-okhttp`로 이미 classpath에 있어 실제 추가분은 Coil의 얇은 fetcher뿐이다. 별도 `ImageLoader` 등록 코드는 필요하지 않았다.
+- `Track.artworkUrl`은 이전부터 검색 mapper가 채우고 있었고 `ui/components/Artwork`도 이미 있었으나 화면에서 쓰이지 않았다. 이번에 연결했다.
+- 이미지는 56dp 정사각형으로 자르고 모서리를 둥글렸다. 섬네일은 16:9라 좌우가 잘린다. 목록에서는 이 편이 줄 높이가 일정하다.
+- 제목 두 줄, 부제 한 줄로 제한하고 넘치면 줄인다. 실제 결과에 아주 긴 제목이 있어 제한이 없으면 한 항목이 화면을 다 차지한다.
+- 부제 조립을 `trackSubtitle`로 떼어 단위 6개 추가: 아티스트와 길이 결합, 길이 없음, 아티스트 없음, 공백 아티스트를 없음으로 취급, 둘 다 없으면 빈 문자열, 한 시간 초과 길이.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 42초). 단위 85개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 21(신규 하나는 새 의존성 줄의 버전 안내이며 새 코드에서 발생한 경고는 없다).
+- 실기기 SM-T220 / Android 14에서 확인했다. "iu" 검색 결과에 실제 섬네일이 그려지고 제목·아티스트·길이(18:24, 3:42)가 나온다. 둘째 항목을 눌러 재생이 시작되는 것까지 확인했다(0:09 → 1:02, 3:41). 확인 후 일시정지하고, 검증 중 켜진 WiFi 전용 설정을 원래대로 껐다. 화면 캡처는 captures/km-073에 보관했다(저장소 추적 대상 아님).
+- 결정 ADR-045. 최근 검색어 저장은 KM-074다.

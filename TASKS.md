@@ -18,11 +18,11 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 43 / 미착수 34. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 34에는 최종 게이트 KM-200이 포함된다. 이전 재개 지점의 "완료 42 / 미착수 34"는 이 게이트를 빼고 센 값이었다.
+**현재: 완료 44 / 미착수 33. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 33에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-073 (SearchResultList).** 결과 항목을 컴포저블로 빼고 앨범 이미지·제목·아티스트·아는 경우의 길이를 보여준다. 현재 결과 목록은 `feature/search/SearchScreen` 안의 private `SearchResults`에 있고 제목·아티스트·길이만 문자열로 그린다. 이미지 표시에 쓸 `ui/components/Artwork`(Coil)는 이미 있다. 착수 전에 정해야 할 미결 사항은 없다.
+**다음 작업: KM-074 (Search history).** 최근 검색어를 로컬에 저장한다. 인수 조건은 성공한 검색 저장, 목록 지우기, 앱 재시작 후 유지다. 저장 수단은 이미 있는 DataStore(`data/settings/DataStoreSettingsRepository`)와 Room(`core/database`) 중에 정해야 한다. 검색어는 목록이고 개수 제한과 중복 제거가 필요하므로 착수 시 이 선택을 먼저 정리한다. 화면에서 목록을 어디에 놓을지도 KM-072의 배치 제약(한 화면) 안에서 정한다.
 
-**KM-072에서 정한 것:** 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀다. 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이며 사용자와 합의한 순서다.
+**M5 검색 진행 상황:** KM-070~073 완료. 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀으며, 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이다. 사용자와 합의한 순서다.
 
 **진행 방식(이 세션에서 사용자와 합의한 것):**
 
@@ -1075,7 +1075,17 @@ empty state
 
 KM-073 — SearchResultList
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 결과 항목을 feature/search/SearchResultList로 빼고 앨범 이미지를 붙였다.
+
+- Display: artwork PASS, title PASS(두 줄 제한), artist PASS, duration where known PASS(아는 경우에만 붙임).
+- coil-network-okhttp를 추가했다. Coil 3은 네트워크 fetcher가 별도 산출물이라 coil-compose만으로는 원격 이미지가 조용히 실패한다. OkHttp는 ktor-client-okhttp로 이미 classpath에 있다.
+- Track.artworkUrl과 ui/components/Artwork는 이전부터 있었으나 화면에서 쓰이지 않았다. 이번에 연결했다.
+- 부제 조립을 trackSubtitle로 떼어 단위 6개 추가. 아티스트와 길이가 모두 없으면 줄 자체를 그리지 않는다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 42초). 단위 85개·실제 계약 7개·실기기 계측 26개. 린트 오류 0.
+- 실기기 SM-T220 / Android 14에서 실제 섬네일과 제목·아티스트·길이(18:24, 3:42)를 확인하고, 항목 선택 후 재생 시작까지 확인했다.
+- 결정은 ADR-045에 기록했다. 최근 검색어 저장은 KM-074다.
 
 Goal:
 
