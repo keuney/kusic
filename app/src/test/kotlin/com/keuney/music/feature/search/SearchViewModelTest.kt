@@ -4,10 +4,13 @@ import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.AppErrorException
 import com.keuney.music.core.model.SourceType
 import com.keuney.music.core.model.Track
+import com.keuney.music.core.search.SearchHistoryRepository
 import com.keuney.music.core.search.SearchRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -81,7 +84,7 @@ class SearchViewModelTest {
     @Test
     fun blankQueriesReturnToIdleWithoutCallingTheRepository() = runTest(dispatcher) {
         val repository = RecordingRepository(Result.success(listOf(track("a"))))
-        val viewModel = SearchViewModel(repository)
+        val viewModel = SearchViewModel(repository, RecordingHistory())
 
         viewModel.search("   ")
         advanceUntilIdle()
@@ -93,7 +96,7 @@ class SearchViewModelTest {
     @Test
     fun theQueryIsTrimmedBeforeItReachesTheRepository() = runTest(dispatcher) {
         val repository = RecordingRepository(Result.success(emptyList()))
-        val viewModel = SearchViewModel(repository)
+        val viewModel = SearchViewModel(repository, RecordingHistory())
 
         viewModel.search("  아이유  ")
         advanceUntilIdle()
@@ -104,7 +107,7 @@ class SearchViewModelTest {
     @Test
     fun aLateResultFromAnEarlierSearchDoesNotOverwriteTheNewOne() = runTest(dispatcher) {
         val slow = SlowRepository()
-        val viewModel = SearchViewModel(slow)
+        val viewModel = SearchViewModel(slow, RecordingHistory())
 
         viewModel.search("느린 검색어")
         advanceUntilIdle()
@@ -129,7 +132,80 @@ class SearchViewModelTest {
         assertEquals(SearchUiState.Idle, viewModel.state.value)
     }
 
-    private fun viewModel(result: Result<List<Track>>) = SearchViewModel(RecordingRepository(result))
+    @Test
+    fun aSuccessfulSearchIsKeptInTheHistory() = runTest(dispatcher) {
+        val history = RecordingHistory()
+        val viewModel = SearchViewModel(RecordingRepository(Result.success(listOf(track("a")))), history)
+
+        viewModel.search("  아이유  ")
+        advanceUntilIdle()
+
+        // 저장하는 값은 화면 입력이 아니라 정리된 검색어다.
+        assertEquals(listOf("아이유"), history.recorded)
+    }
+
+    @Test
+    fun aSearchWithNoResultsIsStillKept() = runTest(dispatcher) {
+        val history = RecordingHistory()
+        val viewModel = SearchViewModel(RecordingRepository(Result.success(emptyList())), history)
+
+        viewModel.search("없는 검색어")
+        advanceUntilIdle()
+
+        assertEquals(SearchUiState.Empty, viewModel.state.value)
+        assertEquals(listOf("없는 검색어"), history.recorded)
+    }
+
+    @Test
+    fun aFailedSearchIsNotKept() = runTest(dispatcher) {
+        val history = RecordingHistory()
+        val viewModel = SearchViewModel(
+            RecordingRepository(Result.failure(AppErrorException(AppError.Network))),
+            history,
+        )
+
+        viewModel.search("아이유")
+        advanceUntilIdle()
+
+        assertEquals(SearchUiState.Error(AppError.Network), viewModel.state.value)
+        assertEquals(emptyList<String>(), history.recorded)
+    }
+
+    @Test
+    fun aBlankQueryIsNotKept() = runTest(dispatcher) {
+        val history = RecordingHistory()
+        val viewModel = SearchViewModel(RecordingRepository(Result.success(emptyList())), history)
+
+        viewModel.search("   ")
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), history.recorded)
+    }
+
+    @Test
+    fun theStoredQueriesAreExposedToTheScreen() = runTest(dispatcher) {
+        val history = RecordingHistory(listOf("뉴진스", "아이유"))
+        val viewModel = SearchViewModel(RecordingRepository(Result.success(emptyList())), history)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf("뉴진스", "아이유"), viewModel.recentQueries.value)
+    }
+
+    @Test
+    fun clearingTheHistoryReachesTheRepository() = runTest(dispatcher) {
+        val history = RecordingHistory(listOf("아이유"))
+        val viewModel = SearchViewModel(RecordingRepository(Result.success(emptyList())), history)
+
+        viewModel.clearRecentQueries()
+        advanceUntilIdle()
+
+        assertTrue(history.cleared)
+        assertEquals(emptyList<String>(), viewModel.recentQueries.value)
+    }
+
+    private fun viewModel(result: Result<List<Track>>) =
+        SearchViewModel(RecordingRepository(result), RecordingHistory())
 
     private fun track(id: String) = Track(id, "제목 $id", "아티스트", null, 180_000, SourceType.Remote)
 
@@ -139,6 +215,25 @@ class SearchViewModelTest {
         override suspend fun search(query: String): Result<List<Track>> {
             queries += query
             return result
+        }
+    }
+
+    private class RecordingHistory(stored: List<String> = emptyList()) : SearchHistoryRepository {
+        private val state = MutableStateFlow(stored)
+        val recorded = mutableListOf<String>()
+        var cleared = false
+            private set
+
+        override val queries: Flow<List<String>> = state
+
+        override suspend fun record(query: String) {
+            recorded += query
+            state.value = listOf(query) + state.value.filterNot { it == query }
+        }
+
+        override suspend fun clear() {
+            cleared = true
+            state.value = emptyList()
         }
     }
 

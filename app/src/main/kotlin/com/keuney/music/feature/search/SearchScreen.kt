@@ -2,11 +2,16 @@ package com.keuney.music.feature.search
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +42,7 @@ internal fun SearchScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val recentQueries by viewModel.recentQueries.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -55,12 +61,49 @@ internal fun SearchScreen(
         Button(onClick = { viewModel.search(query) }, enabled = query.isNotBlank()) {
             Text(stringResource(R.string.search_action))
         }
+        // 결과가 화면에 있을 때는 접는다. 한 화면에 검색과 재생이 함께 있어 자리가 넉넉하지 않다.
+        if (state == SearchUiState.Idle && recentQueries.isNotEmpty()) {
+            RecentQueries(
+                queries = recentQueries,
+                onSelect = {
+                    query = it
+                    viewModel.search(it)
+                },
+                onClear = viewModel::clearRecentQueries,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         SearchResults(
             state = state,
             selectEnabled = selectEnabled,
             onSelect = onSelect,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
+    }
+}
+
+/** 최근 검색어. 누르면 그 검색어로 다시 검색한다. */
+@Composable
+private fun RecentQueries(
+    queries: List<String>,
+    onSelect: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.search_history_title),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onClear) { Text(stringResource(R.string.search_history_clear)) }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(queries, key = { it }) { recent ->
+                SuggestionChip(onClick = { onSelect(recent) }, label = { Text(recent) })
+            }
+        }
     }
 }
 

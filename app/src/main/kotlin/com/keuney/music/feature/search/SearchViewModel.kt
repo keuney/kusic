@@ -5,13 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.keuney.music.core.model.AppError
 import com.keuney.music.core.model.AppErrorException
 import com.keuney.music.core.model.Track
+import com.keuney.music.core.search.SearchHistoryRepository
 import com.keuney.music.core.search.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** 검색 화면이 그릴 수 있는 상태의 전부다. */
@@ -30,9 +33,19 @@ internal sealed interface SearchUiState {
 @HiltViewModel
 internal class SearchViewModel @Inject constructor(
     private val repository: SearchRepository,
+    private val history: SearchHistoryRepository,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val state: StateFlow<SearchUiState> = mutableState.asStateFlow()
+
+    /**
+     * 최근 검색어. 최신이 먼저 온다.
+     *
+     * 구독이 붙기를 기다리지 않고 바로 읽는다. 상류는 값이 바뀔 때만 흐르는 DataStore 한 키라
+     * 계속 구독해도 비용이 없고, 화면이 열리는 순간 이미 목록이 있어야 한다.
+     */
+    val recentQueries: StateFlow<List<String>> = history.queries
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var searchJob: Job? = null
 
@@ -46,11 +59,24 @@ internal class SearchViewModel @Inject constructor(
         }
         mutableState.value = SearchUiState.Loading
         searchJob = viewModelScope.launch {
-            mutableState.value = repository.search(trimmed).fold(
+            val result = repository.search(trimmed)
+            mutableState.value = result.fold(
                 onSuccess = { if (it.isEmpty()) SearchUiState.Empty else SearchUiState.Success(it) },
                 onFailure = { SearchUiState.Error((it as? AppErrorException)?.error ?: AppError.Unknown) },
             )
+            // 오류 없이 끝난 검색만 남긴다. 결과가 없어도 검색 자체는 성공한 것이다.
+            // 저장은 검색 작업과 분리한다. 사용자가 곧바로 다음 검색을 시작해 이 작업이 취소되어도
+            // 이미 성공한 검색은 남아야 한다.
+            if (result.isSuccess) recordQuery(trimmed)
         }
+    }
+
+    private fun recordQuery(query: String) {
+        viewModelScope.launch { history.record(query) }
+    }
+
+    fun clearRecentQueries() {
+        viewModelScope.launch { history.clear() }
     }
 
     /** 검색어를 지웠을 때처럼 결과를 치우고 처음 상태로 되돌린다. */
@@ -62,4 +88,5 @@ internal class SearchViewModel @Inject constructor(
     override fun onCleared() {
         searchJob?.cancel()
     }
+
 }

@@ -396,3 +396,18 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 42초). 단위 85개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 21(신규 하나는 새 의존성 줄의 버전 안내이며 새 코드에서 발생한 경고는 없다).
 - 실기기 SM-T220 / Android 14에서 확인했다. "iu" 검색 결과에 실제 섬네일이 그려지고 제목·아티스트·길이(18:24, 3:42)가 나온다. 둘째 항목을 눌러 재생이 시작되는 것까지 확인했다(0:09 → 1:02, 3:41). 확인 후 일시정지하고, 검증 중 켜진 WiFi 전용 설정을 원래대로 껐다. 화면 캡처는 captures/km-073에 보관했다(저장소 추적 대상 아님).
 - 결정 ADR-045. 최근 검색어 저장은 KM-074다.
+
+## KM-074 완료 — Search history
+
+- 브랜치 `codex/KM-074-search-history`. 최근 검색어를 `core/search/SearchHistoryRepository` 뒤에 두고 구현은 설정 DataStore를 쓰는 `data/repository/SearchHistoryRepositoryImpl`에 뒀다. 화면은 저장 수단을 알지 못한다.
+- 저장 위치를 Room이 아니라 DataStore로 정했다. 짧은 문자열 목록이고 조회·정렬이 필요하지 않으며, Room을 쓰면 자리표시자 엔티티만 있는 스키마를 1에서 2로 올려야 한다. KM-110의 `SearchHistoryEntity`는 이 결정에 따라 필요하지 않으므로 KM-110 착수 시 다시 판단한다. 재개 지점에 남겼다.
+- Preferences에 순서를 지키는 목록 타입이 없어 JSON 배열 한 값으로 저장한다. 문자열 집합을 쓰면 최신 순서를 잃는다. 신규 의존성 없음.
+- 오류 없이 끝난 검색만 남긴다. 결과가 없는 검색도 성공한 검색이므로 남기고, 실패한 검색은 남기지 않는다. 저장 호출은 검색 작업과 분리해 사용자가 곧바로 다음 검색을 시작해도 이미 성공한 검색이 남게 했다.
+- 목록은 Idle일 때만 보여준다. 한 화면에 검색과 재생이 함께 있어 자리가 넉넉하지 않다. 검색어를 비우면 Idle로 돌아오므로 목록과 지우기 버튼에 언제든 닿는다.
+- 단위 15개 추가. 저장소 9개: 초기 빈 목록, 최신 우선, 같은 검색어 재검색 시 중복 없이 앞으로, trim과 빈 검색어 무시, 상한 10 초과 시 가장 오래된 것 제거, 지우기, 저장소 재개방 후 유지, 지우기의 재개방 후 유지, 깨진 값을 목록 없음으로 취급하고 그 위에 새로 남기기. ViewModel 6개: 성공 검색 저장(정리된 검색어), 결과 없는 검색도 저장, 실패 검색 미저장, 빈 검색어 미저장, 목록 노출, 지우기 위임.
+- 재개방 검사가 인수 조건의 앱 재시작 유지를 일반 단위 검사로 덮는다. 기존 테마 검사와 같은 방식이다.
+- `SearchViewModel` 생성자가 하나 늘어 계측 `SearchToPlayTest`도 함께 고쳤다. 이 계측 검사는 실제 검색을 성공시키므로 기기 최근 검색어에 그 검색어가 남는다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 59초). 단위 100개·실제 계약 7개·실기기 계측 26개, 실패/오류 0. 린트 오류 0·경고 21(새 코드에서 발생한 경고 없음).
+- 실기기 SM-T220 / Android 14에서 인수 조건 3개를 확인했다. "iu" 검색 후 검색어를 비우면 "최근 검색어"에 iu 칩이 나오고, "bts"를 더 검색하면 bts가 앞에 온다(x=43 대 x=127). 앱을 force-stop하고 다시 켜도 두 칩이 남는다. 칩을 누르면 그 검색어로 다시 검색된다. "지우기"를 누르면 목록이 사라지고 재시작 후에도 비어 있다. 화면 캡처와 UI 덤프는 captures/km-074에 보관했다(저장소 추적 대상 아님).
+- 함정: 기기 화면 타임아웃이 30초라 여러 단계를 이어 검증할 수 없었다. 검증 동안만 600000으로 올리고 끝난 뒤 30000으로 되돌렸다. 또한 검색 입력창에 포커스가 없는 상태에서 `input keyevent 66`을 보내면 그 키가 포커스를 가진 다른 위젯으로 가서 WiFi 전용 스위치가 켜지는 일이 있었다. 좌표는 매번 `uiautomator dump`로 확인하고, 검색 실행은 ENTER 대신 검색 버튼 좌표를 눌러 검증했다.
+- 결정 ADR-046. M5 검색 완료. 다음은 M6 Player UX의 KM-090이다.

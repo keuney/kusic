@@ -18,11 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 44 / 미착수 33. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 33에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 45 / 미착수 32. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 32에는 최종 게이트 KM-200이 포함된다.
 
-**다음 작업: KM-074 (Search history).** 최근 검색어를 로컬에 저장한다. 인수 조건은 성공한 검색 저장, 목록 지우기, 앱 재시작 후 유지다. 저장 수단은 이미 있는 DataStore(`data/settings/DataStoreSettingsRepository`)와 Room(`core/database`) 중에 정해야 한다. 검색어는 목록이고 개수 제한과 중복 제거가 필요하므로 착수 시 이 선택을 먼저 정리한다. 화면에서 목록을 어디에 놓을지도 KM-072의 배치 제약(한 화면) 안에서 정한다.
+**다음 작업: KM-090 (Player UI state adapter).** M5 검색이 끝나 M6 Player UX로 넘어간다. MediaController 상태를 PlayerUiState로 옮기며 인수 조건은 current Track·playing·buffering·duration·position·repeat·shuffle이다. 현재 `core/player/PlaybackState`가 phase·position·duration·playWhenReady까지는 이미 담고 있으나 현재 곡 메타데이터와 repeat·shuffle은 없다. 즉 이 작업의 실제 내용은 PlaybackState 확장과 그 매핑 검사다. 착수 전에 정해야 할 미결 사항은 없다.
 
-**M5 검색 진행 상황:** KM-070~073 완료. 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀으며, 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이다. 사용자와 합의한 순서다.
+**M5 검색 완료 (KM-070~074).** 검색과 재생이 여전히 한 화면에 함께 배치된다. 화면을 파일로만 나누고 배치는 그대로 뒀으며, 내비게이션으로 두 화면을 실제로 나누는 것은 KM-150(M9)이다. 사용자와 합의한 순서다.
+
+**KM-110 착수 시 다시 볼 것:** KM-110의 엔티티 목록에 `SearchHistoryEntity`가 있으나 KM-074에서 최근 검색어를 DataStore에 두기로 정했으므로(ADR-046) 필요하지 않다. 그 항목을 빼거나 검색어를 Room으로 옮기고 ADR-046을 대체할지 그때 판단한다.
 
 **진행 방식(이 세션에서 사용자와 합의한 것):**
 
@@ -1103,7 +1105,18 @@ duration where known
 
 KM-074 — Search history
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-03): 최근 검색어를 core/search/SearchHistoryRepository 뒤에 두고 설정 DataStore에 저장한다.
+
+- 인수 조건: successful search 저장 PASS, history clear PASS, app restart persistence PASS. 셋 다 실기기에서 확인했다.
+- 저장 위치는 Room이 아니라 DataStore다. 짧은 문자열 목록이고 조회·정렬이 필요하지 않으며, Room을 쓰면 자리표시자 엔티티만 있는 스키마를 1에서 2로 올려야 한다. Preferences에 순서를 지키는 목록 타입이 없어 JSON 배열 한 값으로 저장한다.
+- KM-110의 SearchHistoryEntity는 이 결정에 따라 필요하지 않다. KM-110 착수 시 다시 판단한다.
+- 오류 없이 끝난 검색만 남긴다. 결과가 없는 검색도 성공한 검색이므로 남기고 실패한 검색은 남기지 않는다. 상한 10, 같은 검색어는 중복 없이 앞으로 올라온다.
+- 목록은 Idle일 때만 보여준다. 한 화면에 검색과 재생이 함께 있어 자리가 넉넉하지 않다. 칩을 누르면 그 검색어로 다시 검색한다.
+- 단위 15개 추가(저장소 9·ViewModel 6). 저장소 재개방 검사가 앱 재시작 유지를 단위 검사로 덮는다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 59초). 단위 100개·실제 계약 7개·실기기 계측 26개. 린트 오류 0.
+- 결정은 ADR-046에 기록했다. 신규 의존성 없음. M5 검색 완료.
 
 Goal:
 

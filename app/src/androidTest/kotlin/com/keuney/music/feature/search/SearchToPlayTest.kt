@@ -9,6 +9,7 @@ import com.keuney.music.core.player.MusicService
 import com.keuney.music.core.player.NetworkPolicy
 import com.keuney.music.core.player.PlaybackPhase
 import com.keuney.music.core.player.PlayerConnection
+import com.keuney.music.core.search.SearchHistoryRepository
 import com.keuney.music.core.search.SearchRepository
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.core.settings.ThemePreference
@@ -39,6 +40,9 @@ class SearchToPlayTest {
     @Inject
     lateinit var searchRepository: SearchRepository
 
+    @Inject
+    lateinit var searchHistoryRepository: SearchHistoryRepository
+
     @Test
     fun realQueryResultStartsPlaybackAndKeepsPlayingAfterHome(): Unit = runBlocking {
         hilt.inject()
@@ -49,7 +53,7 @@ class SearchToPlayTest {
         )
         val connection = PlayerConnection(context)
         val player = PlayerViewModel(connection, FakeSettings(), NetworkPolicy(FakeSettings()) { false })
-        val search = SearchViewModel(searchRepository)
+        val search = SearchViewModel(searchRepository, searchHistoryRepository)
         try {
             instrumentation.runOnMainSync { connection.connect() }
             withTimeout(10_000) { connection.state.first { it == ConnectionState.Connected } }
