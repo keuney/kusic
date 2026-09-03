@@ -18,7 +18,7 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 43 / 미착수 34. 보류 없음. 작업 트리 깨끗하고 브랜치는 master 하나.** 상태 표시를 세어 확인한 값이며 미착수 34에는 최종 게이트 KM-200이 포함된다. 이전 재개 지점의 "완료 42 / 미착수 34"는 이 게이트를 빼고 센 값이었다.
+**현재: 완료 43 / 미착수 34. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 34에는 최종 게이트 KM-200이 포함된다. 이전 재개 지점의 "완료 42 / 미착수 34"는 이 게이트를 빼고 센 값이었다.
 
 **다음 작업: KM-073 (SearchResultList).** 결과 항목을 컴포저블로 빼고 앨범 이미지·제목·아티스트·아는 경우의 길이를 보여준다. 현재 결과 목록은 `feature/search/SearchScreen` 안의 private `SearchResults`에 있고 제목·아티스트·길이만 문자열로 그린다. 이미지 표시에 쓸 `ui/components/Artwork`(Coil)는 이미 있다. 착수 전에 정해야 할 미결 사항은 없다.
 
@@ -26,13 +26,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 **진행 방식(이 세션에서 사용자와 합의한 것):**
 
-- 작업마다 `codex/KM-xxx-설명` 브랜치를 따고, 검증 통과 후 master로 fast-forward 머지한 뒤 브랜치를 삭제한다.
+- 작업마다 `codex/KM-xxx-설명` 브랜치를 따고, 검증 통과 후 main으로 fast-forward 머지한 뒤 브랜치를 삭제한다.
 - 작업 완료 시 TASKS.md 상태·완료 기록, docs/DECISIONS.md의 ADR, docs/SEQUENTIAL_RUN.md 기록, 필요하면 README를 함께 갱신한다.
 - 필수 검증은 `test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`이며 종료 코드 0을 확인한다.
 
 **백로그 순서를 벗어난 작업:** KM-134(스트리밍 캐시)와 KM-137(네트워크 사용 정책)은 M8 소속이지만 progressive 전환의 대역폭 부담을 줄이기 위해 사용자 요청으로 앞당겨 완료했다. KM-137은 이 과정에서 새로 추가한 작업이다. KM-064(Provider B 평가)는 KM-059 Gate가 PASS라 활성화하지 않는다.
 
-**원격 저장소:** `origin`은 https://github.com/keuney/kusic.git 이며 브랜치가 하나도 없는 빈 저장소다. 지금까지 한 번도 push하지 않았다. push는 외부 공개에 해당하므로 사용자가 명시적으로 요청할 때만 한다. 로컬 브랜치 이름이 `master`이므로 첫 push 전에 `main`으로 바꿀지 정해야 한다.
+**원격 저장소:** `origin`은 https://github.com/keuney/kusic.git 이다. 2026-09-03 사용자 요청으로 첫 push를 했다. 그 전에 로컬 `master`를 `main`으로 바꿨으므로 본선은 `main`이고 upstream은 `origin/main`이다. push는 외부 공개에 해당하므로 이후에도 사용자가 명시적으로 요청할 때만 한다. push 전에 추적 파일에 키·토큰·자격증명이 없는지 확인했다.
 
 ---
 
