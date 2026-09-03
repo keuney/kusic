@@ -647,3 +647,17 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 9초). 단위 158개·실제 계약 7개·실기기 계측 45개, 실패/오류 0. 린트 오류 0·경고 22.
 - 실기기 확인 후 최근 재생을 지우고 일시정지했다. 화면 캡처는 captures/km-115에 보관했다(저장소 추적 대상 아님).
 - 결정 ADR-061. 신규 의존성 없음. 다음은 KM-116 Library screen이다.
+
+## KM-116 완료 — Library screen (M7 완료)
+
+- 브랜치 `codex/KM-116-library-screen`. 세 구획은 KM-112·113·115에서 이미 들어왔으므로 이 작업은 실제 사용에서 무너지는 지점을 고쳤다.
+- 곡 구획은 앞의 다섯 개만 보여주고 나머지는 "더 보기"로 넘긴다. 최근 재생은 50개까지 쌓이고 즐겨찾기는 제한이 없어 전부 쏟으면 재생목록 구획이 화면 밖으로 밀린다. 접는 방법도 있지만 접힌 구획은 찾아온 것을 감춘다.
+- 전체 목록은 목적지 `library-section/{section}` 하나가 구획 이름을 받아 그린다. 알 수 없는 이름이면 최근 재생을 보여준다.
+- 즐겨찾기 전체 목록에는 줄마다 해제 버튼을 뒀다. KM-112에서 남겨 둔 "목록에서 바로 해제"가 채워졌다. 요약 화면에는 두지 않는다.
+- 세 구획이 모두 비면 한 줄 안내와 재생목록 만들기 버튼만 보여준다. "없습니다" 세 줄은 무엇을 해야 하는지 알려주지 않는다.
+- 재생목록 구획은 전부 보여준다. 줄이 짧고 개수가 적어 아래를 밀어내지 않는다.
+- 단위 3개 추가: 구획 이름 왕복, 알 수 없는 이름은 구획이 아님, 요약이 구획마다 다섯 개만 보여줌.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 53초). 단위 161개·실제 계약 7개·실기기 계측 45개, 실패/오류 0. 린트 오류 0·경고 22.
+- 실기기 SM-T220 / Android 14 확인: 라이브러리가 비면 "아직 라이브러리가 비어 있습니다..." 한 줄과 새 재생목록 버튼만 나온다. 검색 결과에서 대기열을 만들고 Now Playing의 하트와 다음을 번갈아 눌러 여섯 곡을 즐겨찾기하자 요약 화면의 즐겨찾기 구획이 다섯 곡과 "더 보기"로 나왔다. 더 보기를 누르면 여섯 곡 전체와 줄마다 해제 버튼이 나오고, 하나를 해제하면 다섯 곡이 된다. 전부 해제하면 "즐겨찾기한 곡이 없습니다."가 되고 요약 화면도 같이 바뀐다. 확인 후 최근 재생을 지우고 일시정지했다. 화면 캡처는 captures/km-116에 보관했다(저장소 추적 대상 아님).
+- 기기 조작 요령: Now Playing의 조작 줄은 제목이 한 줄인지 두 줄인지에 따라 y가 40px쯤 움직인다. 여러 곡을 연달아 다루려면 매번 `uiautomator dump`로 좌표를 다시 읽어야 한다.
+- 결정 ADR-062. 신규 의존성 없음. **M7 Library 완료.** 다음은 M8의 KM-130이다.

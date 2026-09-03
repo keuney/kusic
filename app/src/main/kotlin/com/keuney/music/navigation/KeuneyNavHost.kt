@@ -32,6 +32,8 @@ import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.feature.player.MiniPlayer
 import com.keuney.music.feature.player.PlayerViewModel
+import com.keuney.music.feature.library.LibrarySection
+import com.keuney.music.feature.library.LibrarySectionScreen
 import com.keuney.music.feature.library.LibraryScreen
 import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.feature.library.PlaylistScreen
@@ -60,7 +62,8 @@ internal fun KeuneyNavHost(
     val connected = connection == ConnectionState.Connected
     val nowPlaying = playback.nowPlaying
     // 전체 화면 목적지에서는 하단을 비운다.
-    val onFullScreen = currentRoute in setOf(NOW_PLAYING_ROUTE, QUEUE_ROUTE, PLAYLIST_ROUTE)
+    val onFullScreen =
+        currentRoute in setOf(NOW_PLAYING_ROUTE, QUEUE_ROUTE, PLAYLIST_ROUTE, LIBRARY_SECTION_ROUTE)
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -114,6 +117,7 @@ internal fun KeuneyNavHost(
                     selectEnabled = connected,
                     onSelect = playerViewModel::playTracks,
                     onOpenPlaylist = { navController.navigate(playlistRoute(it)) },
+                    onOpenSection = { navController.navigate(librarySectionRoute(it)) },
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
             }
@@ -123,6 +127,20 @@ internal fun KeuneyNavHost(
                     libraryViewModel = libraryViewModel,
                     onBack = { navController.popBackStack() },
                     onOpenQueue = { navController.navigate(QUEUE_ROUTE) },
+                )
+            }
+            composable(
+                route = LIBRARY_SECTION_ROUTE,
+                arguments = listOf(navArgument(LIBRARY_SECTION_ARG) { type = NavType.StringType }),
+            ) { entry ->
+                // 알 수 없는 구획 이름이면 최근 재생을 보여준다. 빈 화면보다 낫다.
+                val section = LibrarySection.of(entry.arguments?.getString(LIBRARY_SECTION_ARG))
+                LibrarySectionScreen(
+                    viewModel = libraryViewModel,
+                    section = section ?: LibrarySection.Recent,
+                    selectEnabled = connected,
+                    onSelect = playerViewModel::playTracks,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(

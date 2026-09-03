@@ -26,6 +26,8 @@
     <string name="queue_move_up">위로 옮기기</string>
     <string name="queue_move_down">아래로 옮기기</string>
     <string name="library_recent">최근 재생</string>
+    <string name="library_more">더 보기</string>
+    <string name="library_empty">아직 라이브러리가 비어 있습니다. 검색해서 곡을 들으면 여기에 쌓입니다.</string>
     <string name="library_recent_empty">최근 들은 곡이 없습니다.</string>
     <string name="library_recent_clear">지우기</string>
     <string name="library_favorites">즐겨찾기</string>

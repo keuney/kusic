@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.keuney.music.R
+import com.keuney.music.feature.library.LibrarySection
 
 /** 하단 내비게이션의 세 목적지(PRD 35). 순서가 화면에 나오는 순서다. */
 internal enum class TopLevelDestination(
@@ -30,3 +31,9 @@ internal const val PLAYLIST_ID_ARG = "playlistId"
 internal const val PLAYLIST_ROUTE = "playlist/{$PLAYLIST_ID_ARG}"
 
 internal fun playlistRoute(playlistId: Long) = "playlist/$playlistId"
+
+/** 라이브러리 구획의 "더 보기"로 들어온다. */
+internal const val LIBRARY_SECTION_ARG = "section"
+internal const val LIBRARY_SECTION_ROUTE = "library-section/{$LIBRARY_SECTION_ARG}"
+
+internal fun librarySectionRoute(section: LibrarySection) = "library-section/${section.route}"
