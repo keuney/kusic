@@ -203,7 +203,12 @@ class LibraryRepositoryImplTest {
 
         override fun observeRecent(limit: Int): Flow<List<TrackEntity>> = MutableStateFlow(emptyList())
 
-        override suspend fun record(entry: PlaybackHistoryEntity) {
+        // 실제 DAO는 이 둘을 한 트랜잭션으로 묶는다. 가짜에서도 곡별 한 행만 남긴다.
+        override suspend fun deleteFor(trackId: String) {
+            rows.removeAll { it.trackId == trackId }
+        }
+
+        override suspend fun insert(entry: PlaybackHistoryEntity) {
             rows += entry
         }
 

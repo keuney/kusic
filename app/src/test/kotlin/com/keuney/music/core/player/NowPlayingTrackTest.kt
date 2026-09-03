@@ -1,7 +1,6 @@
-package com.keuney.music.feature.player
+package com.keuney.music.core.player
 
 import com.keuney.music.core.model.SourceType
-import com.keuney.music.core.player.NowPlaying
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

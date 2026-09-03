@@ -150,6 +150,29 @@ class LibraryViewModelTest {
         assertEquals(listOf(1L), repository.deleted)
     }
 
+    @Test
+    fun recentlyPlayedFollowsTheRepository() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<Track>(), viewModel.recentlyPlayed.value)
+
+        repository.recentTracks.value = listOf(track("a"))
+        advanceUntilIdle()
+
+        assertEquals(listOf(track("a")), viewModel.recentlyPlayed.value)
+        assertEquals("최근 재생은 개수를 제한해 읽어야 한다", listOf(50), repository.recentLimits)
+    }
+
+    @Test
+    fun clearingHistoryReachesTheRepository() = runTest(dispatcher) {
+        val viewModel = LibraryViewModel(repository)
+
+        viewModel.clearPlaybackHistory()
+        advanceUntilIdle()
+
+        assertTrue(repository.historyCleared)
+    }
+
     private fun track(id: String) =
         Track(id, "제목 $id", "아티스트", null, 180_000, SourceType.Remote)
 
@@ -197,8 +220,20 @@ class LibraryViewModelTest {
         override suspend fun removeFromPlaylist(playlistId: Long, trackId: String) {
             removed += playlistId to trackId
         }
-        override fun recentlyPlayed(limit: Int): Flow<List<Track>> = MutableStateFlow(emptyList())
+        val recentTracks = MutableStateFlow(emptyList<Track>())
+        val recentLimits = mutableListOf<Int>()
+        var historyCleared = false
+            private set
+
+        override fun recentlyPlayed(limit: Int): Flow<List<Track>> {
+            recentLimits += limit
+            return recentTracks
+        }
+
         override suspend fun recordPlayback(track: Track) = Unit
-        override suspend fun clearPlaybackHistory() = Unit
+
+        override suspend fun clearPlaybackHistory() {
+            historyCleared = true
+        }
     }
 }

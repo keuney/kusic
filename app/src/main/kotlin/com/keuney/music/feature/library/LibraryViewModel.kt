@@ -32,6 +32,18 @@ internal class LibraryViewModel @Inject constructor(
     val favorites: StateFlow<List<Track>> = repository.favorites
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    /**
+     * 최근에 들은 곡. 곡별로 한 번만, 최근에 들은 것부터 온다(KM-115 중복 정책).
+     *
+     * 개수를 제한한다. "최근"이 수백 곡이면 목록을 훑어 찾는 것보다 검색이 빠르다.
+     */
+    val recentlyPlayed: StateFlow<List<Track>> = repository.recentlyPlayed(RECENT_LIMIT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun clearPlaybackHistory() {
+        viewModelScope.launch { repository.clearPlaybackHistory() }
+    }
+
     /** 곡 하나의 즐겨찾기 여부. 전체 목록을 받아 뒤지지 않고 필요한 것만 묻는다. */
     fun isFavorite(trackId: String): Flow<Boolean> = repository.isFavorite(trackId)
 
@@ -79,5 +91,9 @@ internal class LibraryViewModel @Inject constructor(
 
     fun removeFromPlaylist(playlistId: Long, trackId: String) {
         viewModelScope.launch { repository.removeFromPlaylist(playlistId, trackId) }
+    }
+
+    private companion object {
+        const val RECENT_LIMIT = 50
     }
 }

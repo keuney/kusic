@@ -3,6 +3,7 @@ package com.keuney.music.core.database.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import com.keuney.music.core.database.entity.PlaybackHistoryEntity
 import com.keuney.music.core.database.entity.TrackEntity
 import kotlinx.coroutines.flow.Flow
@@ -23,8 +24,23 @@ internal interface PlaybackHistoryDao {
     )
     fun observeRecent(limit: Int): Flow<List<TrackEntity>>
 
+    /**
+     * 한 곡을 다시 들으면 새 행을 쌓지 않고 그 곡의 기록을 갈아 끼운다(KM-115 중복 정책).
+     *
+     * 목록에는 곡별로 한 번만 나오므로 여러 행을 쌓아도 보이는 것은 같은데 표만 계속 자란다.
+     * 곡마다 한 행이면 표 크기가 들은 곡 수를 넘지 않는다. 지우기와 삽입은 한 덩어리여야 한다.
+     */
+    @Transaction
+    suspend fun record(entry: PlaybackHistoryEntity) {
+        deleteFor(entry.trackId)
+        insert(entry)
+    }
+
+    @Query("DELETE FROM playback_history WHERE track_id = :trackId")
+    suspend fun deleteFor(trackId: String)
+
     @Insert
-    suspend fun record(entry: PlaybackHistoryEntity)
+    suspend fun insert(entry: PlaybackHistoryEntity)
 
     @Query("DELETE FROM playback_history")
     suspend fun clear()

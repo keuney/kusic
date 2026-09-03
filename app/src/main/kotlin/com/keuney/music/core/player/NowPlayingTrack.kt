@@ -1,8 +1,7 @@
-package com.keuney.music.feature.player
+package com.keuney.music.core.player
 
 import com.keuney.music.core.model.SourceType
 import com.keuney.music.core.model.Track
-import com.keuney.music.core.player.NowPlaying
 
 /**
  * 지금 재생 중인 곡을 라이브러리에 넣을 수 있는 [Track]으로 바꾼다.

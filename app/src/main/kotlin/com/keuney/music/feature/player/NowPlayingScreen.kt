@@ -47,6 +47,7 @@ import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
 import com.keuney.music.core.player.PlaybackPhase
 import com.keuney.music.core.player.RepeatMode
+import com.keuney.music.core.player.toTrack
 import com.keuney.music.feature.library.AddToPlaylistDialog
 import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.feature.library.PlaylistNameDialog

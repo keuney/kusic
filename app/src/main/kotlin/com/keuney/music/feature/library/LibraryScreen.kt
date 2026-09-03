@@ -29,12 +29,12 @@ import com.keuney.music.core.model.Track
 import com.keuney.music.ui.components.TrackRow
 
 /**
- * 라이브러리 화면. 즐겨찾기와 재생목록 두 구획을 보여준다.
+ * 라이브러리 화면. 최근 재생·즐겨찾기·재생목록 세 구획을 보여준다. 순서는 PRD 35를 따른다.
  *
  * 두 구획이 한 목록 안에서 함께 흐른다. 각자 스크롤하게 만들면 화면 안에 스크롤이 둘이 되고
  * Compose는 같은 방향으로 겹친 스크롤을 허용하지 않는다.
  *
- * 최근 재생 구획은 KM-115에서 더하고 화면 전체 구성은 KM-116이 다듬는다.
+ * 화면 전체 구성은 KM-116이 다듬는다.
  */
 @Composable
 internal fun LibraryScreen(
@@ -44,12 +44,40 @@ internal fun LibraryScreen(
     onOpenPlaylist: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val recent by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     var creating by remember { mutableStateOf(false) }
     LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        item(key = "recent-header") {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                SectionHeader(stringResource(R.string.library_recent), Modifier.weight(1f))
+                if (recent.isNotEmpty()) {
+                    TextButton(onClick = viewModel::clearPlaybackHistory) {
+                        Text(stringResource(R.string.library_recent_clear))
+                    }
+                }
+            }
+        }
+        if (recent.isEmpty()) {
+            item(key = "recent-empty") {
+                EmptyNote(stringResource(R.string.library_recent_empty))
+            }
+        } else {
+            itemsIndexed(recent, key = { _, track -> "recent-${track.id}" }) { index, track ->
+                TrackRow(
+                    track = track,
+                    enabled = selectEnabled,
+                    onClick = { onSelect(recent, index) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
         item(key = "favorites-header") {
-            SectionHeader(stringResource(R.string.library_favorites))
+            SectionHeader(
+                text = stringResource(R.string.library_favorites),
+                modifier = Modifier.padding(top = 16.dp),
+            )
         }
         if (favorites.isEmpty()) {
             item(key = "favorites-empty") {

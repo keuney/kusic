@@ -18,11 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 59 / 미착수 18. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 18에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 60 / 미착수 17. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이며 미착수 17에는 최종 게이트 KM-200이 포함된다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110~114 완료).**
+**M6 Player UX 완료 (KM-090~097). M7 Library 진행 중 (KM-110~115 완료).**
 
-**다음 작업: KM-115 (Playback history).** 인수 조건은 successful playback 기록·Recently Played·clear history·duplicate policy documented다. 데이터 계층은 KM-111이 만들었다(`recordPlayback`·`recentlyPlayed`·`clearPlaybackHistory`, 곡별 가장 최근 시각만 남겨 묶음). 이 작업의 내용은 **언제 기록할지 정하는 것과 화면**이다. 착수 시 정할 것: (1) "successful playback"의 기준 — 재생을 시작한 순간인지, 일정 시간 이상 들었을 때인지(전자는 훑어보기만 해도 기록되고 후자는 판단 기준이 필요하다), (2) 기록하는 자리 — `PlayerViewModel`이 재생 상태를 보다가 기록할지, 재생을 소유한 `MusicService`가 할지(반복 모드는 서비스가 설정을 보는 방식을 택했다, ADR-054), (3) 최근 재생 구획을 라이브러리 탭에 더할 위치와 clear 버튼 자리. PRD 34의 DataStore 항목에 "history enabled"가 있는데 이번에 넣을지도 정해야 한다.
+**다음 작업: KM-116 (Library screen).** M7의 마지막이다. 인수 조건은 Sections다(아래 항목 참조). 라이브러리 화면은 이미 최근 재생·즐겨찾기·재생목록 세 구획을 담고 있으므로(KM-112·113·115) 이 작업의 실제 내용은 **화면 구성을 다듬는 것**이다. 볼 것: 구획마다 개수가 많아지면 한 화면에 다 쏟아지는데 구획별로 접거나 더 보기를 둘지, 각 구획의 빈 상태 문구가 지금 그대로 좋은지, 즐겨찾기 목록에서 바로 해제할 방법을 줄지(KM-112에서는 줄마다 버튼을 두지 않았다). 착수 전에 정해야 할 미결 사항은 없다.
+
+**KM-115에서 정한 것:** 기록은 10초 이상(짧은 곡은 절반) 들었을 때 서비스가 남긴다. 곡마다 한 행만 두고 목록은 50개로 제한한다. `history enabled` 설정은 KM-153 설정 화면에서 함께 넣는다.
 
 **KM-114에서 알게 된 것:** `connectedDebugAndroidTest`는 끝나면 앱과 앱 데이터를 기기에서 지운다. 기기 화면 확인은 그 뒤 다시 설치해야 한다. 명령 가용성(`hasNext`·`hasPrevious`)은 대기열 자리와 같은 순간에 오지 않으므로 계측에서 즉시 읽지 말고 기다려야 한다.
 
@@ -1498,7 +1500,20 @@ next/previous
 
 KM-115 — Playback history
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-04): 재생을 소유한 MusicService가 얼마 이상 들은 곡을 남기고, 라이브러리 탭 맨 위에 최근 재생 구획을 뒀다. 방향은 코덱스가 정했다.
+
+- 인수 조건: successful playback 기록 PASS, Recently Played PASS, clear history PASS, duplicate policy documented PASS(ADR-061과 DAO 주석).
+- "들었다"의 기준은 재생 시작이 아니라 10초 이상(곡이 20초보다 짧으면 절반)이다. 시작만으로 남기면 훑어보며 넘긴 곡까지 들어와 최근 재생이 쓸모없어진다.
+- 기록은 서비스가 남긴다. 화면이 닫혀도 배경 재생은 이어지는데 ViewModel이 남기면 그때 관찰이 끊겨 기록이 빠진다.
+- "이미 남겼다"는 판단을 곡 ID가 아니라 재생 위치로 되돌린다. 곡 ID로만 보면 같은 곡을 다시 골라 재생할 때 기록이 갱신되지 않는다(Media3가 같은 항목에는 전환 콜백을 주지 않는다).
+- 중복 정책: 곡마다 한 행만 남긴다. record가 그 곡의 이전 기록을 지우고 새로 넣는다. 목록에는 곡별 한 번, 최근에 들은 것부터 나오며 50개로 제한한다.
+- 구획 순서는 최근 재생 → 즐겨찾기 → 재생목록(PRD 35). 지우기는 최근 재생 머리에 있고 목록이 비면 감춘다. 확인은 묻지 않는다.
+- **history enabled 설정은 넣지 않았다.** PRD 34에 있으나 켜고 끌 자리가 없다. 설정 화면(KM-153)에서 함께 넣는다.
+- 단위 5개·계측 1개 추가(계측 44개 → 45개). 계측은 관찰이 아니라 다시 물어보는 방식이다. Hilt가 검사마다 새 싱글턴 컴포넌트를 만들어 검사의 저장소가 서비스의 것과 다른 인스턴스이기 때문이며, 실제 앱의 화면 갱신은 기기에서 확인했다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 9초). 단위 158개·실제 계약 7개·실기기 계측 45개. 린트 오류 0.
+- 결정은 ADR-061에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 
