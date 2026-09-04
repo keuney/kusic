@@ -18,13 +18,17 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 72 / 미착수 5. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133·135·136·151~158 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 5에는 최종 게이트 KM-200과 보류한 KM-135가 포함된다.
+**현재: 완료 73 / 미착수 4. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. 아직 origin에 올리지 않은 커밋이 13개 있다.** 상태 표시를 세어 확인한 값이다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116). M8은 블루투스 두 건(KM-130·131)과 조건 미충족 한 건(KM-135)을 빼고 완료. M9은 KM-150~158 완료.**
+**최종 게이트 KM-200을 통과했다(항목 하나 미검증).** Must PASS 15개 중 14개 PASS. Bluetooth Play/Pause만 기기가 없어 검증하지 못했다. 판정 표와 근거는 아래 KM-200 기록에 있다.
 
-**다음 작업: 남은 미착수를 확인하고 최종 게이트 KM-200으로 간다.** KM-200 착수 전에 미착수 목록을 세어 무엇이 남았는지 사용자와 확인해야 한다. 남은 것은 KM-130·131(블루투스 기기 필요)·KM-135(조건 미충족, 보류)·KM-159 이후(있다면)·KM-200이다.
+**남은 미착수 4개는 모두 코드 작업이 아니다.**
 
-**KM-158의 남은 검증:** 사용자 키로 서명한 APK의 설치는 확인하지 않았다. 디버그 키로 서명한 릴리스 빌드로 설치·동작을 확인했다. 사용자가 키를 만들면 같은 절차를 다시 한다.
+- KM-064 Provider B 평가: KM-059 Gate가 PASS라 활성화하지 않는다(영구 비활성).
+- KM-130 Bluetooth controls, KM-131 Headset disconnect: 실제 블루투스 기기·헤드셋이 필요하다.
+- KM-135 OEM battery help: 조건(background kill 재현)이 충족되지 않아 보류했다.
+
+**따라서 다음에 할 일은 사용자가 정한다.** 블루투스 기기가 생기면 KM-130·131·KM-200의 나머지 한 항목을 함께 확인한다. 사용자 키로 서명한 APK 설치(KM-158의 남은 검증)도 그때 같이 할 수 있다. 그 밖에 KM-136에서 찾은 후속 후보(재생 불가 곡에서 대기열이 멈추는 문제)를 작업으로 만들지 물어볼 수 있다.
 
 **KM-130·131을 건너뛴 이유:** 사용자에게 물었고 실제 블루투스 기기가 없다는 답을 받았다(2026-09-04). AGENTS.md 20이 Bluetooth 조작과 headset disconnect를 에뮬레이터 통과만으로 완료 처리하지 말라고 하므로 기기가 생길 때까지 미룬다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 그 작업들의 핵심이다.
 
@@ -1986,7 +1990,34 @@ core smoke test PASS
 
 Final MVP Gate — KM-200
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-04, 항목 하나 미검증): Must PASS 15개 중 14개 PASS. Bluetooth Play/Pause는 기기가 없어 검증하지 못했다.
+
+게이트는 **릴리스 빌드**(디버그 키 서명, `flags`에 DEBUGGABLE 없음)를 실기기 SM-T220 / Android 14에 설치한 상태에서 돌렸다. 시작 시각 17:01, 한 프로세스(pid 7208)로 끝까지 진행했다.
+
+| 항목 | 판정 | 근거 |
+| --- | --- | --- |
+| Search works | PASS | "guitar" 검색으로 실제 결과 도착 |
+| Track playback works | PASS | 첫 결과 재생, 9.1초 지점 PLAYING |
+| Background playback works | PASS | 홈으로 나가 32초, 123.9초로 이어짐 |
+| Screen-off playback works | PASS | 화면 끔(Dozing) 32초, 158.7초로 이어짐 |
+| Notification controls work | PASS | 알림의 재생 버튼으로 재생 시작, 다음 트랙 버튼으로 item 2→3 이동. 실제 알림 버튼을 눌렀다 |
+| Lock-screen controls work | PASS | 잠긴 상태에서 미디어 버튼 재생/일시정지와 다음(item 1→2) |
+| **Bluetooth Play/Pause works** | **미검증** | 블루투스 기기 없음(AGENTS.md 20). 같은 경로인 미디어 버튼은 동작 확인 |
+| Queue Next works | PASS | 다음 버튼으로 item 0→1, 제목도 바뀜 |
+| Favorites persist | PASS | 즐겨찾기 후 force-stop → 재실행, 목록에 그대로 |
+| Playlists persist | PASS | "gate" 재생목록(1곡)이 force-stop → 재실행 후에도 있음 |
+| History persists | PASS | force-stop → 재실행 후 최근 재생 4곡 |
+| Network errors handled | PASS | WiFi 끊고 버퍼 밖으로 이동 → "네트워크가 끊겼습니다..." + 다시 시도. WiFi 켜자 화면을 건드리지 않고 재생 재개 |
+| No known core-flow crash | PASS | crash 버퍼 0줄, FATAL·ANR 0건. ExoPlayer 오류 1건은 네트워크 검사에서 의도한 것 |
+| Unit tests PASS | PASS | 183개 통과(실제 계약 7개·실기기 계측 46개 포함, 실패/오류 0) |
+| Lint PASS | PASS | 오류 0개·경고 22개, 억제 없음 |
+
+- 필수 검증: `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue` PASS, 종료 코드 0(5분 3초).
+- 확인 후 gate 재생목록·즐겨찾기·최근 재생을 지우고 재생을 멈췄으며 화면 꺼짐 시간을 되돌렸다. 기기에는 릴리스 빌드를 다시 설치해 두었다.
+- **남은 검증 세 가지:** Bluetooth Play/Pause(KM-130), 헤드셋 분리(KM-131), 사용자 키로 서명한 APK 설치(KM-158). 모두 하드웨어나 사용자 키가 필요하며 코드 문제가 아니다.
+- v0.1 Definition of Done은 위 표의 판정과 남은 세 가지를 함께 읽어 판단한다. 코드로 할 수 있는 항목은 모두 통과했다.
 
 Goal:
 
