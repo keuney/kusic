@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.media3.datasource.DataSpec
 import com.keuney.music.core.model.PlayableStream
 import com.keuney.music.core.model.Track
+import com.keuney.music.core.settings.CacheLimit
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.core.settings.ThemePreference
 import com.keuney.music.data.source.MusicSource
@@ -86,5 +87,9 @@ class MeteredPlaybackBlockTest {
         override suspend fun setWifiOnlyPlayback(enabled: Boolean) = Unit
         override val repeatMode: Flow<RepeatMode> = MutableStateFlow(RepeatMode.Off)
         override suspend fun setRepeatMode(mode: RepeatMode) = Unit
+        override val historyEnabled: Flow<Boolean> = MutableStateFlow(true)
+        override suspend fun setHistoryEnabled(enabled: Boolean) = Unit
+        override val cacheLimit: Flow<CacheLimit> = MutableStateFlow(CacheLimit.Mb256)
+        override suspend fun setCacheLimit(limit: CacheLimit) = Unit
     }
 }

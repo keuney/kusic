@@ -5,10 +5,14 @@ import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import com.keuney.music.core.settings.CacheLimit
+import com.keuney.music.core.settings.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * 재생 중 내려받은 구간을 잠시 보관해 같은 곡을 다시 들을 때 다시 받지 않게 한다.
@@ -17,8 +21,28 @@ import javax.inject.Singleton
  */
 @Singleton
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
-internal class PlaybackCache @Inject constructor(@param:ApplicationContext context: Context) {
-    val cache: Cache = shared(context)
+internal class PlaybackCache @Inject constructor(
+    @param:ApplicationContext context: Context,
+    settings: SettingsRepository,
+) {
+    /**
+     * 지금 열려 있는 캐시에 걸린 상한.
+     *
+     * 상한은 캐시를 만들 때 정해진다. Media3의 evictor는 만든 뒤에 상한을 바꿀 방법이 없고,
+     * 한 디렉터리의 SimpleCache는 프로세스에 하나뿐이며 이미 재생에 쓰이고 있다. 그래서 설정을
+     * 바꾸면 다음 실행부터 적용되고, 화면은 이 값으로 "지금 적용된 것"을 말한다.
+     */
+    val limitBytes: Long
+
+    val cache: Cache
+
+    init {
+        // 캐시는 플레이어를 만들기 전에 있어야 하고 상한은 만들 때 필요하다. 작은 설정 파일
+        // 한 번 읽기이므로 여기서 기다린다.
+        cache = shared(context, runBlocking { settings.cacheLimit.first() })
+        // 저장된 값이 아니라 실제로 걸린 값을 보고한다. 이미 열려 있던 캐시라면 그때의 상한이다.
+        limitBytes = activeLimitBytes
+    }
 
     val usedBytes: Long get() = cache.cacheSpace
 
@@ -28,8 +52,6 @@ internal class PlaybackCache @Inject constructor(@param:ApplicationContext conte
     }
 
     companion object {
-        const val MAX_BYTES = 256L * 1024 * 1024
-
         /** 저장 확정 단위. 작을수록 짧게 듣고 멈춰도 받은 구간이 남는다. */
         const val FRAGMENT_BYTES = 1L * 1024 * 1024
         private const val DIRECTORY = "media"
@@ -37,17 +59,26 @@ internal class PlaybackCache @Inject constructor(@param:ApplicationContext conte
         /**
          * SimpleCache는 한 디렉터리를 프로세스에서 하나만 열 수 있다. 주입 그래프가 다시
          * 만들어져도 같은 인스턴스를 쓰도록 프로세스 단위로 보관한다.
+         *
+         * 그래서 상한은 **처음 만들 때의 값**으로 굳는다. 두 번째 호출의 상한은 무시된다.
          */
         @Volatile
         private var instance: SimpleCache? = null
 
-        private fun shared(context: Context): SimpleCache =
+        /** 열려 있는 캐시에 실제로 걸린 상한. 저장된 설정과 다를 수 있다. */
+        @Volatile
+        private var activeLimitBytes: Long = 0
+
+        private fun shared(context: Context, limit: CacheLimit): SimpleCache =
             instance ?: synchronized(this) {
                 instance ?: SimpleCache(
                     File(context.applicationContext.cacheDir, DIRECTORY),
-                    LeastRecentlyUsedCacheEvictor(MAX_BYTES),
+                    LeastRecentlyUsedCacheEvictor(limit.bytes),
                     StandaloneDatabaseProvider(context.applicationContext),
-                ).also { instance = it }
+                ).also {
+                    instance = it
+                    activeLimitBytes = limit.bytes
+                }
             }
     }
 }

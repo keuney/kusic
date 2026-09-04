@@ -38,6 +38,7 @@ import com.keuney.music.feature.player.NowPlayingScreen
 import com.keuney.music.feature.player.QueueScreen
 import com.keuney.music.feature.search.SearchScreen
 import com.keuney.music.feature.search.SearchViewModel
+import com.keuney.music.feature.settings.SettingsScreen
 import com.keuney.music.feature.settings.SettingsViewModel
 
 /**
@@ -62,7 +63,13 @@ internal fun KeuneyNavHost(
     val nowPlaying = playback.nowPlaying
     // 전체 화면 목적지에서는 하단을 비운다.
     val onFullScreen =
-        currentRoute in setOf(NOW_PLAYING_ROUTE, QUEUE_ROUTE, PLAYLIST_ROUTE, LIBRARY_SECTION_ROUTE)
+        currentRoute in setOf(
+            NOW_PLAYING_ROUTE,
+            QUEUE_ROUTE,
+            PLAYLIST_ROUTE,
+            LIBRARY_SECTION_ROUTE,
+            SETTINGS_ROUTE,
+        )
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -108,6 +115,7 @@ internal fun KeuneyNavHost(
                     onSelect = playerViewModel::playTracks,
                     onOpenPlaylist = { navController.navigate(playlistRoute(it)) },
                     onGoSearch = { navController.switchTab(TopLevelDestination.Search) },
+                    onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
             }
@@ -134,7 +142,6 @@ internal fun KeuneyNavHost(
                 NowPlayingScreen(
                     viewModel = playerViewModel,
                     libraryViewModel = libraryViewModel,
-                    settingsViewModel = settingsViewModel,
                     onBack = { navController.popBackStack() },
                     onOpenQueue = { navController.navigate(QUEUE_ROUTE) },
                 )
@@ -162,6 +169,12 @@ internal fun KeuneyNavHost(
                     playlistId = entry.arguments?.getLong(PLAYLIST_ID_ARG) ?: 0L,
                     selectEnabled = connected,
                     onSelect = playerViewModel::playTracks,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(SETTINGS_ROUTE) {
+                SettingsScreen(
+                    viewModel = settingsViewModel,
                     onBack = { navController.popBackStack() },
                 )
             }

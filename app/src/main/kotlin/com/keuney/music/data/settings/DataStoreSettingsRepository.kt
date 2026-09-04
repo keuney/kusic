@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.keuney.music.core.player.RepeatMode
+import com.keuney.music.core.settings.CacheLimit
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.core.settings.ThemePreference
 import kotlinx.coroutines.flow.Flow
@@ -42,9 +43,28 @@ internal class DataStoreSettingsRepository @Inject constructor(
         dataStore.edit { it[RepeatModeKey] = mode.name }
     }
 
+    override val historyEnabled: Flow<Boolean> = dataStore.data
+        .map { it[HistoryEnabledKey] ?: true }
+        .distinctUntilChanged()
+
+    override suspend fun setHistoryEnabled(enabled: Boolean) {
+        dataStore.edit { it[HistoryEnabledKey] = enabled }
+    }
+
+    override val cacheLimit: Flow<CacheLimit> = dataStore.data.map { preferences ->
+        // 알 수 없는 값은 기본값으로 본다. 저장된 이름이 사라진 뒤에도 재생은 되어야 한다.
+        CacheLimit.entries.firstOrNull { it.name == preferences[CacheLimitKey] } ?: CacheLimit.Mb256
+    }.distinctUntilChanged()
+
+    override suspend fun setCacheLimit(limit: CacheLimit) {
+        dataStore.edit { it[CacheLimitKey] = limit.name }
+    }
+
     private companion object {
         val ThemeKey = stringPreferencesKey("theme")
         val WifiOnlyKey = booleanPreferencesKey("wifi_only_playback")
         val RepeatModeKey = stringPreferencesKey("repeat_mode")
+        val HistoryEnabledKey = booleanPreferencesKey("history_enabled")
+        val CacheLimitKey = stringPreferencesKey("cache_limit")
     }
 }

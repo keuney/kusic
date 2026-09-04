@@ -26,6 +26,9 @@ internal const val NOW_PLAYING_ROUTE = "now-playing"
 /** 전체 화면 플레이어의 대기열 버튼으로 들어온다. */
 internal const val QUEUE_ROUTE = "queue"
 
+/** 홈 화면의 설정 버튼으로 들어온다. 하단 탭은 PRD 35가 세 개로 정해 두었다. */
+internal const val SETTINGS_ROUTE = "settings"
+
 /** 라이브러리의 재생목록을 눌러 들어온다. */
 internal const val PLAYLIST_ID_ARG = "playlistId"
 internal const val PLAYLIST_ROUTE = "playlist/{$PLAYLIST_ID_ARG}"

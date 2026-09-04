@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,16 +61,54 @@ internal fun HomeScreen(
     onSelect: (tracks: List<Track>, index: Int) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onGoSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val recent by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    Column(modifier = modifier) {
+        // 설정으로 가는 길은 여기 하나다. 하단 탭은 PRD 35가 세 개로 정해 두었고, 홈이 시작
+        // 화면이라 어디에서든 한 번 눌러 올 수 있다.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.destination_settings),
+                )
+            }
+        }
+        HomeSections(
+            recent = recent,
+            favorites = favorites,
+            playlists = playlists,
+            selectEnabled = selectEnabled,
+            onSelect = onSelect,
+            onOpenPlaylist = onOpenPlaylist,
+            onGoSearch = onGoSearch,
+        )
+    }
+}
+
+@Composable
+private fun HomeSections(
+    recent: List<Track>,
+    favorites: List<Track>,
+    playlists: List<Playlist>,
+    selectEnabled: Boolean,
+    onSelect: (tracks: List<Track>, index: Int) -> Unit,
+    onOpenPlaylist: (Long) -> Unit,
+    onGoSearch: () -> Unit,
+) {
     if (recent.isEmpty() && favorites.isEmpty() && playlists.isEmpty()) {
-        EmptyHome(onGoSearch = onGoSearch, modifier = modifier)
+        EmptyHome(onGoSearch = onGoSearch)
         return
     }
-    LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 비어 있는 구획은 그리지 않는다. 홈에서 "없습니다"를 읽을 이유가 없다. 무엇이 없는지는
         // 라이브러리가 말해 준다.
         trackRow(

@@ -64,6 +64,14 @@ class MusicService : MediaLibraryService() {
     /** 그 작업이 어느 곡을 위한 것인지. 이 값이 있고 작업도 있으면 그 곡은 이미 처리했다. */
     private var historyItemId: String? = null
 
+    /**
+     * 기록을 남길지(KM-153). 저장소를 따라다니는 값을 여기 들고 있는다.
+     *
+     * [scheduleHistory]는 플레이어 콜백에서 불리므로 기다릴 수 없다. 그래서 물어보지 않고
+     * 최신 값을 받아 둔다.
+     */
+    private var historyEnabled = true
+
     /** 끊긴 재생을 연결이 돌아왔을 때 이어 붙일지 정하는 규칙. */
     private val recovery = NetworkRecovery()
 
@@ -112,6 +120,14 @@ class MusicService : MediaLibraryService() {
         // 반복 모드는 저장된 설정이 곧 적용되는 값이다. 화면은 설정만 바꾸고 여기서 재생에 옮긴다.
         serviceScope.launch {
             settings.repeatMode.collectLatest { servicePlayer.repeatMode = it.toPlayerRepeatMode() }
+        }
+        // 껐다 켜면 지금 듣고 있는 곡부터 다시 판단한다. 켠 뒤 다음 재생 사건을 기다리면
+        // 지금 곡은 영영 남지 않는다.
+        serviceScope.launch {
+            settings.historyEnabled.collect { enabled ->
+                historyEnabled = enabled
+                scheduleHistory(servicePlayer)
+            }
         }
         // 기록과 회복은 재생을 소유한 이곳에서 한다. 화면이 닫혀도 배경 재생은 이어지기 때문이다.
         servicePlayer.addListener(
@@ -171,12 +187,13 @@ class MusicService : MediaLibraryService() {
         val item = player.currentMediaItem
         val mediaId = item?.mediaId?.takeIf(String::isNotBlank)
         val threshold = PlaybackHistory.listenedThresholdMs(player.duration)
-        if (mediaId != historyItemId || player.currentPosition < threshold) {
+        // 꺼져 있으면 기다리던 것도 접는다. 켜져 있을 때 남긴 판단만 유지한다.
+        if (!historyEnabled || mediaId != historyItemId || player.currentPosition < threshold) {
             historyJob?.cancel()
             historyJob = null
             historyItemId = null
         }
-        if (mediaId == null || !player.isPlaying || historyJob != null) return
+        if (!historyEnabled || mediaId == null || !player.isPlaying || historyJob != null) return
         val track = nowPlayingOf(
             mediaId = mediaId,
             title = item.mediaMetadata.title?.toString(),
@@ -187,10 +204,11 @@ class MusicService : MediaLibraryService() {
         historyJob = serviceScope.launch {
             val remaining = threshold - player.currentPosition
             if (remaining > 0) delay(remaining)
-            // 기다리는 동안 멈췄거나 다른 곡으로 넘어갔으면 남기지 않는다.
-            if (player.isPlaying && player.currentMediaItem?.mediaId == mediaId) {
-                library.recordPlayback(track)
+            // 기다리는 동안 멈췄거나 다른 곡으로 넘어갔거나 기록을 껐으면 남기지 않는다.
+            if (!historyEnabled || !player.isPlaying || player.currentMediaItem?.mediaId != mediaId) {
+                return@launch
             }
+            library.recordPlayback(track)
         }
     }
 

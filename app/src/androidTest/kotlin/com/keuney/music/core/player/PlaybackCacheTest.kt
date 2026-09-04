@@ -3,6 +3,7 @@ package com.keuney.music.core.player
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.test.platform.app.InstrumentationRegistry
+import com.keuney.music.core.settings.CacheLimit
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import java.io.File
@@ -37,7 +38,9 @@ class PlaybackCacheTest {
 
     @Test
     fun defaultTargetIsTwoHundredFiftySixMegabytes() {
-        assertEquals(256L * 1024 * 1024, PlaybackCache.MAX_BYTES)
+        assertEquals(256L * 1024 * 1024, CacheLimit.Mb256.bytes)
+        // 상한은 KM-153에서 설정이 됐다. 고른 적이 없으면 열려 있는 캐시도 기본값을 쓴다.
+        assertEquals(CacheLimit.Mb256.bytes, playbackCache.limitBytes)
     }
 
     @Test

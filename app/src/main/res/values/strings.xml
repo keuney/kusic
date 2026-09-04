@@ -60,6 +60,7 @@
     <string name="search_history_clear">지우기</string>
     <string name="destination_home">홈</string>
     <string name="destination_search">검색</string>
+    <string name="destination_settings">설정</string>
     <string name="destination_library">라이브러리</string>
     <string name="home_empty">아직 들은 곡이 없습니다. 검색해서 곡을 들으면 여기에서 다시 들을 수 있습니다.</string>
     <string name="home_go_search">검색으로 가기</string>
@@ -76,5 +77,13 @@
     <string name="theme_light">밝게</string>
     <string name="theme_dark">어둡게</string>
     <string name="wifi_only_label">WiFi에서만 재생</string>
+    <string name="wifi_only_note">측정 요금제에서는 저장된 구간이 없는 곡을 재생하지 않습니다.</string>
+    <string name="history_enabled_label">재생 기록 남기기</string>
+    <string name="history_enabled_note">끄면 이후에 들은 곡이 최근 재생에 쌓이지 않습니다. 이미 쌓인 기록은 남습니다.</string>
+    <string name="cache_limit_label">캐시 상한</string>
+    <string name="cache_usage">사용 중 %1$s / %2$s</string>
+    <string name="cache_limit_restart">바꾼 상한은 앱을 다시 시작할 때 적용됩니다.</string>
+    <string name="cache_clear">캐시 지우기</string>
+    <string name="cache_clear_note">보관 중인 구간을 비웁니다. 다시 들으면 다시 내려받습니다.</string>
     <string name="wifi_only_blocked">WiFi에서만 재생하도록 설정되어 있습니다. 저장된 구간이 없는 곡은 재생하지 않습니다.</string>
 </resources>

@@ -23,7 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,8 +52,6 @@ import com.keuney.music.core.player.toTrack
 import com.keuney.music.feature.library.AddToPlaylistDialog
 import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.feature.library.PlaylistNameDialog
-import com.keuney.music.core.settings.ThemePreference
-import com.keuney.music.feature.settings.SettingsViewModel
 import com.keuney.music.ui.components.Artwork
 import com.keuney.music.ui.format.formatDuration
 
@@ -68,15 +65,12 @@ import com.keuney.music.ui.format.formatDuration
 internal fun NowPlayingScreen(
     viewModel: PlayerViewModel,
     libraryViewModel: LibraryViewModel,
-    settingsViewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenQueue: () -> Unit,
 ) {
     val connection by viewModel.connectionState.collectAsStateWithLifecycle()
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
-    val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
     val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
-    val theme by settingsViewModel.theme.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
     var pendingSeek by remember { mutableStateOf<PendingSeek?>(null) }
     val connected = connection == ConnectionState.Connected
@@ -229,31 +223,8 @@ internal fun NowPlayingScreen(
                 label = { Text(stringResource(repeatLabelRes(playback.repeatMode))) },
             )
         }
-        // 화면 색(KM-152)도 WiFi 전용 설정과 함께 설정 화면(KM-153)으로 옮긴다. 지금 여기 두는
-        // 것은 고른 값이 실제로 적용되는지 볼 자리가 아직 없기 때문이다.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.theme_label), style = MaterialTheme.typography.bodyMedium)
-            ThemePreference.entries.forEach { option ->
-                FilterChip(
-                    selected = theme == option,
-                    onClick = { settingsViewModel.setTheme(option) },
-                    label = { Text(stringResource(themeLabelRes(option))) },
-                )
-            }
-        }
-        // WiFi 전용 설정(KM-137)은 설정 화면(KM-153)이 생기면 그쪽으로 옮긴다.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.wifi_only_label), style = MaterialTheme.typography.bodyMedium)
-            Switch(checked = wifiOnly, onCheckedChange = viewModel::setWifiOnlyPlayback)
-        }
+        // 화면 색과 WiFi 전용 재생은 KM-153에서 설정 화면으로 옮겼다. 여기 남은 것은 지금
+        // 듣는 것을 바꾸는 조작뿐이다. 아래 안내는 설정이 아니라 지금 재생에 일어난 일이다.
         if (meteredBlocked) {
             Text(
                 stringResource(R.string.wifi_only_blocked),
@@ -289,12 +260,6 @@ internal fun NowPlayingScreen(
             onDismiss = { namingNewPlaylist = false },
         )
     }
-}
-
-private fun themeLabelRes(theme: ThemePreference): Int = when (theme) {
-    ThemePreference.System -> R.string.theme_system
-    ThemePreference.Light -> R.string.theme_light
-    ThemePreference.Dark -> R.string.theme_dark
 }
 
 private fun repeatLabelRes(mode: RepeatMode): Int = when (mode) {

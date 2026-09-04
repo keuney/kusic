@@ -1,5 +1,6 @@
 package com.keuney.music.core.player
 
+import com.keuney.music.core.settings.CacheLimit
 import com.keuney.music.core.settings.SettingsRepository
 import com.keuney.music.core.settings.ThemePreference
 import kotlinx.coroutines.flow.Flow
@@ -45,5 +46,9 @@ class NetworkPolicyTest {
         }
         override val repeatMode: Flow<RepeatMode> = MutableStateFlow(RepeatMode.Off)
         override suspend fun setRepeatMode(mode: RepeatMode) = Unit
+        override val historyEnabled: Flow<Boolean> = MutableStateFlow(true)
+        override suspend fun setHistoryEnabled(enabled: Boolean) = Unit
+        override val cacheLimit: Flow<CacheLimit> = MutableStateFlow(CacheLimit.Mb256)
+        override suspend fun setCacheLimit(limit: CacheLimit) = Unit
     }
 }
