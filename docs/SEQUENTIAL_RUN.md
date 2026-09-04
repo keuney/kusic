@@ -784,3 +784,19 @@
 - 확인 후 상한을 256MB로, 기록을 켜짐으로, 화면 색을 시스템으로 되돌리고 최근 재생을 지우고 재생을 멈췄다. 화면 꺼짐 시간도 30000으로 되돌렸다. 화면 캡처는 captures/km-153에 보관했다(저장소 추적 대상 아님).
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 49초). 단위 183개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
 - 결정 ADR-068. 신규 의존성 없음. **M9의 화면 작업 완료.** 남은 것은 KM-154(접근성)·KM-155(OSS 고지)·KM-200(최종 게이트)이다.
+
+## KM-154 완료 — Accessibility pass
+
+- 브랜치 `codex/KM-154-accessibility`. 고치기 전에 **재어 봤다.** 세 인수 조건 중 둘은 이미 충족돼 있었다.
+- **아이콘 이름:** 코드의 모든 `Icon`에 `contentDescription`이 붙어 있거나 장식용으로 명시적 null이었다(앨범 이미지, 하단 탭 아이콘 — 탭은 옆에 글자가 있다). 재생 조작 중 이전·재생·다음은 아이콘이 아니라 글자 버튼이라 그 자체가 이름이다.
+- **터치 영역:** 기기에서 `uiautomator`로 clickable 노드의 크기를 재어 dp로 환산했다(밀도 213 → px/1.33). 설정 화면의 칩·스위치·버튼과 대기열의 아이콘 버튼이 모두 **47~48dp**였다. 칩은 보이는 높이가 32dp인데도 그렇다. Material 3이 구성 요소마다 최소 터치 영역을 강제하기 때문이다. 우리가 만든 클릭 영역(곡 줄·카드·미니 플레이어)은 이미지와 여백 때문에 그보다 크다.
+- **큰 글꼴:** `font_scale 1.5`로 올려 설정·재생·대기열·홈 화면을 봤다. 잘리거나 겹치는 곳이 없었다. 설정 화면의 칩 세 개도 한 줄에 들어갔고 안내 문구는 두 줄로 접혔다.
+- 그래서 이 작업에서 고친 것은 **읽는 쪽이 이름을 알 수 없던 곳**이다.
+  - 커스텀 클릭에 `onClickLabel`을 붙였다. 곡 줄·홈 카드·대기열 줄은 "재생", 재생목록은 "열기", 미니 플레이어 줄은 "전체 화면 플레이어 열기", 담기 항목은 "재생목록에 담기". 없으면 "두 번 눌러 실행"으로만 읽힌다.
+  - 재생 상태 줄을 live region으로 표시했다. 재생·일시정지·오류가 그 줄로 바뀌므로 바뀔 때 읽어 준다.
+  - 위치 줄을 한 덩어리로 묶어 "재생 위치 0:09 / 2:00"으로 읽히게 했다. 기기에서 값이 따라 바뀌는 것을 확인했다.
+- **시행착오.** 처음에는 슬라이더에 직접 이름을 붙였다. 기기의 접근성 트리를 보니 SeekBar 노드와 이름만 가진 노드가 **따로** 생겼고(같은 좌표, 이름 노드는 focusable=false) `mergeDescendants = true`로도 합쳐지지 않았다. 읽히지 않을 수 있는 것을 "고쳤다"고 남겨 두지 않기로 하고 걷어냈다. 대신 바로 아래 위치 줄이 그 뜻을 말한다.
+- 새 단위 검사는 없다. 접근성 의미는 Compose 트리에 있는 것이라 일반 단위 검사로 볼 수 없고, 이 저장소에는 Compose UI 검사 도구가 없다(새 의존성을 들이지 않았다). 기기의 접근성 트리 덤프로 확인했다.
+- 확인 후 `font_scale`을 1.0으로, 화면 꺼짐 시간을 30000으로 되돌렸다. 화면 캡처는 captures/km-154에 보관했다(저장소 추적 대상 아님).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 44초). 단위 183개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
+- 결정 ADR-069. 신규 의존성 없음. 다음은 KM-155 OSS notices다.

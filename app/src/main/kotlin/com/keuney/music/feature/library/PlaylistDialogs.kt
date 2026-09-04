@@ -88,7 +88,9 @@ internal fun AddToPlaylistDialog(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onSelect(playlist) }
+                                    .clickable(
+                                        onClickLabel = stringResource(R.string.playlist_add_track),
+                                    ) { onSelect(playlist) }
                                     .padding(vertical = 12.dp),
                             )
                         }

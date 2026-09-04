@@ -37,6 +37,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -80,6 +84,8 @@ internal fun NowPlayingScreen(
     }
     val isFavorite by favoriteFlow.collectAsStateWithLifecycle(false)
     val playlists by libraryViewModel.playlists.collectAsStateWithLifecycle()
+    // semantics 블록은 컴포저블이 아니므로 문자열을 미리 읽어 둔다.
+    val seekLabel = stringResource(R.string.a11y_seek)
     var addingToPlaylist by remember { mutableStateOf(false) }
     var namingNewPlaylist by remember { mutableStateOf(false) }
     // 손가락 → 아직 도달하지 않은 탐색 목표 → 실제 위치 순으로 고른다.
@@ -125,7 +131,12 @@ internal fun NowPlayingScreen(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(stringResource(statusRes(connection, playback)))
+        // 재생·일시정지·오류가 이 한 줄로 바뀐다. 화면을 보지 않는 사람에게도 바뀐 사실이
+        // 전해져야 하므로 바뀔 때 읽어 주도록 표시한다.
+        Text(
+            text = stringResource(statusRes(connection, playback)),
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
         Slider(
             value = shownPositionMs.toFloat(),
             onValueChange = { draggedPosition = it },
@@ -142,7 +153,17 @@ internal fun NowPlayingScreen(
             valueRange = 0f..playback.durationMs.coerceAtLeast(1).toFloat(),
             enabled = connected && playback.durationMs > 0,
         )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        // 지금 위치와 곡 길이를 한 번에 읽어 준다. 두 숫자를 따로 읽으면 무엇의 숫자인지
+        // 알 수 없다. 슬라이더 자체에는 이름을 붙일 수 없었다(ADR-069).
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$seekLabel " +
+                        "${formatDuration(shownPositionMs)} / ${formatDuration(playback.durationMs)}"
+                },
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
             Text(formatDuration(shownPositionMs), style = MaterialTheme.typography.bodySmall)
             Text(formatDuration(playback.durationMs), style = MaterialTheme.typography.bodySmall)
         }

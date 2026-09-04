@@ -191,7 +191,7 @@ private fun PlaylistRow(playlist: Playlist, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClickLabel = stringResource(R.string.a11y_open), onClick = onClick)
             .padding(vertical = 12.dp),
     ) {
         Text(

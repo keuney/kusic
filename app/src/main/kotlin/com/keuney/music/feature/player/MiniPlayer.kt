@@ -34,7 +34,11 @@ internal fun MiniPlayer(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.clickable(onClick = onClick),
+        // 줄을 누르면 전체 화면으로 간다. 그 뜻을 이름으로 남긴다.
+        modifier = modifier.clickable(
+            onClickLabel = stringResource(R.string.a11y_open_player),
+            onClick = onClick,
+        ),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

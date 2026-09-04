@@ -13,8 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.keuney.music.R
 import com.keuney.music.core.model.Track
 import com.keuney.music.ui.format.formatDuration
 
@@ -33,7 +35,12 @@ internal fun TrackRow(
 ) {
     Row(
         modifier = modifier
-            .clickable(enabled = enabled, onClick = onClick)
+            // 무엇이 일어나는지 이름을 붙인다. 없으면 "두 번 눌러 실행"으로만 읽힌다.
+            .clickable(
+                enabled = enabled,
+                onClickLabel = stringResource(R.string.player_play),
+                onClick = onClick,
+            )
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -110,7 +110,7 @@ private fun QueueRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(background)
-            .clickable(onClick = onPlay)
+            .clickable(onClickLabel = stringResource(R.string.player_play), onClick = onPlay)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,

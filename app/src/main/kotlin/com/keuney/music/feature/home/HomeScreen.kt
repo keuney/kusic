@@ -180,7 +180,11 @@ private fun TrackCard(track: Track, enabled: Boolean, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(CARD_WIDTH)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(
+                enabled = enabled,
+                onClickLabel = stringResource(R.string.player_play),
+                onClick = onClick,
+            ),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // 제목이 바로 아래 있으므로 이미지는 장식이다.
@@ -218,7 +222,7 @@ private fun PlaylistCard(playlist: Playlist, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(CARD_WIDTH)
-            .clickable(onClick = onClick),
+            .clickable(onClickLabel = stringResource(R.string.a11y_open), onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Box(
