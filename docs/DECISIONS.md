@@ -265,6 +265,19 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-071 — 릴리스 서명 설정 (KM-157)
+
+- 서명 정보를 읽는 곳은 **프로젝트 루트의 `keystore.properties`(`.gitignore` 대상)와 환경 변수 넷**뿐이다. 저장소에는 키도 비밀번호도 들어오지 않는다(AGENTS.md 13). 파일이 있으면 파일을, 없으면 환경 변수를 본다.
+- **서명 정보가 없어도 빌드를 실패시키지 않는다.** 키가 없는 곳(CI, 다른 PC)에서도 `test`·`lint`·`assembleRelease`가 돌아야 한다. 서명 없이 만들고 결과물 이름이 `app-release-unsigned.apk`로 남는다.
+- 그 대신 **왜 서명이 빠졌는지 한 줄로 말한다.** 서명 실패는 조용하기 때문이다. 결과물이 나오고 빌드는 성공하며, 이름을 눈여겨보지 않으면 서명되지 않은 것을 모른다. 그래서 상태를 `SigningState.Missing(reason)`으로 들고 다니며 release를 만들 때만 그 이유를 찍는다. 다른 빌드에서 매번 찍으면 읽지 않게 된다.
+- 알려 주는 세 가지 경우를 실제로 만들어 확인했다: 설정이 아예 없을 때, 값이 비어 있을 때(어느 값인지 말한다), 키 파일 경로가 가리키는 파일이 없을 때(어긋난 경로를 그대로 보여 준다).
+- **`.properties`를 UTF-8로 읽고 BOM을 떼어 낸다.** 이 설정을 만들면서 실제로 겪은 일이다. 편집기가 붙인 BOM이 첫 키 이름에 섞여 값이 조용히 비었고, 서명이 걸리지 않는데 이유를 알 수 없었다. `Properties.load(InputStream)`은 ISO-8859-1로 읽으므로 UTF-8 텍스트로 읽어 넘긴다. 비밀번호에 한글이나 특수문자가 있어도 그대로 읽힌다.
+- Windows 경로의 역슬래시가 `.properties`에서 이스케이프로 읽히는 것은 막을 수 없다. 대신 **어긋난 경로를 그대로 보여 주고 `/`를 쓰라고 말한다.** 문서에도 적었다.
+- 로그에는 **키 파일 이름만** 찍는다. 경로 전체·별칭·비밀번호는 찍지 않는다. 빌드 로그는 남고 공유된다.
+- 검증에는 **버릴 키**를 저장소 밖(스크래치 디렉터리)에 만들어 썼다. 서명된 `app-release.apk`가 나오고 `apksigner verify`가 인증서를 출력하는 것을 확인한 뒤 지웠다. 사용자의 키는 사용자가 만든다. `keytool` 예시에서 `-storepass`·`-keypass`를 생략해 명령 기록에 비밀번호가 남지 않게 했다.
+- 키를 잃으면 이미 설치된 앱을 갱신할 수 없다는 사실을 문서에 적었다. 지우고 다시 설치하면 기기 안의 즐겨찾기·재생목록·기록이 사라진다.
+- 근거: [앱 서명](https://developer.android.com/studio/publish/app-signing), [Properties 파일 인코딩](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Properties.html#load(java.io.InputStream)).
+
 ### ADR-070 — 라이선스 고지 (KM-155)
 
 - **목록을 기억으로 쓰지 않았다.** `releaseRuntimeClasspath`의 전이 의존성 전체(238개)를 뽑고, 각 아티팩트의 라이선스를 Gradle 캐시에 내려온 **POM의 licenses 항목**에서 읽었다. POM에 없으면 같은 버전의 부모 POM을 따라갔다. 라이브러리 이름만 보고 "아마 Apache"라고 적으면 그것은 확인이 아니다.

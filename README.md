@@ -19,7 +19,7 @@
 
 이 앱은 **한 사람이 자기 기기에 APK를 직접 넣어 쓰는 것**을 전제로 만들었다. 그 전제가 설계 곳곳을 정한다.
 
-- 공개 앱스토어 배포는 v0.1 범위가 아니다. 릴리스 APK는 아직 서명하지 않는다(KM-157).
+- 공개 앱스토어 배포는 v0.1 범위가 아니다. 릴리스 서명은 본인의 키로 로컬에서만 한다(아래 "릴리스 서명").
 - 로그인이 없다. 계정·쿠키·토큰을 저장하지 않으며 요청에 실어 보내지도 않는다(PRD 9, AGENTS.md 13).
 - 영구 다운로드가 없다. 재생한 구간만 캐시에 잠시 두고 상한을 넘으면 오래된 것부터 지운다. 사용자가
   언제든 비울 수 있고 운영체제가 정리해도 무방하다(ADR-035).
@@ -186,6 +186,56 @@ KM-012 화면 검증을 재실행하려면 디버그 빌드 후 에뮬레이터�
 ```
 
 계측 결과는 `app/build/reports/androidTests/connected/debug/index.html`에서 확인한다. 일반 앱 실행 검증에는 위 `verify-km012.ps1`을 재사용한다. Hilt 및 테스트 의존성 선택은 ADR-012에 기록했다.
+
+## 릴리스 서명
+
+서명 정보는 **저장소에 넣지 않는다**(AGENTS.md 13). 빌드는 두 곳에서만 읽는다.
+
+1. 프로젝트 루트의 `keystore.properties` — `.gitignore` 대상이다.
+2. 환경 변수 `KEUNEY_KEYSTORE_FILE`·`KEUNEY_KEYSTORE_PASSWORD`·`KEUNEY_KEY_ALIAS`·`KEUNEY_KEY_PASSWORD`.
+
+파일이 있으면 파일을, 없으면 환경 변수를 본다. 둘 다 없으면 **서명하지 않은 APK**를 그대로 만든다.
+키가 없는 곳(CI, 다른 PC)에서도 `test`·`lint`·`assembleRelease`가 돌아야 하므로 빌드를 실패시키지 않는다.
+대신 release를 만들 때 왜 서명이 빠졌는지 한 줄로 알려 준다.
+
+### 키를 만든다
+
+키는 **본인이 만들고 비밀번호도 본인이 정한다.** 이 저장소에는 키도 비밀번호도 들어오지 않는다.
+`-storepass`·`-keypass`를 생략하면 keytool이 물어보므로 명령 기록에 비밀번호가 남지 않는다.
+
+```powershell
+& "$env:JAVA_HOME/bin/keytool.exe" -genkeypair -v `
+  -keystore C:/keys/keuney-release.jks -alias keuney `
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+키 파일은 **저장소 밖**에 둔다. 잃어버리면 이미 설치된 앱을 갱신할 수 없다. Android는 같은 서명이 아닌
+APK를 업데이트로 받지 않으므로, 지우고 다시 설치해야 하며 그때 기기 안의 즐겨찾기·재생목록·기록이 사라진다.
+
+### 빌드에 알려 준다
+
+`keystore.properties`를 프로젝트 루트에 만든다. **경로는 `/`로 쓴다.** `.properties`에서 역슬래시는
+이스케이프 문자라 `C:\keys\a.jks`는 엉뚱한 경로가 된다(이 경우 빌드가 그 사실을 알려 준다).
+
+```properties
+storeFile=C:/keys/keuney-release.jks
+storePassword=...
+keyAlias=keuney
+keyPassword=...
+```
+
+파일은 UTF-8로 저장한다. 빌드가 BOM을 떼어 내므로 편집기가 붙였더라도 동작한다. 값이 비어 있거나 키
+파일이 없으면 그 이유를 알려 주고 서명 없이 만든다.
+
+### 확인한다
+
+```powershell
+.\gradlew.bat assembleRelease
+& "$env:ANDROID_HOME/build-tools/36.0.0/apksigner.bat" verify --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+서명이 걸리면 결과물 이름이 `app-release.apk`이고, 걸리지 않으면 `app-release-unsigned.apk`다.
+`apksigner verify`가 인증서를 출력하면 서명이 유효하다.
 
 ## 외부 소스 검증
 

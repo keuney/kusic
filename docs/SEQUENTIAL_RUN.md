@@ -829,3 +829,20 @@
 - 한 곳을 고쳤다. 스트림 URL 미저장을 설명하며 "데이터베이스에 url이 들어간 열이 없다"고 쓸 뻔했으나, 실제 검사는 `artwork_url`을 예외로 둔다. 검사 코드를 확인하고 문구를 정확히 고쳤다.
 - `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(29초). `app/` 아래 변경이 없어 실기기 계측은 KM-154의 46개 통과 결과가 그대로 유효하다.
 - ADR을 남기지 않았다. 설계를 정한 것이 없고 있는 사실을 적었을 뿐이다. 다음은 KM-157 릴리스 서명 설정이다.
+
+## KM-157 완료 — Release signing configuration
+
+- 브랜치 `codex/KM-157-release-signing`. 서명 설정을 붙이되 저장소에는 키도 비밀번호도 들어오지 않게 했다.
+- 읽는 곳은 두 군데다. 프로젝트 루트의 `keystore.properties`(`.gitignore` 대상)와 환경 변수 넷(`KEUNEY_KEYSTORE_FILE`·`KEUNEY_KEYSTORE_PASSWORD`·`KEUNEY_KEY_ALIAS`·`KEUNEY_KEY_PASSWORD`). 파일이 있으면 파일을, 없으면 환경 변수를 본다.
+- 서명 정보가 없어도 빌드는 성공한다. 키가 없는 곳에서도 `test`·`lint`·`assembleRelease`가 돌아야 한다. 그 대신 release를 만들 때 **왜 서명이 빠졌는지** 한 줄로 찍는다. 서명 실패는 조용해서, 이름(`app-release-unsigned.apk`)을 눈여겨보지 않으면 모른다.
+- **시행착오(그리고 그 덕에 고친 것).** 검증용 `keystore.properties`를 PowerShell `Out-File -Encoding utf8`로 만들었더니 서명이 걸리지 않았다. 원인은 **BOM**이었다. `Properties.load(InputStream)`은 ISO-8859-1로 읽으므로 BOM이 첫 키 이름에 섞여 `storeFile` 값이 비었고, 조용히 서명 없이 빌드됐다.
+- 사용자도 편집기에 따라 같은 일을 겪는다. 그래서 읽는 쪽을 고쳤다. UTF-8로 읽고 BOM을 떼어 낸다(비밀번호에 한글·특수문자가 있어도 읽힌다). 그리고 상태를 `SigningState.Missing(reason)`으로 들고 다니며 이유를 말하게 했다.
+- 알려 주는 경우 세 가지를 실제로 만들어 확인했다.
+  - 설정이 아예 없을 때: "서명 정보가 없다(keystore.properties도, 환경 변수도 없다)".
+  - 값이 비었을 때: "keystore.properties 의 storePassword 값이 비어 있다".
+  - 경로가 어긋났을 때: 역슬래시를 쓴 `C:\keys\typo.jks`가 `C:keys` + 탭 + `ypo.jks`로 망가진 것을 그대로 보여 주고 `/`를 쓰라고 말한다. `.properties`에서 역슬래시는 이스케이프 문자이고 \t는 탭이 된다.
+- 로그에는 키 파일 **이름만** 찍는다. 경로 전체·별칭·비밀번호는 찍지 않는다. 빌드 로그는 남고 공유된다.
+- 서명되는 경로도 실제로 확인했다. **버릴 키**를 저장소 밖(스크래치 디렉터리)에 만들어 걸었더니 결과물이 `app-release.apk`(17,259,613바이트)로 나왔고 `apksigner verify --print-certs`가 인증서를 출력했다. 확인 뒤 그 키와 `keystore.properties`를 지웠고 `git status`에 남은 것이 없음을 확인했다. 사용자의 키는 사용자가 만든다.
+- README에 "릴리스 서명" 절을 넣었다. 키 만들기(`-storepass` 생략해 명령 기록에 비밀번호가 남지 않게), `keystore.properties` 형식과 경로 주의, 환경 변수, 확인 방법, 키를 잃으면 설치된 앱을 갱신할 수 없다는 사실까지 적었다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 24초). 단위 183개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
+- 결정 ADR-071. 신규 의존성 없음. 다음은 KM-158 Release APK다. 거기서는 서명한 APK를 실기기에 설치해 스모크 검사를 한다. 사용자의 키가 필요하므로 진행 전에 물어봐야 한다.

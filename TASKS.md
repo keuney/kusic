@@ -18,13 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 70 / 미착수 7. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133·135·136·151~156 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 7에는 최종 게이트 KM-200과 보류한 KM-135가 포함된다.
+**현재: 완료 71 / 미착수 6. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133·135·136·151~157 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 6에는 최종 게이트 KM-200과 보류한 KM-135가 포함된다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116). M8은 블루투스 두 건(KM-130·131)과 조건 미충족 한 건(KM-135)을 빼고 완료. M9은 KM-150~156 완료.**
+**M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116). M8은 블루투스 두 건(KM-130·131)과 조건 미충족 한 건(KM-135)을 빼고 완료. M9은 KM-150~157 완료.**
 
-**다음 작업: KM-157 (Release signing configuration).** 서명 키와 자격증명은 저장소에 넣지 않는다는 규칙(AGENTS.md 13, .gitignore)을 지키면서 어떻게 구성할지가 이 작업의 핵심이다. 그 뒤 남은 것은 KM-158 이후와 최종 게이트 KM-200이다.
+**다음 작업: KM-158 (Release APK).** 서명한 릴리스 APK를 실기기에 설치해 스모크 검사를 하는 작업이다. **사용자의 서명 키가 필요하다.** 저장소에는 키가 없고 내가 만들지도 않는다(KM-157에서 검증용으로 쓴 키는 지웠다). 착수 전에 사용자에게 키를 만들어 `keystore.properties`를 두었는지 물어야 한다. 키 없이 진행하면 서명하지 않은 APK로 설치를 확인하는 것이 되어 인수 조건("release APK installs")의 뜻이 달라진다.
 
-**KM-156에서 정한 것:** README는 처음 보는 사람이 읽는 문서다. 진행 상태를 적을 때는 세어 확인한 값을 쓰고, 알려진 한계는 저장소 기록에서 나온 것만 적는다.
+**KM-157에서 정한 것:** 서명 정보는 `.gitignore` 대상 파일과 환경 변수에서만 읽는다. 없으면 실패시키지 않고 서명 없이 만들되 이유를 말한다. 로그에 비밀번호·별칭·경로를 찍지 않는다(ADR-071).
 
 **KM-130·131을 건너뛴 이유:** 사용자에게 물었고 실제 블루투스 기기가 없다는 답을 받았다(2026-09-04). AGENTS.md 20이 Bluetooth 조작과 headset disconnect를 에뮬레이터 통과만으로 완료 처리하지 말라고 하므로 기기가 생길 때까지 미룬다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 그 작업들의 핵심이다.
 
@@ -1937,7 +1937,18 @@ known limitations
 
 KM-157 — Release signing configuration
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-04): 서명 설정을 붙이되 저장소에는 키도 비밀번호도 들어오지 않게 했다.
+
+- 인수 조건: signing secret not committed PASS(읽는 곳은 .gitignore 대상 파일과 환경 변수뿐이고, 검증 후 남은 것이 없음을 git status로 확인했다). local signing instructions documented PASS(README "릴리스 서명").
+- 서명 정보가 없어도 빌드는 성공하고 서명하지 않은 APK가 나온다. 키가 없는 곳에서도 test·lint·assembleRelease가 돌아야 한다. 그 대신 release를 만들 때 왜 서명이 빠졌는지 한 줄로 찍는다.
+- 알려 주는 세 경우를 실제로 만들어 확인했다: 설정 없음, 값이 빔(어느 값인지 말한다), 경로가 어긋남(망가진 경로를 보여 주고 / 를 쓰라고 한다).
+- BOM 때문에 조용히 서명되지 않는 일을 겪고 읽는 쪽을 고쳤다. UTF-8로 읽고 BOM을 떼어 낸다.
+- 로그에는 키 파일 이름만 찍는다. 경로·별칭·비밀번호는 찍지 않는다.
+- 서명 경로는 저장소 밖에 만든 버릴 키로 확인했다. app-release.apk가 나오고 apksigner verify가 인증서를 출력했다. 확인 뒤 키와 keystore.properties를 지웠다. 사용자의 키는 사용자가 만든다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(5분 24초). 단위 183개·실제 계약 7개·실기기 계측 46개. 린트 오류 0.
+- 결정은 ADR-071에 기록했다.
 
 Acceptance Criteria:
 
