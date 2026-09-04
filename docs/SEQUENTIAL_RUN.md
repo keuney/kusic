@@ -679,3 +679,18 @@
 - 오프라인에서 새 곡을 고르는 경로도 확인했다. WiFi를 끈 채 다른 곡을 누르면 같은 네트워크 문구가 나오고, 다시 켜자 손대지 않았는데 0:20에서 재생됐다. 주소 해석 실패의 오류 코드가 컨트롤러까지 닿는다는 증거다.
 - 확인 후 최근 재생을 지우고 일시정지했으며 WiFi와 화면 꺼짐 시간(30000)을 되돌렸다. 화면 캡처는 captures/km-132에 보관했다(저장소 추적 대상 아님).
 - 결정 ADR-063. 신규 의존성 없음. 다음은 KM-133이다. KM-130·131은 블루투스 기기가 생기면 진행한다.
+
+## KM-133 완료 — Activity/process lifecycle regression
+
+- 브랜치 `codex/KM-133-lifecycle-regression`. 인수 조건 넷 중 셋은 이미 지켜지고 있었다. 먼저 기기에서 확인하고 어긋나는 곳을 찾았다.
+- 실기기 SM-T220 확인: 회전(세로↔가로)해도 재생이 이어지고 목적지도 그대로였다(세션 PLAYING 21.1초). 개발자 옵션 "활동 유지 안 함"을 켜고 홈으로 나갔다 돌아와도 Now Playing 화면과 위치(1:13)가 되살아났다. 뒤로 가기로 Activity를 끝내도 서비스는 계속 재생했고(95.2초) 프로세스도 살아 있었다. 확인 후 옵션을 껐다.
+- 어긋난 곳은 **구성 변경 때 세션 연결을 버린다는 것**이었다. `onStop`이 무조건 끊으니 회전할 때마다 컨트롤러를 다시 만든다. 그 사이 재생 상태가 비어 미니 플레이어가 사라지고 조작 버튼이 꺼진다.
+- `isChangingConfigurations`이면 끊지 않게 했다. ViewModel이 남으므로 다시 만들어진 Activity가 같은 연결을 이어 쓰고, `connect()`는 이미 붙어 있으면 아무 일도 하지 않는다. 정말로 떠날 때는 `PlayerViewModel.onCleared`가 끊는다.
+- `android:configChanges`로 재생성을 막는 방법은 쓰지 않았다. 재생성은 그대로 두고 세션 연결만 이어 붙인다.
+- 계측 1개 추가(`ActivityRecreationTest`). 회전을 흉내 내지 않고 `Activity.recreate()`로 같은 길을 지나가게 하며, 화면이 실제로 쓰는 ViewModel을 본다. 재생성이 끝난 뒤의 값만이 아니라 **그 사이의 연결 상태 변화를 모아** 확인한다.
+- 이 검사가 실제로 회귀를 잡는지 확인했다. 고침을 잠시 되돌리고 돌리자 `expected:<[Connected]> but was:<[Connected, Disconnected, Connecting]>`으로 실패했다. 재생성 2초 뒤에도 아직 `Connecting`이었다는 뜻이기도 하다. 확인 후 고침을 되돌려 놓았다.
+- Activity 종료 뒤의 재생 지속은 `BackgroundPlaybackTest`가 이미 다루므로 새로 만들지 않았다. 계측 45개 → 46개.
+- 최근 앱 목록에서 밀어내는 경로는 자동화하지 못했다. `input swipe`로 카드를 지우려다 옆의 다른 앱이 열렸다. 이 경로는 남은 검증으로 적어 둔다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 51초). 단위 171개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
+- 확인 후 자동 회전과 화면 꺼짐 시간(30000)을 되돌리고 앱을 다시 설치했다.
+- 결정 ADR-064. 신규 의존성 없음. 다음은 KM-135이다.

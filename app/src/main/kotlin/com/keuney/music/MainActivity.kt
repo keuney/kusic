@@ -28,8 +28,17 @@ class MainActivity : ComponentActivity() {
         playerViewModel.connect()
     }
 
+    /**
+     * 구성 변경으로 잠깐 사라지는 것은 떠나는 것이 아니다. ViewModel이 그대로 남으므로 다시
+     * 만들어진 Activity가 같은 연결을 이어 쓴다.
+     *
+     * 여기서 끊으면 회전할 때마다 세션에 다시 붙는다. 붙는 동안 재생 상태가 비어 미니 플레이어가
+     * 사라지고 조작 버튼이 꺼진다. 화면을 돌렸을 뿐인데 재생이 끊긴 것처럼 보인다.
+     *
+     * 정말로 떠날 때(Activity 종료)는 [PlayerViewModel.onCleared]가 끊는다.
+     */
     override fun onStop() {
-        playerViewModel.disconnect()
+        if (!isChangingConfigurations) playerViewModel.disconnect()
         super.onStop()
     }
 

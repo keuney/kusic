@@ -265,6 +265,17 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-064 — 구성 변경과 세션 연결 (KM-133)
+
+- **구성 변경으로 Activity가 다시 만들어지는 동안에는 세션 연결을 끊지 않는다.** `onStop`에서 `isChangingConfigurations`이면 그대로 둔다. ViewModel이 남으므로 다시 만들어진 Activity가 같은 연결을 이어 쓴다.
+- 이전에는 회전할 때마다 컨트롤러를 버리고 다시 만들었다. 실기기 검사에서 재생성 2초 뒤에도 연결 상태가 `Connecting`이었다. 그 동안 재생 상태가 비어 미니 플레이어가 사라지고 조작 버튼이 꺼진다. 화면을 돌렸을 뿐인데 재생이 끊긴 것처럼 보인다. 태블릿에서는 회전이 잦다.
+- 회전만의 문제가 아니다. 다크 모드 전환, 글꼴 크기, 창 크기 변경이 모두 같은 길로 온다.
+- 정말로 떠날 때는 `PlayerViewModel.onCleared`가 끊으므로 연결이 남지 않는다. Activity가 구성 변경으로 사라진 뒤 다시 만들어지지 않는 경우도 여기에 걸린다.
+- `android:configChanges`로 재생성 자체를 막는 방법은 쓰지 않는다. 그러면 Compose가 새 리소스를 다시 읽는 정상 경로를 벗어나고, 언젠가 시스템이 강제로 다시 만들 때만 드러나는 버그가 생긴다. 다시 만들어지는 것은 그대로 두고 세션 연결만 이어 붙인다.
+- 검사는 회전을 흉내 내지 않고 `Activity.recreate()`로 같은 길을 지나가게 한다. 화면이 실제로 쓰는 ViewModel을 그대로 보며, 재생성이 끝난 뒤의 값만이 아니라 **그 사이의 연결 상태 변화를 모아** 확인한다. 끝 값만 보면 잠깐 끊겼다 다시 붙은 것을 알아챌 수 없다. 고치기 전에는 `[Connected, Disconnected, Connecting]`이 기록돼 검사가 실패하는 것을 확인했다.
+- Activity 종료 뒤의 재생 지속은 이미 `BackgroundPlaybackTest`가 다룬다. 같은 것을 두 번 검사하지 않는다.
+- 근거: [구성 변경 처리](https://developer.android.com/guide/topics/resources/runtime-changes), [ViewModel 보존 범위](https://developer.android.com/topic/libraries/architecture/viewmodel#lifecycle).
+
 ### ADR-063 — 네트워크 끊김과 재연결 (KM-132)
 
 - **짧은 끊김은 손대지 않는다.** ExoPlayer가 이미 스스로 몇 번 다시 읽어 보고, 그 사이 재생은 버퍼로 이어진다. 실기기에서 WiFi를 끈 뒤에도 재생이 그대로 이어지는 것을 확인했다. 재시도 횟수를 늘리는 방법도 있지만, 그것은 "준비 중"으로 오래 붙잡아 두는 쪽이고 끊긴 것을 알려 주지 않는다.

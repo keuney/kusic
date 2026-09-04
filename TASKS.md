@@ -18,13 +18,15 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 62 / 미착수 15. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 15에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 63 / 미착수 14. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 14에는 최종 게이트 KM-200이 포함된다.
 
 **M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116).**
 
-**다음 작업: KM-133 (Activity/process lifecycle regression).** M8에서 KM-134·137은 앞당겨 완료했고 KM-132도 끝났으므로 남은 것은 KM-130·131·133·135·136이다.
+**다음 작업: KM-135 (Battery/doze behavior).** M8에서 남은 것은 KM-130·131(블루투스 기기 필요)·135·136이다.
 
 **KM-130·131을 건너뛴 이유:** 사용자에게 물었고 실제 블루투스 기기가 없다는 답을 받았다(2026-09-04). AGENTS.md 20이 Bluetooth 조작과 headset disconnect를 에뮬레이터 통과만으로 완료 처리하지 말라고 하므로 기기가 생길 때까지 미룬다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 그 작업들의 핵심이다.
+
+**KM-133에서 정한 것:** 구성 변경으로 Activity가 다시 만들어지는 동안에는 세션 연결을 끊지 않는다(`isChangingConfigurations`). 정말로 떠날 때만 `PlayerViewModel.onCleared`가 끊는다.
 
 **KM-132에서 정한 것:** 재생 실패는 `PlaybackFailure`로 네트워크와 소스를 가른다. 화면 문구와 자동 회복 여부가 이 값 하나를 본다. 연결이 돌아오면 서비스가 이어 붙이되 사용자가 멈춰 둔 재생은 되살리지 않는다.
 
@@ -1602,7 +1604,17 @@ reasonable recovery or clear failure
 
 KM-133 — Activity/process lifecycle regression
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-04): 인수 조건 넷 중 셋은 이미 지켜지고 있었다. 기기에서 먼저 확인하고 어긋나는 한 곳을 고친 뒤 회귀 검사를 붙였다.
+
+- 인수 조건: Activity recreation PASS. rotation/config change PASS. Activity finish PASS(서비스는 계속 재생, BackgroundPlaybackTest가 이미 다룸). Service playback unaffected PASS.
+- 실기기 확인: 회전해도 재생과 목적지가 유지된다. "활동 유지 안 함"을 켜고 나갔다 돌아와도 화면과 재생 위치가 되살아난다. 뒤로 가기로 Activity를 끝내도 서비스는 계속 재생한다.
+- 고친 곳: 구성 변경으로 Activity가 다시 만들어지는 동안 세션 연결을 버리고 있었다. 회전할 때마다 컨트롤러를 다시 만드느라 그 사이 미니 플레이어가 사라지고 조작 버튼이 꺼진다. `isChangingConfigurations`이면 끊지 않는다.
+- 계측 1개 추가(ActivityRecreationTest). `Activity.recreate()`로 같은 길을 지나가게 하고 재생성 사이의 연결 상태 변화를 모아 본다. 고침을 되돌리면 실패하는 것을 확인했다(`[Connected, Disconnected, Connecting]`).
+- 남은 검증: 최근 앱 목록에서 밀어내는 경로(task removal)는 자동화하지 못해 확인하지 않았다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(4분 51초). 단위 171개·실제 계약 7개·실기기 계측 46개. 린트 오류 0.
+- 결정은 ADR-064에 기록했다. 신규 의존성 없음.
 
 Acceptance Criteria:
 
