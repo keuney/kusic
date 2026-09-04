@@ -22,6 +22,16 @@ class PlaybackFailureTest {
     }
 
     @Test
+    fun ourOwnPolicyBlockIsItsOwnKind() {
+        // WiFi 전용 재생이 막은 것이다(KM-138). 소스 실패로 보면 다음 곡으로 넘어가 버리고,
+        // 네트워크 실패로 보면 연결이 돌아올 때 되살리려 한다. 둘 다 틀리다.
+        assertEquals(
+            PlaybackFailure.Blocked,
+            playbackFailureOf(PlaybackException.ERROR_CODE_IO_NO_PERMISSION),
+        )
+    }
+
+    @Test
     fun otherFailuresAreTreatedAsSource() {
         listOf(
             // 무엇인지 모르는 입출력 오류는 네트워크로 보지 않는다. 연결이 돌아올 때마다 같은
@@ -30,6 +40,7 @@ class PlaybackFailureTest {
             // 응답 상태를 받았다는 것은 연결이 되었다는 뜻이다. 곡 쪽 문제다.
             PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
             PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+            PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED,
             PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
             PlaybackException.ERROR_CODE_DECODING_FAILED,
             PlaybackException.ERROR_CODE_UNSPECIFIED,

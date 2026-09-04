@@ -50,7 +50,13 @@ private fun Throwable.toResolveException(): IOException = DataSourceException(
 /**
  * 사용자가 켠 WiFi 전용 재생 때문에 새 요청을 막았다. 메시지는 고정 문자열이다.
  *
- * 네트워크 실패가 아니다. 연결이 돌아와도 요금제가 그대로면 다시 막힌다. 자동으로 다시 시도할
- * 대상이 되지 않도록 분류하지 않은 입출력 오류로 남긴다.
+ * 네트워크 실패가 아니다. 연결이 돌아와도 요금제가 그대로면 다시 막힌다. 그리고 곡이 잘못된
+ * 것도 아니므로 다음 곡으로 넘어가서도 안 된다(KM-138). 그래서 전용 코드를 실어 보내
+ * [PlaybackFailure.Blocked]로 갈라진다.
  */
-internal class MeteredNetworkBlockedException : IOException("Metered network playback is disabled")
+@androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
+internal class MeteredNetworkBlockedException : DataSourceException(
+    "Metered network playback is disabled",
+    null,
+    PlaybackException.ERROR_CODE_IO_NO_PERMISSION,
+)

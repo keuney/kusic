@@ -3,6 +3,7 @@ package com.keuney.music.core.player
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.MainThread
@@ -39,6 +40,19 @@ internal class PlayerConnection @Inject constructor(
     /** 대기열은 바뀔 때만 다시 읽는다. 위치 갱신은 250ms마다 오므로 매번 만들면 낭비다. */
     private var queue: List<NowPlaying> = emptyList()
     private var queueStale = true
+
+    /**
+     * 재생할 수 없어 지나간 곡의 제목과, 그것을 이미 본 기준이 되는 횟수(KM-138).
+     *
+     * 서비스가 세션 extras로 알려 온다. 컨트롤러가 스스로 알아낼 수는 없다. 오류가 나자마자
+     * 서비스가 다음 곡으로 넘기고 다시 준비하므로, 여기에는 오류 상태가 도착하기도 전에 이미
+     * 다음 곡이 재생되고 있다.
+     *
+     * 횟수를 보는 이유는 **새로 넘어간 것**만 알려야 하기 때문이다. 붙을 때 이미 있던 값은
+     * 기준으로만 삼고 안내하지 않는다. 지난 일을 지금 일어난 것처럼 보여 주지 않는다.
+     */
+    private var seenSkipCount = 0
+    private var skippedTitle: String? = null
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = updatePlayback()
 
@@ -69,6 +83,10 @@ internal class PlayerConnection @Inject constructor(
                         mutableState.value = ConnectionState.Unavailable
                     }
                 }
+
+                override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
+                    if (this@PlayerConnection.controller === controller) readSkipNote(extras)
+                }
             })
             .buildAsync()
         pending = future
@@ -80,6 +98,9 @@ internal class PlayerConnection @Inject constructor(
                     mutableState.value = ConnectionState.Connected
                     // 붙는 순간의 대기열은 알림 없이 이미 있다.
                     queueStale = true
+                    // 붙기 전에 지나간 곡은 지금 일어난 일이 아니다. 기준만 맞춘다.
+                    seenSkipCount = controller?.sessionExtras
+                        ?.getInt(MusicService.EXTRA_SKIP_COUNT, 0) ?: 0
                     controller?.addListener(playerListener)
                     positionUpdate.run()
                 } else {
@@ -117,6 +138,8 @@ internal class PlayerConnection @Inject constructor(
     @MainThread
     fun play() {
         checkMainThread()
+        // 무엇을 재생할지 바꾸는 조작이다. 지나간 곡 안내는 여기서 지운다(KM-138).
+        clearSkipNote()
         val player = controller ?: return
         if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
         if (player.playbackState == Player.STATE_IDLE || player.playerError != null) player.prepare()
@@ -132,6 +155,7 @@ internal class PlayerConnection @Inject constructor(
     @MainThread
     fun playTrack(trackId: String, title: String, artist: String, artworkUri: String? = null) {
         checkMainThread()
+        clearSkipNote()
         val player = controller ?: return
         player.setMediaItem(
             MediaItem.Builder()
@@ -150,6 +174,7 @@ internal class PlayerConnection @Inject constructor(
     @MainThread
     fun playQueue(tracks: List<Track>, startIndex: Int = 0) {
         checkMainThread()
+        clearSkipNote()
         if (tracks.isEmpty()) return
         val player = controller ?: return
         player.setMediaItems(
@@ -170,6 +195,7 @@ internal class PlayerConnection @Inject constructor(
     @MainThread
     fun seekToQueueItem(index: Int) {
         checkMainThread()
+        clearSkipNote()
         val player = controller ?: return
         if (index !in 0 until player.mediaItemCount) return
         player.seekTo(index, 0)
@@ -226,6 +252,7 @@ internal class PlayerConnection @Inject constructor(
     @MainThread
     fun seekToPrevious() {
         checkMainThread()
+        clearSkipNote()
         val player = controller ?: return
         if (player.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS)) player.seekToPrevious()
     }
@@ -234,6 +261,7 @@ internal class PlayerConnection @Inject constructor(
     @MainThread
     fun seekToNext() {
         checkMainThread()
+        clearSkipNote()
         val player = controller ?: return
         if (player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT)) player.seekToNext()
     }
@@ -264,13 +292,14 @@ internal class PlayerConnection @Inject constructor(
             queueStale = false
         }
         val item = player.currentMediaItem
+        val failure = playbackFailureOf(player.playerError?.errorCode)
         mutablePlayback.value = mapPlaybackState(
             playerState = player.playbackState,
             isPlaying = player.isPlaying,
             playWhenReady = player.playWhenReady,
             positionMs = player.currentPosition,
             durationMs = player.duration,
-            failure = playbackFailureOf(player.playerError?.errorCode),
+            failure = failure,
             nowPlaying = nowPlayingOf(
                 mediaId = item?.mediaId,
                 title = item?.mediaMetadata?.title?.toString(),
@@ -283,7 +312,28 @@ internal class PlayerConnection @Inject constructor(
             hasNext = player.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT),
             queue = queue,
             queueIndex = player.currentMediaItemIndex,
+            skippedTitle = skippedTitle,
         )
+    }
+
+    /** 세션이 알려 온 "지나간 곡". 처음 보는 횟수일 때만 안내로 삼는다. */
+    private fun readSkipNote(extras: Bundle) {
+        val count = extras.getInt(MusicService.EXTRA_SKIP_COUNT, 0)
+        if (count == seenSkipCount) return
+        seenSkipCount = count
+        skippedTitle = extras.getString(MusicService.EXTRA_SKIPPED_TITLE)
+        updatePlayback()
+    }
+
+    /**
+     * 지나갔다는 안내를 지운다. **무엇을 재생할지 사용자가 바꾸면** 이미 본 것으로 본다.
+     *
+     * 시간이 지나면 사라지게 하지 않는다. 화면을 보고 있지 않은 사이에 사라지면 무엇이 빠졌는지
+     * 영영 알 수 없다. 일시정지나 위치 이동으로는 지우지 않는다. 그것은 지금 곡에 대한 조작이고
+     * 지나간 곡을 보았다는 뜻이 아니다.
+     */
+    private fun clearSkipNote() {
+        skippedTitle = null
     }
 
     /** 대기열을 화면이 쓸 목록으로 읽는다. 넣은 순서 그대로다. */

@@ -12,8 +12,16 @@ internal enum class PlaybackFailure {
     /** 연결이 끊겼거나 응답이 없다. 연결이 돌아오면 그대로 이어질 수 있다. */
     Network,
 
-    /** 곡을 가져올 수 없다. 기다린다고 달라지지 않으므로 다른 곡을 골라야 한다. */
+    /** 곡을 가져올 수 없다. 기다린다고 달라지지 않으므로 다른 곡으로 넘어간다(KM-138). */
     Source,
+
+    /**
+     * 사용자가 켠 설정이 막았다(WiFi 전용 재생, ADR-036).
+     *
+     * 곡이 잘못된 것이 아니므로 넘어가지 않는다. 넘어가면 막힌 대기열을 끝까지 훑기만 하고
+     * 사용자는 왜 아무것도 재생되지 않는지 알 수 없다. 설정을 바꾸는 것이 답이다.
+     */
+    Blocked,
 }
 
 /**
@@ -29,5 +37,7 @@ internal fun playbackFailureOf(errorCode: Int?): PlaybackFailure? = when (errorC
     PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
     PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
     -> PlaybackFailure.Network
+    // 우리가 막은 것에만 이 코드를 쓴다([MeteredNetworkBlockedException]).
+    PlaybackException.ERROR_CODE_IO_NO_PERMISSION -> PlaybackFailure.Blocked
     else -> PlaybackFailure.Source
 }

@@ -2,6 +2,7 @@ package com.keuney.music.core.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.os.Bundle
 import android.net.ConnectivityManager
 import android.net.Network
 import androidx.media3.exoplayer.ExoPlayer
@@ -75,6 +76,12 @@ class MusicService : MediaLibraryService() {
     /** 끊긴 재생을 연결이 돌아왔을 때 이어 붙일지 정하는 규칙. */
     private val recovery = NetworkRecovery()
 
+    /** 재생할 수 없는 곡에서 다음 곡으로 넘어갈지 정하는 규칙(KM-138). */
+    private val skip = UnplayableSkip()
+
+    /** 지금까지 넘긴 횟수. 화면이 "새로 넘어갔다"를 알아채는 기준이다. */
+    private var skipCount = 0
+
     /** 등록에 성공한 연결 감시. onDestroy에서 풀어야 하므로 들고 있는다. */
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
@@ -137,17 +144,57 @@ class MusicService : MediaLibraryService() {
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
+                    val failure = playbackFailureOf(error.errorCode)
                     // 멈춘 순간의 뜻을 여기서 남긴다. 나중에 보면 사용자가 그 뒤에 멈춘 것인지
                     // 오류로 멈춘 것인지 갈라낼 수 없다.
-                    recovery.onError(playbackFailureOf(error.errorCode), servicePlayer.playWhenReady)
+                    recovery.onError(failure, servicePlayer.playWhenReady)
+                    // 곡을 가져올 수 없으면 대기열의 다음 곡으로 넘어간다. 화면이 닫혀 있어도
+                    // 음악이 이어져야 하므로 재생을 가진 이곳에서 한다(KM-138).
+                    val shouldSkip = skip.shouldSkip(
+                        failure = failure,
+                        playWhenReady = servicePlayer.playWhenReady,
+                        hasNext = servicePlayer.hasNextMediaItem(),
+                        queueSize = servicePlayer.mediaItemCount,
+                    )
+                    if (shouldSkip) {
+                        val skipped = servicePlayer.currentMediaItem?.mediaMetadata?.title?.toString()
+                        servicePlayer.seekToNextMediaItem()
+                        // 오류로 멈춘 플레이어는 다시 준비시켜야 움직인다. 재생 의사는 남아
+                        // 있으므로 준비되면 그대로 이어진다.
+                        servicePlayer.prepare()
+                        announceSkip(skipped)
+                    }
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_READY) recovery.onReady()
+                    if (playbackState == Player.STATE_READY) {
+                        recovery.onReady()
+                        skip.onPlayed()
+                    }
                 }
             },
         )
         registerNetworkCallback(servicePlayer)
+    }
+
+    /**
+     * 어떤 곡을 지나갔는지 세션에 실어 보낸다(KM-138).
+     *
+     * 화면이 스스로 알아낼 수는 없다. 오류가 나자마자 여기서 다음 곡으로 넘기고 다시 준비하므로,
+     * 컨트롤러에는 오류 상태가 도착하기도 전에 이미 다음 곡이 재생되고 있다. 그래서 사실을
+     * 직접 보낸다.
+     *
+     * 횟수를 함께 보내는 이유는 화면이 **새로 넘어간 것**만 알아채야 하기 때문이다. 제목만
+     * 보내면 다시 연결할 때 옛 제목을 지금 일어난 일처럼 보여 준다.
+     */
+    private fun announceSkip(title: String?) {
+        skipCount++
+        session?.setSessionExtras(
+            Bundle().apply {
+                putInt(EXTRA_SKIP_COUNT, skipCount)
+                putString(EXTRA_SKIPPED_TITLE, title)
+            },
+        )
     }
 
     /**
@@ -280,6 +327,10 @@ class MusicService : MediaLibraryService() {
 
     internal companion object {
         const val TEST_TONE_MEDIA_ID = "known-test-tone"
+
+        /** 지나간 곡을 화면에 알리는 세션 extras 열쇠(KM-138). */
+        const val EXTRA_SKIP_COUNT = "com.keuney.music.SKIP_COUNT"
+        const val EXTRA_SKIPPED_TITLE = "com.keuney.music.SKIPPED_TITLE"
     }
 }
 

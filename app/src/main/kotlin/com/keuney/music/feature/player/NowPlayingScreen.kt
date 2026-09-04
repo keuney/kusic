@@ -244,6 +244,18 @@ internal fun NowPlayingScreen(
                 label = { Text(stringResource(repeatLabelRes(playback.repeatMode))) },
             )
         }
+        // 재생할 수 없어 지나간 곡이 있으면 무엇이 빠졌는지 말한다(KM-138). 음악이 저절로
+        // 이어지는 것만으로는 대기열이 마음대로 움직였다고 느낀다.
+        playback.skippedTitle?.let { skipped ->
+            Text(
+                text = stringResource(R.string.player_skipped_unplayable, skipped),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         // 화면 색과 WiFi 전용 재생은 KM-153에서 설정 화면으로 옮겼다. 여기 남은 것은 지금
         // 듣는 것을 바꾸는 조작뿐이다. 아래 안내는 설정이 아니라 지금 재생에 일어난 일이다.
         if (meteredBlocked) {
@@ -302,6 +314,8 @@ private fun statusRes(connection: ConnectionState, playback: PlaybackState): Int
     ConnectionState.Connected -> when (playback.failure) {
         PlaybackFailure.Network -> R.string.player_network_lost
         PlaybackFailure.Source -> R.string.player_source_unavailable
+        // 곡이 아니라 설정이 막은 것이다. 이유를 그대로 말한다(KM-138).
+        PlaybackFailure.Blocked -> R.string.wifi_only_blocked
         null -> when (playback.phase) {
             PlaybackPhase.Idle -> R.string.player_idle
             PlaybackPhase.Buffering -> R.string.player_buffering
