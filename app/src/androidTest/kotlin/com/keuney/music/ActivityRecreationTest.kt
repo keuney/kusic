@@ -1,6 +1,7 @@
 package com.keuney.music
 
 import android.app.Activity
+import android.app.Instrumentation
 import android.content.Intent
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -45,6 +46,9 @@ class ActivityRecreationTest {
         hilt.inject()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
+        // 화면이 꺼져 있거나 잠겨 있으면 Activity는 시작되자마자 STOPPED로 간다. 그러면 onStop이
+        // 세션 연결을 끊어 이 검사가 보려는 것 자체가 없어진다. 검사가 스스로 조건을 만든다.
+        wakeAndUnlock(instrumentation)
         // ViewModelProvider가 요구하는 것은 ViewModelStoreOwner다. startActivitySync는 Activity로
         // 돌려주므로 실제 타입으로 받는다.
         val activity = instrumentation.startActivitySync(
@@ -58,11 +62,16 @@ class ActivityRecreationTest {
         }
         try {
             assertNotNull(
-                "세션에 연결되지 않았다",
+                "Activity가 앞으로 나오지 않았다. ${diagnosis(viewModel)}",
                 withTimeoutOrNull(15_000) {
-                    viewModel.connectionState.first { it == ConnectionState.Connected }
+                    while (!resumed()) delay(50)
+                    true
                 },
             )
+            val connected = withTimeoutOrNull(15_000) {
+                viewModel.connectionState.first { it == ConnectionState.Connected }
+            }
+            assertNotNull("세션에 연결되지 않았다. ${diagnosis(viewModel)}", connected)
             // 남아 있던 대기열에 기대지 않는다. 내장 음원이라 네트워크도 필요 없다.
             instrumentation.runOnMainSync { viewModel.playTrack(testTone()) }
             assertNotNull(
@@ -109,6 +118,38 @@ class ActivityRecreationTest {
                 current()?.finish()
             }
         }
+    }
+
+    /**
+     * 화면을 켜고 잠금을 푼다. 검사를 언제 돌리든 같은 조건에서 시작해야 한다.
+     *
+     * 이 검사는 Activity가 앞에 있어야 뜻이 있다. 사람이 화면을 만지고 있을 때만 통과하는 검사는
+     * 무인 실행에서 이유 없이 실패한다(KM-151 검증에서 실제로 그랬다).
+     */
+    private fun wakeAndUnlock(instrumentation: Instrumentation) {
+        listOf("input keyevent KEYCODE_WAKEUP", "wm dismiss-keyguard").forEach { command ->
+            instrumentation.uiAutomation.executeShellCommand(command).close()
+        }
+    }
+
+    /** 이 앱의 Activity가 화면 앞에 있는가. 단계는 main 스레드에서만 물을 수 있다. */
+    private fun resumed(): Boolean {
+        var value = false
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { value = current() != null }
+        return value
+    }
+
+    /** 왜 연결되지 않았는지 말해 주기 위한 것. Activity 상태는 main 스레드에서만 물을 수 있다. */
+    private fun diagnosis(viewModel: PlayerViewModel): String {
+        var text = ""
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            val stages = Stage.entries.associateWith { stage ->
+                ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(stage).size
+            }.filterValues { it > 0 }
+            text = "연결 상태: ${viewModel.connectionState.value}, 재생 상태: " +
+                "${viewModel.playbackState.value.phase}, Activity 단계: $stages"
+        }
+        return text
     }
 
     private fun destroyed(activity: Activity): Boolean {

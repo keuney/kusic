@@ -1,21 +1,17 @@
 package com.keuney.music.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,6 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.keuney.music.R
 import com.keuney.music.core.player.ConnectionState
+import com.keuney.music.feature.home.HomeScreen
 import com.keuney.music.feature.player.MiniPlayer
 import com.keuney.music.feature.player.PlayerViewModel
 import com.keuney.music.feature.library.LibrarySection
@@ -97,11 +94,21 @@ internal fun KeuneyNavHost(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = TopLevelDestination.Search.route,
+            // 홈이 실제 내용을 가지므로 시작 목적지를 홈으로 둔다. 앱을 열면 듣던 것이 먼저
+            // 보이는 것이 맞고, 검색은 한 번 눌러 갈 수 있다.
+            startDestination = TopLevelDestination.Home.route,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         ) {
-            // 홈 내용은 KM-151이다.
-            composable(TopLevelDestination.Home.route) { NotReadyScreen() }
+            composable(TopLevelDestination.Home.route) {
+                HomeScreen(
+                    viewModel = libraryViewModel,
+                    selectEnabled = connected,
+                    onSelect = playerViewModel::playTracks,
+                    onOpenPlaylist = { navController.navigate(playlistRoute(it)) },
+                    onGoSearch = { navController.switchTab(TopLevelDestination.Search) },
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                )
+            }
             composable(TopLevelDestination.Search.route) {
                 SearchScreen(
                     viewModel = searchViewModel,
@@ -174,23 +181,5 @@ private fun NavHostController.switchTab(destination: TopLevelDestination) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
-    }
-}
-
-@Composable
-private fun NotReadyScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.screen_not_ready),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
     }
 }

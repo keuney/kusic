@@ -61,7 +61,8 @@
     <string name="destination_home">홈</string>
     <string name="destination_search">검색</string>
     <string name="destination_library">라이브러리</string>
-    <string name="screen_not_ready">아직 준비되지 않은 화면입니다.</string>
+    <string name="home_empty">아직 들은 곡이 없습니다. 검색해서 곡을 들으면 여기에서 다시 들을 수 있습니다.</string>
+    <string name="home_go_search">검색으로 가기</string>
     <string name="player_back">뒤로</string>
     <string name="player_favorite">즐겨찾기</string>
     <string name="player_queue">대기열</string>
