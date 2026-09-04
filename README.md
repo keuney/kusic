@@ -2,15 +2,76 @@
 
 개인 사용 및 학습을 위한 Android 음악 플레이어 프로젝트다. APK 사이드로드를 전제로 하며 공개 앱스토어 배포는 v0.1 범위에 포함하지 않는다.
 
-## 현재 상태
+## 무엇을 하는 앱인가
 
-KM-039까지 기본 재생을 구현했다. `com.keuney.music` 앱에서 내장된 120초 테스트 음원을 재생·일시정지하고 슬라이더로 위치를 이동할 수 있다. 화면에는 현재 재생 상태와 시간이 표시된다. 최소 API 26, 컴파일 SDK 37.2, 대상 SDK 37을 사용한다.
+곡을 검색해 듣는다. 검색 결과에서 곡을 고르면 그 목록이 대기열이 되고, 화면을 끄거나 다른 앱을 써도
+재생이 이어지며 알림과 잠금화면에서 조작할 수 있다. 들은 곡은 최근 재생에 쌓이고 즐겨찾기와 재생목록으로
+정리한다. 서버도 계정도 없다. 모든 기록은 기기 안에만 있다.
 
-Hilt, Room, DataStore, Media3, Ktor, Coil 및 GitHub Actions 기본 구성을 추가했다. ExoPlayer와 MediaLibrarySession은 MusicService만 소유하며 화면은 ViewModel과 MediaController를 통해 통신한다. KM-050~055의 공통 모델·MusicSource 계약·실제 공개 검색 POC는 완료했다. 검색은 아직 앱 화면과 연결하지 않았으며 라이브러리 화면도 없다.
+**현재 상태(2026-09-04): 작업 69개 완료, 8개 미착수.** 검색·재생·배경 재생·알림·잠금화면·대기열·즐겨찾기·
+재생목록·최근 재생·홈·라이브러리·설정·어두운 화면까지 동작한다. Samsung SM-T220 / Android 14 실기기에서
+31분 연속 사용 검사를 크래시 없이 통과했다(KM-136). 최소 API 26, 컴파일 SDK 37.2, 대상 SDK 37.
 
-KM-056은 재생 요청의 클라이언트 설정을 프로필로 분리해 완료했다. WEB은 직접 오디오 URL 없이 별도 전송 주소만 반환하므로 후보를 순서대로 시도하며, 실제 계약 검사에서 IOS와 ANDROID가 직접 URL을 반환하고 Range 요청까지 통과했다(ADR-032). KM-058까지 검색어 입력 → 결과 목록 → 결과 선택 → 재생을 Samsung SM-T220 실기기에서 확인했다. Home 이동 후에도 재생이 유지된다. 오디오 전용 adaptive 주소는 공급자가 오프셋 요청을 거부하므로 영상이 함께 들어 있는 progressive 형식만 사용하고 영상 트랙은 끈다(ADR-034). 곡당 8~25MB로 오디오 전용의 약 3배를 쓰는 것이 대가다. 이를 줄이기 위해 재생한 구간을 256MB LRU 캐시에 보관하고(KM-134), WiFi에서만 재생하는 설정을 제공한다(KM-137). 캐시에 있는 구간은 제한을 켜도 그대로 재생된다. KM-059 Gate를 통과해 Provider A를 v0.1 source로 채택했다(ADR-037). 10곡 판정 결과와 채택 조건, 재판정 기준은 [소스 공급자 판정](docs/SOURCE_PROVIDER.md)에 정리했다. 실기기 연결 이후의 변경 파일·실행 명령·인수 조건과 제한은 [종합 보고서](docs/DEVICE_RESUME_REPORT.md)에 정리했다.
+작업별 상태와 재개 지점은 [TASKS.md](TASKS.md), 결정의 이유는 [docs/DECISIONS.md](docs/DECISIONS.md),
+시행착오까지 포함한 전체 흐름은 [docs/SEQUENTIAL_RUN.md](docs/SEQUENTIAL_RUN.md)에 있다.
 
-Samsung SM-T220 / Android 14 실기기에서 Home 이동·Activity 종료 후 32초 재생, 62초 화면 꺼짐 재생, 알림·잠금화면 재생 제어와 오디오 포커스를 검증했다. USB 충전 상태의 단기 검사이며 Bluetooth·장시간 절전·다른 OEM은 아직 검증하지 않았다. KM-001·002·003·010은 Wrapper와 앱 모듈 부재로 필수 Gradle 검증을 실행할 수 없어 보류했던 작업이며, KM-011 이후 검증이 통과하므로 인수 조건을 재확인하고 완료로 전환했다. 보류 중인 작업은 현재 없다. 작업별 상태와 재개 지점은 TASKS.md, 변경 파일·실행 명령·검증 결과는 docs/SEQUENTIAL_RUN.md에서 확인한다. 원격 `origin`의 본선은 `main`이며 2026-09-03 첫 push를 했다.
+## 개인용 sideload 경계
+
+이 앱은 **한 사람이 자기 기기에 APK를 직접 넣어 쓰는 것**을 전제로 만들었다. 그 전제가 설계 곳곳을 정한다.
+
+- 공개 앱스토어 배포는 v0.1 범위가 아니다. 릴리스 APK는 아직 서명하지 않는다(KM-157).
+- 로그인이 없다. 계정·쿠키·토큰을 저장하지 않으며 요청에 실어 보내지도 않는다(PRD 9, AGENTS.md 13).
+- 영구 다운로드가 없다. 재생한 구간만 캐시에 잠시 두고 상한을 넘으면 오래된 것부터 지운다. 사용자가
+  언제든 비울 수 있고 운영체제가 정리해도 무방하다(ADR-035).
+- 재생 주소(스트림 URL)는 어디에도 저장하지 않는다. 필요한 순간에 해석하고 그대로 버린다(ADR-005).
+  앨범 이미지 주소(`artwork_url`)를 빼면 데이터베이스에 `url`이 들어간 열이 없는지 계측 검사가 확인한다.
+- 음원은 외부 공급자의 공개 웹 프로토콜을 관찰해 가져온다. 그것은 안정된 API 계약이 아니라 관찰값이며
+  공급자가 바꾸면 깨진다. 계약 검사가 앱보다 먼저 깨지도록 해 두었다(아래 "외부 소스 검증").
+- 오픈소스 라이선스와 재배포 시 생기는 의무는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 적었다.
+  GPL 계열 의존성은 없다.
+
+## 아키텍처 요약
+
+세 겹이다. `core`가 도메인 모델과 계약, `data`가 구현(공급자·저장소·설정), `feature`가 화면이다.
+`navigation`이 화면을 잇고 `ui`에 공용 구성 요소를 둔다.
+
+- **재생은 `MusicService : MediaLibraryService`만 소유한다.** 화면은 `MediaController`를 통해서만 말을
+  건다. 그래서 화면이 사라져도 재생이 이어지고, 알림·잠금화면·미디어 버튼이 같은 세션을 조작한다
+  (ADR-002). 반복 모드처럼 저장된 설정을 재생에 옮기는 일도 서비스가 한다(ADR-054).
+- **외부 콘텐츠는 `MusicSource` 뒤에 격리한다.** 공급자 DTO와 HTTP 응답은 그 경계를 넘지 못하고, 실패는
+  도메인 오류(`AppError`)로 바뀌어 나온다. 원문 예외와 응답은 거기서 끊긴다(AGENTS.md 12, ADR-028).
+- **화면은 ViewModel이 노출하는 불변 상태만 본다.** Compose가 저장소나 `MusicSource`에 직접 닿지 않고,
+  Media3 상수를 해석하지도 않는다(PRD 36, ARCHITECTURE 19).
+- **저장은 Room과 DataStore로 나눈다.** 곡·즐겨찾기·재생목록·재생 기록은 Room(명시적 마이그레이션과
+  스키마 파일 보관), 화면 색·반복·WiFi 전용·캐시 상한·기록 켜기는 DataStore다.
+- 재생 캐시는 스트림 해석보다 바깥에 둔다. 그래서 캐시에 있는 구간은 주소를 다시 해석하지 않고
+  WiFi 전용 제한에도 걸리지 않는다(ADR-036).
+
+자세한 계층 규칙은 [ARCHITECTURE.md](ARCHITECTURE.md)에, 결정의 근거는 ADR에 있다.
+
+## 알려진 한계
+
+- **Bluetooth 조작과 헤드셋 분리를 확인하지 못했다.** 검증 환경에 블루투스 기기가 없다(KM-130·131 미착수).
+  잠긴 화면에서 미디어 버튼(재생·다음)이 동작하는 것은 확인했고 그것이 AVRCP와 같은 경로이지만,
+  블루투스 전송 자체는 확인한 것이 아니다.
+- **재생할 수 없는 곡에서 재생이 멈춰 선다.** 대기열에 다음 곡이 있어도 넘어가지 않는다. 30분 사용 검사에서
+  시도한 여섯 곡 중 셋이 공급자 쪽 이유로 해석되지 않았다. 자동으로 다음 곡으로 넘기는 처리가 필요하다
+  (KM-136에서 찾았고 아직 작업으로 만들지 않았다).
+- **셔플이 켜졌을 때의 실제 재생 순서를 화면에 보여줄 수 없다.** 세션이 컨트롤러에 보내는 Timeline에 셔플
+  순서가 실려 오지 않는다. 대기열 화면은 넣은 순서를 보여주고 그렇다고 알린다(ADR-053).
+- **캐시 상한을 바꾸면 다음 실행부터 적용된다.** Media3의 evictor는 만든 뒤 상한을 바꿀 방법이 없다.
+  설정 화면이 그 사실을 말한다(ADR-068).
+- **재생 위치 슬라이더에 접근성 이름을 붙이지 못했다.** 붙이면 접근성 트리에 읽히지 않을 수 있는 별개
+  노드가 생긴다. 바로 아래 위치 줄이 "재생 위치 0:09 / 2:00"으로 그 뜻을 말한다(ADR-069).
+- **긴 제목의 곡에서는 재생 화면의 셔플·반복 칩이 화면 밖으로 밀린다.** 화면이 세로로 흘러 닿을 수 있지만
+  자주 쓰는 조작이 스크롤 뒤에 있다.
+- **어둡게를 골라 둔 경우 시작할 때 아주 짧게 시스템 색이 보인다.** 저장된 값이 오기 전의 첫 프레임이다.
+  없애려면 값이 올 때까지 화면을 그리지 않아야 하고 그만큼 시작이 늦어진다(ADR-067).
+- **OEM 절전으로 인한 배경 종료는 재현되지 않았다.** 깊은 doze와 restricted 대기 버킷에서 34분을 두어도
+  재생이 끊기지 않아 관련 안내 화면을 만들지 않았다(KM-135 보류, ADR-065). 삼성의 절전 목록은 adb로 강제할
+  수 없어 확인 범위 밖이다.
+- **오디오 전용 주소를 쓰지 못한다.** 공급자가 그 주소의 구간 요청을 거부해 영상이 함께 든 progressive
+  형식을 쓰고 영상 트랙을 끈다. 곡당 8~25MB로 오디오 전용의 약 3배를 쓴다(ADR-034).
 
 ## 프로젝트 문서
 
@@ -27,49 +88,45 @@ Samsung SM-T220 / Android 14 실기기에서 Home 이동·Activity 종료 후 32
 - [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): 개발 도구 확인 결과
 - [docs/EMULATOR.md](docs/EMULATOR.md): 에뮬레이터 부팅 확인 결과
 
-## 현재 디렉터리 구조
+## 디렉터리 구조
 
 ```text
 keuney_music/
-├── .gitignore
-├── .gitattributes
-├── AGENTS.md
-├── PRD.md
-├── ARCHITECTURE.md
-├── TASKS.md
-├── README.md
-├── settings.gradle.kts
-├── build.gradle.kts
-├── gradle.properties
-├── gradlew
-├── gradlew.bat
-├── app/
-│   ├── build.gradle.kts
-│   ├── schemas/
-│   ├── src/test/kotlin/com/keuney/music/
-│   ├── src/androidTest/kotlin/com/keuney/music/
-│   └── src/main/
-│       ├── AndroidManifest.xml
-│       ├── kotlin/com/keuney/music/
-│       │   ├── MainActivity.kt
-│       │   ├── KeuneyApp.kt
-│       │   ├── core/{database,model,player,settings}/
-│       │   ├── data/{network,settings,source}/
-│       │   ├── di/
-│       │   ├── feature/player/
-│       │   └── ui/{components,theme}/
-│       └── res/{raw,values}/
+├── AGENTS.md, PRD.md, ARCHITECTURE.md, TASKS.md, README.md
+├── THIRD_PARTY_NOTICES.md
+├── settings.gradle.kts, build.gradle.kts, gradle.properties
+├── gradlew, gradlew.bat
 ├── gradle/
 │   ├── libs.versions.toml
 │   └── wrapper/
-│       ├── gradle-wrapper.jar
-│       └── gradle-wrapper.properties
+├── app/
+│   ├── build.gradle.kts
+│   ├── schemas/                      Room 스키마 파일(마이그레이션 근거)
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── kotlin/com/keuney/music/
+│       │   │   ├── MainActivity.kt, KeuneyApp.kt
+│       │   │   ├── core/             도메인 모델과 계약
+│       │   │   │   ├── database/{dao,entity}/
+│       │   │   │   ├── library/, model/, player/, search/, settings/
+│       │   │   ├── data/             구현
+│       │   │   │   ├── network/, repository/, settings/
+│       │   │   │   └── source/providerA/{dto,mapper}/
+│       │   │   ├── di/
+│       │   │   ├── feature/          화면
+│       │   │   │   └── home/, library/, player/, search/, settings/
+│       │   │   ├── navigation/
+│       │   │   └── ui/{components,format,theme}/
+│       │   └── res/{raw,values,values-night}/
+│       ├── test/kotlin/com/keuney/music/          단위 검사 35개 파일
+│       └── androidTest/kotlin/com/keuney/music/   실기기 계측 29개 파일
 ├── scripts/{verify-km012,generate-test-audio}.ps1
 └── docs/
-    ├── DECISIONS.md
-    ├── ENVIRONMENT.md
-    ├── EMULATOR.md
-    └── SEQUENTIAL_RUN.md
+    ├── DECISIONS.md, SEQUENTIAL_RUN.md
+    ├── SOURCE_PROVIDER.md, TESTING_PLAYBACK.md
+    ├── DEVICE_RESUME_REPORT.md
+    └── ENVIRONMENT.md, EMULATOR.md
 ```
 
 ## 개발 및 검증
@@ -90,16 +147,16 @@ SDK가 준비되어 있지 않다면 Android SDK Manager로 `platforms;android-3
 
 최초 실행에는 공식 Gradle 배포본과 빌드 의존성을 받기 위한 네트워크 접근이 필요하다. Wrapper가 고정된 SHA-256을 확인한다. 필요한 의존성을 모두 내려받은 뒤에는 `--offline`을 사용할 수 있다. macOS/Linux에서는 JDK와 SDK를 지정한 뒤 `./gradlew`를 사용한다.
 
-공통 필수 검증 명령:
+작업마다 아래 한 줄을 돌리고 종료 코드 0을 확인한다. 계측 검사가 들어 있으므로 기기나 에뮬레이터가
+`adb devices`에 연결돼 있어야 한다.
 
 ```powershell
-.\gradlew.bat test
-.\gradlew.bat lint
-.\gradlew.bat assembleDebug
-.\gradlew.bat assembleRelease
+.\gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue
 ```
 
-KM-071 검증에서 단위 73개·실제 계약 7개·실기기 계측 26개와 lint·assembleDebug·assembleRelease가 모두 통과했다(종료 코드 0). 린트는 오류 0개·경고 19개이며 경고를 억제하지 않았다. 작업별 추가 검증과 한계는 순차 구현 기록을 참고한다.
+2026-09-04 기준으로 단위 183개·실제 계약 7개·실기기 계측 46개가 통과하고 린트는 오류 0개·경고 22개다.
+경고를 억제하지 않는다. 문서만 바꾼 작업에서는 계측을 다시 돌리지 않고 같은 코드의 직전 결과를 근거로
+적는다.
 
 이전 빌드의 메타스페이스 부족을 해결하기 위해 프로젝트 JVM 힙·메타스페이스 한도를 각각 1GB로 설정했다(ADR-012).
 
@@ -154,7 +211,3 @@ KM-012 화면 검증을 재실행하려면 디버그 빌드 후 에뮬레이터�
 ```
 
 결과는 `app/build/reports/tests/sourceContractTest/index.html`에서 확인한다. 인증서 검증을 끄거나 로그인 정보를 추가하지 않는다.
-
-## 설계 방향
-
-재생은 `MusicService : MediaLibraryService`가 소유하고, 외부 콘텐츠 접근은 `MusicSource` 뒤에 격리한다. 첫 재생 검증은 알려진 테스트 오디오를 사용한다. 상세 설계와 구현 순서는 위 문서를 따른다.

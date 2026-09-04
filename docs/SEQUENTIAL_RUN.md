@@ -814,3 +814,18 @@
 - README의 문서 목록에 이 파일을 넣었다. 아무도 가리키지 않는 고지 문서는 없는 것과 같다. README 본문 갱신은 KM-156이다.
 - `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(1분 15초). `app/` 아래 변경이 없어 실기기 계측은 KM-154의 46개 통과 결과가 그대로 유효하다.
 - 결정 ADR-070. 다음은 KM-156 README다. 지금 README의 "현재 상태"는 KM-039 시점에 머물러 있어 그 작업에서 전체를 다시 쓴다.
+
+## KM-156 완료 — README
+
+- 브랜치 `codex/KM-156-readme`. 코드 변경 없음. README를 다시 썼다.
+- 손대기 전 README의 "현재 상태"는 **KM-039 시점**에 멈춰 있었다. "검색은 아직 앱 화면과 연결하지 않았으며 라이브러리 화면도 없다"고 적혀 있었다. 지금은 검색·재생·대기열·즐겨찾기·재생목록·최근 재생·홈·라이브러리·설정·어두운 화면이 모두 동작한다. 처음 보는 사람에게 거짓을 말하는 문서였다.
+- 인수 조건 다섯 가지를 절로 나눠 채웠다.
+  - **project purpose**: "무엇을 하는 앱인가". 기능 목록이 아니라 무엇을 할 수 있는지로 썼다. 서버도 계정도 없고 기록은 기기 안에만 있다는 것을 함께 적었다.
+  - **personal sideload boundary**: 왜 그 전제가 설계를 정하는지로 썼다. 스토어 배포 제외·로그인 없음·영구 다운로드 없음·스트림 URL 미저장·공급자 프로토콜은 관찰값·라이선스 고지 위치.
+  - **build instructions**: 기존 절을 유지하되 필수 검증을 지금 쓰는 한 줄로 갈았다. 이전에는 `test`·`lint`·`assembleDebug`·`assembleRelease` 네 줄만 있고 계측·계약 검사가 빠져 있었다. 통과 수치도 KM-071 시점(단위 73개)에서 현재(183·7·46)로 고쳤다.
+  - **architecture summary**: 세 겹과 다섯 가지 규칙(재생 소유권·MusicSource 격리·불변 상태·Room/DataStore 분담·캐시 위치)으로 정리하고 각각 ADR을 가리켰다. 이전의 "설계 방향" 두 문장은 이 절이 대신하므로 지웠다.
+  - **known limitations**: 아홉 가지를 적었다. 블루투스 미확인, 재생 불가 곡에서 멈춤, 셔플 순서 표시 불가, 캐시 상한의 다음 실행 적용, 슬라이더 접근성 이름, 긴 제목에서 칩이 밀림, 어두운 화면의 첫 프레임, OEM 절전 미재현, progressive 형식의 데이터 사용량. 모두 이 저장소의 기록에서 나온 것이며 짐작을 적지 않았다.
+- 디렉터리 구조도 갱신했다. 이전 트리에는 `feature/player`만 있고 home·library·search·settings·navigation·ui/format·values-night·THIRD_PARTY_NOTICES.md가 없었다.
+- 한 곳을 고쳤다. 스트림 URL 미저장을 설명하며 "데이터베이스에 url이 들어간 열이 없다"고 쓸 뻔했으나, 실제 검사는 `artwork_url`을 예외로 둔다. 검사 코드를 확인하고 문구를 정확히 고쳤다.
+- `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(29초). `app/` 아래 변경이 없어 실기기 계측은 KM-154의 46개 통과 결과가 그대로 유효하다.
+- ADR을 남기지 않았다. 설계를 정한 것이 없고 있는 사실을 적었을 뿐이다. 다음은 KM-157 릴리스 서명 설정이다.
