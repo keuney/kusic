@@ -846,3 +846,25 @@
 - README에 "릴리스 서명" 절을 넣었다. 키 만들기(`-storepass` 생략해 명령 기록에 비밀번호가 남지 않게), `keystore.properties` 형식과 경로 주의, 환경 변수, 확인 방법, 키를 잃으면 설치된 앱을 갱신할 수 없다는 사실까지 적었다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 24초). 단위 183개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
 - 결정 ADR-071. 신규 의존성 없음. 다음은 KM-158 Release APK다. 거기서는 서명한 APK를 실기기에 설치해 스모크 검사를 한다. 사용자의 키가 필요하므로 진행 전에 물어봐야 한다.
+
+## KM-158 완료(한계 있음) — Release APK
+
+- 브랜치 `codex/KM-158-release-apk`. 코드 변경 없음. 릴리스 빌드를 실기기에 설치해 확인했다.
+- **먼저 사용자에게 물었다.** 이 작업은 서명 키가 필요하고 그 키는 사용자의 것이어야 한다. KM-157에서 검증용으로 쓴 키는 지웠고 내가 사용자 키를 만들지 않는다. 사용자는 "서명 없이 설치·실행이 가능하면 그렇게 진행"을 요청했다.
+- **서명이 아예 없는 APK는 설치되지 않는다**(`INSTALL_PARSE_FAILED_NO_CERTIFICATES`). 그래서 요청의 뜻(키 만들기 없이 진행)에 맞는 가장 가까운 방법으로 했다. **디버그 키로 서명한 릴리스 빌드**다. 디버그 키는 SDK가 만든 공개된 키이고 비밀번호도 공개돼 있어 사용자가 만들 것이 없으며, 기기에 이미 깔린 앱과 서명이 같아 지우지 않고 덮어 설치된다(데이터가 사라지지 않는다).
+- KM-157이 만든 **환경 변수 경로**를 그대로 썼다. 저장소에는 파일이 하나도 남지 않는다. 이 과정이 환경 변수 경로의 실제 검증도 됐다.
+- 설치 결과가 **릴리스 변형**임을 확인했다. `dumpsys package`의 `flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]`에 `DEBUGGABLE`이 없다. 디버그 빌드에서는 그 자리에 `DEBUGGABLE`이 있었다. 서명은 `apksigner verify`로 `CN=Android Debug`를 확인했다.
+- 스모크 검사(실기기 SM-T220 / Android 14, pid 5661 하나로 끝까지):
+  - 검색 "acoustic" → 결과 도착 → 첫 곡 재생(11.9초 지점 PLAYING).
+  - 홈으로 나가 45초 → 55.9초로 이어짐.
+  - 화면 끄고 60초(`mWakefulness=Dozing`) → 118.5초로 이어짐.
+  - 잠긴 상태에서 미디어 버튼 → PAUSED → PLAYING.
+  - foreground service와 알림 유지(`isForeground=true types=00000002`, actions=3).
+  - 다시 들어가 라이브러리 → 최근 재생에 그 곡이 있다(기록 동작).
+  - `logcat -b crash`에 이 패키지 기록 없음(버퍼 0줄), main 로그에 FATAL·ANR 없음.
+- **남은 한계: 배포용 서명으로 만든 APK의 설치는 확인하지 않았다.** 사용자 키가 없기 때문이다. 확인한 것은 릴리스 변형이 설치되고 동작한다는 것과, 서명 설정 경로가 실제로 서명을 건다는 것(KM-157에서 버릴 키로, 여기서 디버그 키로)이다. 사용자가 키를 만들면 `keystore.properties`를 두고 같은 절차를 다시 하면 된다.
+- 실기기 조작 중 겪은 것: 앱으로 돌아오면 검색 입력에 다시 초점이 가 **소프트 키보드가 하단 탭을 덮는다.** 탭을 누르려면 먼저 뒤로 키로 키보드를 닫아야 한다. 결함은 아니지만 실기기 자동 조작에서 걸리는 지점이므로 적어 둔다.
+- 확인 후 최근 재생을 지우고 재생을 멈췄으며 화면 꺼짐 시간을 30000으로 되돌렸다. 기기에는 릴리스 빌드가 그대로 깔려 있다. 다음 계측 실행이 디버그 빌드로 덮어쓴다(서명이 같아 문제없다). 화면 캡처는 captures/km-158에 보관했다(저장소 추적 대상 아님).
+- 마지막 검증 빌드는 환경 변수가 없는 새 셸에서 돌렸으므로 `app-release-unsigned.apk`가 나온다. 저장소의 기본 상태는 서명하지 않는 것이다.
+- `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(1분 5초). `app/` 아래 변경이 없어 실기기 계측은 KM-157의 46개 통과 결과가 그대로 유효하다.
+- ADR을 남기지 않았다. 설계를 정한 것이 없고 확인만 했다. 남은 것은 KM-200 최종 게이트다(KM-135 보류, KM-130·131은 블루투스 기기 대기).
