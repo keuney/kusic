@@ -18,6 +18,7 @@ Samsung SM-T220 / Android 14 실기기에서 Home 이동·Activity 종료 후 32
 - [PRD.md](PRD.md): 제품 요구사항과 범위
 - [ARCHITECTURE.md](ARCHITECTURE.md): 계층 구조와 기술 제약
 - [TASKS.md](TASKS.md): 작업 순서, 인수 조건, 진행 상태
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): 배포물에 들어가는 오픈소스와 라이선스, GPL 계열 의존성 상태
 - [docs/DECISIONS.md](docs/DECISIONS.md): 기술 결정 기록
 - [docs/SOURCE_PROVIDER.md](docs/SOURCE_PROVIDER.md): 소스 공급자 Gate 판정과 채택 조건
 - [docs/SEQUENTIAL_RUN.md](docs/SEQUENTIAL_RUN.md): 순차 구현 및 작업별 검증 결과

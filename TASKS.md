@@ -18,13 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 68 / 미착수 9. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133·135·136·151~154 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 9에는 최종 게이트 KM-200과 보류한 KM-135가 포함된다.
+**현재: 완료 69 / 미착수 8. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133·135·136·151~155 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 8에는 최종 게이트 KM-200과 보류한 KM-135가 포함된다.
 
-**M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116). M8은 블루투스 두 건(KM-130·131)과 조건 미충족 한 건(KM-135)을 빼고 완료. M9은 KM-150~154 완료.**
+**M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116). M8은 블루투스 두 건(KM-130·131)과 조건 미충족 한 건(KM-135)을 빼고 완료. M9은 KM-150~155 완료.**
 
-**다음 작업: KM-155 (OSS notices).** THIRD_PARTY_NOTICES.md를 만들고 의존성 라이선스를 검토하며 GPL 의존성 여부를 명시적으로 문서화한다. 그 뒤 KM-156(README)과 최종 게이트 KM-200이 남는다.
+**다음 작업: KM-156 (README).** 지금 README의 "현재 상태"는 KM-039 시점에 머물러 있다("검색은 아직 앱 화면과 연결하지 않았으며 라이브러리 화면도 없다"). 목적·개인 sideload 경계·빌드 방법·아키텍처 요약·알려진 한계를 다시 쓴다. 그 뒤 KM-157(서명 설정)과 최종 게이트 KM-200이 남는다.
 
-**KM-154에서 정한 것:** 접근성은 재어 보고 필요한 것만 고친다. 확인할 수 없는 접근성 처리는 남기지 않는다(슬라이더 이름). Compose UI 검사 도구를 들이지 않고 기기의 접근성 트리 덤프로 확인한다(ADR-069).
+**KM-155에서 정한 것:** 라이선스는 POM에서 읽어 근거와 함께 적는다. 라이선스 원문은 재배포하지 않는 동안 넣지 않되, 재배포 시 생기는 의무를 문서에 적어 둔다(ADR-070).
 
 **KM-130·131을 건너뛴 이유:** 사용자에게 물었고 실제 블루투스 기기가 없다는 답을 받았다(2026-09-04). AGENTS.md 20이 Bluetooth 조작과 headset disconnect를 에뮬레이터 통과만으로 완료 처리하지 말라고 하므로 기기가 생길 때까지 미룬다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 그 작업들의 핵심이다.
 
@@ -1885,7 +1885,19 @@ large font basic usability
 
 KM-155 — OSS notices
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-04): 라이선스를 기억이 아니라 POM에서 읽어 목록을 만들었다. 코드 변경 없음.
+
+- 인수 조건: THIRD_PARTY_NOTICES.md PASS. dependency licenses reviewed PASS. GPL dependency status explicitly documented PASS.
+- releaseRuntimeClasspath의 전이 의존성 238개를 뽑고 각 아티팩트의 라이선스를 Gradle 캐시 POM의 licenses 항목에서 읽었다. POM에 없으면 부모 POM을 따라갔다.
+- 결과: Apache-2.0 236개, BSD-3-Clause 1개(datastore-preferences-external-protobuf), MIT 1개(slf4j-api). **GPL·LGPL·AGPL 없음.**
+- slf4j-api는 POM에 라이선스 항목이 없어 같은 버전 slf4j-bom에서 확인했고 그 경로도 문서에 적었다.
+- 빌드에만 쓰이는 것(KSP·검사 라이브러리·Gradle 플러그인)은 배포물에 없으므로 제외하고 이유를 적었다.
+- 라이선스 원문은 넣지 않았다. 개인용 sideload이며 재배포하지 않기 때문이다. 재배포 시 생기는 의무(Apache-2.0 4(a)·4(d), BSD·MIT 표시)를 문서에 적어 두었다.
+- README 문서 목록에 이 파일을 넣었다. README 본문 갱신은 KM-156이다.
+- `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0. app/ 변경이 없어 계측은 KM-154의 46개 결과가 유효하다.
+- 결정은 ADR-070에 기록했다.
 
 Acceptance Criteria:
 

@@ -800,3 +800,17 @@
 - 확인 후 `font_scale`을 1.0으로, 화면 꺼짐 시간을 30000으로 되돌렸다. 화면 캡처는 captures/km-154에 보관했다(저장소 추적 대상 아님).
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 44초). 단위 183개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
 - 결정 ADR-069. 신규 의존성 없음. 다음은 KM-155 OSS notices다.
+
+## KM-155 완료 — OSS notices
+
+- 브랜치 `codex/KM-155-oss-notices`. 코드 변경 없음. THIRD_PARTY_NOTICES.md를 새로 만들었다.
+- 목록은 기억이 아니라 빌드에서 뽑았다. `gradlew :app:dependencies --configuration releaseRuntimeClasspath`로 release 빌드에 들어가는 전이 의존성 전체를 얻고(238개), 각 아티팩트의 라이선스를 Gradle 캐시의 **POM licenses 항목**에서 읽었다. POM에 없으면 같은 버전의 부모 POM을 따라갔다.
+- 결과: **Apache-2.0 236개, BSD-3-Clause 1개, MIT 1개. GPL·LGPL·AGPL 없음.**
+  - BSD-3-Clause는 `androidx.datastore:datastore-preferences-external-protobuf:1.2.1`이다. DataStore가 쓰는 protobuf 런타임을 다시 묶은 것이다.
+  - MIT는 `org.slf4j:slf4j-api:2.0.17`이다. 이 POM에는 라이선스 항목이 없어 같은 버전 `slf4j-bom`에서 확인했고 그 경로도 문서에 적었다.
+- 빌드에만 쓰이는 것(KSP 처리기·검사 라이브러리·Gradle 플러그인)은 배포물에 들어가지 않아 뺐고, 뺀 이유를 문서에 적었다.
+- 라이선스 원문은 배포물에 넣지 않았다. 개인용 sideload이며 재배포하지 않기 때문이다(PRD 1·9). 대신 **재배포하게 되면 무엇을 해야 하는지**(Apache-2.0 4(a)·4(d)의 사본·NOTICE 포함, BSD·MIT 표시 의무) 문서 안에 적었다.
+- 버전만 정하는 `*-bom` 세 개는 코드가 없지만 목록에 남기고 그렇다고 표시했다.
+- README의 문서 목록에 이 파일을 넣었다. 아무도 가리키지 않는 고지 문서는 없는 것과 같다. README 본문 갱신은 KM-156이다.
+- `gradlew.bat test lint assembleDebug assembleRelease sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(1분 15초). `app/` 아래 변경이 없어 실기기 계측은 KM-154의 46개 통과 결과가 그대로 유효하다.
+- 결정 ADR-070. 다음은 KM-156 README다. 지금 README의 "현재 상태"는 KM-039 시점에 머물러 있어 그 작업에서 전체를 다시 쓴다.
