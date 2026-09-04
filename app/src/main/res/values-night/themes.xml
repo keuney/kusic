@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 어두울 때의 시작 창. values/themes.xml의 설명을 함께 본다. -->
+    <style name="Theme.KeuneyMusic" parent="@android:style/Theme.Material.NoActionBar" />
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        시작 창(앱을 눌러 화면이 그려지기 전까지 보이는 창)의 색이다. Compose가 그리기 전이라
+        여기서 정하지 않으면 어두운 화면으로 들어갈 때 흰 창이 한 번 번쩍인다.
+
+        이 값은 시스템의 밝게/어둡게만 따른다. 앱 안에서 고른 값(ThemePreference)은 우리 코드가
+        돌기 전에 알 수 없다. 시스템은 밝고 앱만 어둡게 고른 경우에는 한 번 밝게 지나간다.
+    -->
+    <style name="Theme.KeuneyMusic" parent="@android:style/Theme.Material.Light.NoActionBar" />
+</resources>

@@ -71,6 +71,10 @@
     <string name="error_playback_unavailable">이 곡은 재생할 수 없습니다.</string>
     <string name="error_geo_restricted">이 지역에서는 재생할 수 없습니다.</string>
     <string name="error_unknown">문제가 발생했습니다. 다시 시도해 주세요.</string>
+    <string name="theme_label">화면 색</string>
+    <string name="theme_system">시스템</string>
+    <string name="theme_light">밝게</string>
+    <string name="theme_dark">어둡게</string>
     <string name="wifi_only_label">WiFi에서만 재생</string>
     <string name="wifi_only_blocked">WiFi에서만 재생하도록 설정되어 있습니다. 저장된 구간이 없는 곡은 재생하지 않습니다.</string>
 </resources>

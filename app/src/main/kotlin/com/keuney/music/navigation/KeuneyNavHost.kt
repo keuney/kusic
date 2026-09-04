@@ -38,6 +38,7 @@ import com.keuney.music.feature.player.NowPlayingScreen
 import com.keuney.music.feature.player.QueueScreen
 import com.keuney.music.feature.search.SearchScreen
 import com.keuney.music.feature.search.SearchViewModel
+import com.keuney.music.feature.settings.SettingsViewModel
 
 /**
  * 앱의 화면 구성 전부. 하단 내비게이션 세 탭과 미니 플레이어를 감싸고 목적지를 갈아 끼운다.
@@ -50,6 +51,7 @@ internal fun KeuneyNavHost(
     playerViewModel: PlayerViewModel,
     searchViewModel: SearchViewModel,
     libraryViewModel: LibraryViewModel,
+    settingsViewModel: SettingsViewModel,
     navController: NavHostController = rememberNavController(),
 ) {
     val connection by playerViewModel.connectionState.collectAsStateWithLifecycle()
@@ -132,6 +134,7 @@ internal fun KeuneyNavHost(
                 NowPlayingScreen(
                     viewModel = playerViewModel,
                     libraryViewModel = libraryViewModel,
+                    settingsViewModel = settingsViewModel,
                     onBack = { navController.popBackStack() },
                     onOpenQueue = { navController.navigate(QUEUE_ROUTE) },
                 )

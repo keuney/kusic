@@ -748,3 +748,19 @@
 - 고친 검사를 화면을 일부러 끈 상태(`mWakefulness=Dozing`)에서 돌려 통과하는 것을 확인했다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 22초). 단위 171개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
 - 결정 ADR-066. 신규 의존성 없음. 다음은 KM-152 Dark theme다.
+
+## KM-152 완료 — Dark theme
+
+- 브랜치 `codex/KM-152-dark-theme`. `ThemePreference`(시스템·밝게·어둡게)와 DataStore 저장은 초기 작업에서 이미 있었고 아무도 읽지 않고 있었다. 이 작업이 그것을 화면에 연결했다.
+- 색은 Material 3 기본 배색을 그대로 쓴다. 고유한 브랜드 색을 정한 적이 없고 기본 배색은 대비가 이미 맞춰져 있다.
+- 합치는 규칙은 `ThemePreference.isDark(systemDark)` 한 줄이다. 시스템은 기기를 따르고, 밝게·어둡게는 기기 설정과 달라도 그것을 따른다. 단위 3개로 고정했다(171개 → 174개).
+- **시스템 표시줄 아이콘 색이 앱 색을 따르게 고쳤다.** 이전에는 `SystemBarStyle.light`로 고정돼 있어 어두운 화면에서 아이콘이 보이지 않았다. 화면 색이 바뀔 때마다 `enableEdgeToEdge`를 다시 건다. `WindowInsetsControllerCompat`는 선언하지 않은 의존성(androidx.core)에 있어 쓰지 않았다.
+- 시작 창에 밝게·어둡게 두 벌을 뒀다(`values/themes.xml`, `values-night/themes.xml`). 앱이 그리기 전의 창 색이라 정하지 않으면 어두운 화면으로 들어갈 때 흰 창이 번쩍인다. 이 값은 시스템 설정만 따를 수 있다.
+- 고르는 자리는 재생 화면에 임시로 뒀다. WiFi 전용 재생과 함께 KM-153에서 설정 화면으로 옮긴다. 지금 여기 두는 것은 고른 값이 적용되는지 볼 자리가 없기 때문이다.
+- 앱 전체 설정은 새 `SettingsViewModel`이 갖는다. KM-153이 나머지 설정을 여기에 더한다.
+- 실기기 SM-T220 / Android 14에서 네 가지를 모두 확인했다: 시스템 밝게 + 시스템 설정, 시스템 어둡게 + 시스템 설정(어둡게 그려짐), **시스템 어둡게 + 앱 밝게**(앱만 밝게, 표시줄 글자는 어둡게), **시스템 밝게 + 앱 어둡게**(앱만 어둡게, 표시줄 글자는 밝게). 네 경우 모두 표시줄이 읽힌다.
+- 주요 화면의 대비도 어두운 색에서 확인했다: 검색 결과(제목·아티스트·길이), 라이브러리 빈 화면, 재생 화면, 미니 플레이어와 하단 탭. 읽히지 않는 곳은 없었다.
+- 캡처를 한 번 잘못 읽었다. 설정을 바꾼 직후 3초 만에 찍은 화면에서는 표시줄이 아직 이전 색이었다. 5초 뒤 다시 찍어 제대로 바뀐 것을 확인했다. 표시줄 색은 창 속성이라 Compose 프레임보다 늦게 반영된다.
+- 확인 후 화면 색을 시스템으로, 기기 야간 모드를 끔으로, 화면 꺼짐 시간을 30000으로 되돌렸다. 화면 캡처는 captures/km-152에 보관했다(저장소 추적 대상 아님).
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 32초). 단위 174개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
+- 결정 ADR-067. 신규 의존성 없음. 다음은 KM-153 Settings다. 거기서 임시로 둔 화면 색과 WiFi 전용 재생을 옮긴다.

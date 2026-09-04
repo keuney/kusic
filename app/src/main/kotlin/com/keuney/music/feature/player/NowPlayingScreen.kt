@@ -53,6 +53,8 @@ import com.keuney.music.core.player.toTrack
 import com.keuney.music.feature.library.AddToPlaylistDialog
 import com.keuney.music.feature.library.LibraryViewModel
 import com.keuney.music.feature.library.PlaylistNameDialog
+import com.keuney.music.core.settings.ThemePreference
+import com.keuney.music.feature.settings.SettingsViewModel
 import com.keuney.music.ui.components.Artwork
 import com.keuney.music.ui.format.formatDuration
 
@@ -66,6 +68,7 @@ import com.keuney.music.ui.format.formatDuration
 internal fun NowPlayingScreen(
     viewModel: PlayerViewModel,
     libraryViewModel: LibraryViewModel,
+    settingsViewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenQueue: () -> Unit,
 ) {
@@ -73,6 +76,7 @@ internal fun NowPlayingScreen(
     val playback by viewModel.playbackState.collectAsStateWithLifecycle()
     val wifiOnly by viewModel.wifiOnlyPlayback.collectAsStateWithLifecycle()
     val meteredBlocked by viewModel.meteredPlaybackBlocked.collectAsStateWithLifecycle()
+    val theme by settingsViewModel.theme.collectAsStateWithLifecycle()
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
     var pendingSeek by remember { mutableStateOf<PendingSeek?>(null) }
     val connected = connection == ConnectionState.Connected
@@ -225,6 +229,22 @@ internal fun NowPlayingScreen(
                 label = { Text(stringResource(repeatLabelRes(playback.repeatMode))) },
             )
         }
+        // 화면 색(KM-152)도 WiFi 전용 설정과 함께 설정 화면(KM-153)으로 옮긴다. 지금 여기 두는
+        // 것은 고른 값이 실제로 적용되는지 볼 자리가 아직 없기 때문이다.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.theme_label), style = MaterialTheme.typography.bodyMedium)
+            ThemePreference.entries.forEach { option ->
+                FilterChip(
+                    selected = theme == option,
+                    onClick = { settingsViewModel.setTheme(option) },
+                    label = { Text(stringResource(themeLabelRes(option))) },
+                )
+            }
+        }
         // WiFi 전용 설정(KM-137)은 설정 화면(KM-153)이 생기면 그쪽으로 옮긴다.
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -269,6 +289,12 @@ internal fun NowPlayingScreen(
             onDismiss = { namingNewPlaylist = false },
         )
     }
+}
+
+private fun themeLabelRes(theme: ThemePreference): Int = when (theme) {
+    ThemePreference.System -> R.string.theme_system
+    ThemePreference.Light -> R.string.theme_light
+    ThemePreference.Dark -> R.string.theme_dark
 }
 
 private fun repeatLabelRes(mode: RepeatMode): Int = when (mode) {
