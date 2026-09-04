@@ -265,6 +265,15 @@ AGP 내장 Kotlin을 유지하고 KSP로 처리하므로 kapt 및 별도 Android
 
 ## 기존 설계의 ADR 관리
 
+### ADR-065 — 배터리 예외를 요구하지 않는다 (KM-135)
+
+- KM-135는 "실기기에서 실제 background kill 문제가 재현될 때만 구현"이라는 조건이 붙은 작업이다. 먼저 재현을 시도했고 **재현되지 않았다.** 따라서 안내 화면을 만들지 않는다.
+- 재현 시도(SM-T220 / Android 14): 한 곡 반복으로 재생을 걸고 화면을 끄고, `dumpsys battery unplug`로 충전을 떼고 `deviceidle force-idle`로 깊은 doze에 넣고, 앱 대기 버킷을 `restricted`(45)로 내렸다. 이 상태로 **약 34분** 동안 프로세스(pid 4687)와 재생이 그대로 유지됐다.
+- 버티는 이유는 구조에 있다. 재생을 소유한 것이 `mediaPlayback` 유형의 foreground service이고(`isForeground=true types=00000002`) 알림이 붙어 있다. 시스템은 이것을 사용자가 지금 쓰는 것으로 취급한다. `BackgroundPlaybackTest`가 이미 이 사실을 검사한다.
+- **첫 실행에서 배터리 예외를 요구하지 않는다.** `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`를 선언하지 않고 관련 화면도 띄우지 않는다. 코드 전체에 배터리 관련 권한·문자열·인텐트가 없으며, 기기의 예외 목록에도 이 앱이 없다. 필요하지 않은 예외를 요구하는 것은 사용자에게 이유를 설명할 수 없는 요구다. 재생이 실제로 끊기지 않는 한 요구할 근거가 없다.
+- 남은 한계: 삼성의 "사용하지 않는 앱 절전"·"深 절전 앱" 목록은 adb로 강제할 수 없고 보통 며칠 쓰지 않은 앱에 적용된다. 여기서 강제할 수 있는 것은 AOSP doze와 앱 대기 버킷까지였다. 장기 실사용에서 끊김이 나타나면 그때 이 작업을 열어 일반적인 설정 안내(예외 요구가 아니라 어디를 보라는 안내)를 붙인다.
+- 근거: [Doze와 앱 대기](https://developer.android.com/training/monitoring-device-state/doze-standby), [배터리 예외 요구 정책](https://developer.android.com/training/monitoring-device-state/doze-standby#allowlist).
+
 ### ADR-064 — 구성 변경과 세션 연결 (KM-133)
 
 - **구성 변경으로 Activity가 다시 만들어지는 동안에는 세션 연결을 끊지 않는다.** `onStop`에서 `isChangingConfigurations`이면 그대로 둔다. ViewModel이 남으므로 다시 만들어진 Activity가 같은 연결을 이어 쓴다.

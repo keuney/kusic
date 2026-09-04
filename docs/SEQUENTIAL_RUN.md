@@ -694,3 +694,16 @@
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(4분 51초). 단위 171개·실제 계약 7개·실기기 계측 46개, 실패/오류 0. 린트 오류 0·경고 22.
 - 확인 후 자동 회전과 화면 꺼짐 시간(30000)을 되돌리고 앱을 다시 설치했다.
 - 결정 ADR-064. 신규 의존성 없음. 다음은 KM-135이다.
+
+## KM-135 보류 — OEM battery help (조건 미충족)
+
+- 브랜치 `codex/KM-135-battery-doze`. 이 작업에는 조건이 붙어 있다. "실기기에서 실제 background kill 문제가 재현될 때만 구현." 그래서 코드를 쓰기 전에 재현을 시도했다.
+- 재현 시도(SM-T220 / Android 14): 한 곡 반복으로 내장 음원을 걸어 끝나지 않게 하고, 화면을 끄고, `dumpsys battery unplug`로 충전을 떼고, `dumpsys deviceidle force-idle`로 깊은 doze에 넣고, `am set-standby-bucket com.keuney.music restricted`로 대기 버킷을 45(RESTRICTED)까지 내렸다.
+- 결과: **약 34분 동안 프로세스와 재생이 그대로였다.** 같은 pid(4687), 상태 PLAYING, deep state IDLE, 버킷 45. 재생이 끊기거나 프로세스가 죽는 일은 없었다.
+- 버티는 이유는 구조에 있다. `dumpsys activity services`에서 `isForeground=true types=00000002`(mediaPlayback)이고 알림이 붙어 있다. 시스템은 이것을 사용자가 지금 쓰는 것으로 본다. 이 사실은 `BackgroundPlaybackTest`가 이미 검사한다.
+- 인수 조건 둘 중 "no aggressive battery exemption prompt at first launch"는 지금 상태로 이미 충족한다. `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`를 선언하지 않고 관련 화면도 없다. 코드 전체에 배터리 관련 권한·문자열·인텐트가 없고 기기의 예외 목록에도 이 앱이 없다.
+- 다른 하나("generic settings help")는 재현되지 않았으므로 만들지 않았다. 필요하지 않은 안내를 넣으면 쓰이지 않는 화면이 하나 늘고, 예외를 요구하는 앱과 구별되지 않는다.
+- 그래서 상태 표시를 `[ ]`로 남긴다. KM-064와 같은 방식이다. 조건이 충족되면 그때 연다.
+- 남은 한계: 삼성의 "사용하지 않는 앱 절전" 목록은 adb로 강제할 수 없고 보통 며칠 쓰지 않은 앱에 적용된다. 강제할 수 있는 것은 AOSP doze와 대기 버킷까지였다. KM-136 30분 사용 검사와 장기 실사용에서 다시 본다.
+- 확인 후 `deviceidle unforce`·`battery reset`·버킷 active로 되돌리고, 반복 모드를 반복 없음으로 되돌리고 재생을 멈췄다. 반복 모드는 설정에 저장되므로 되돌리지 않으면 이후 작업까지 따라간다.
+- 결정 ADR-065. 코드 변경 없음. 다음은 KM-136이다.

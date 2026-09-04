@@ -18,11 +18,13 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 63 / 미착수 14. 보류 없음. 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 14에는 최종 게이트 KM-200이 포함된다.
+**현재: 완료 63 / 미착수 14. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. KM-132·133·135 커밋은 아직 origin에 올리지 않았다.** 상태 표시를 세어 확인한 값이며 미착수 14에는 최종 게이트 KM-200과 보류한 KM-135가 포함된다.
 
 **M6 Player UX 완료 (KM-090~097). M7 Library 완료 (KM-110~116).**
 
-**다음 작업: KM-135 (Battery/doze behavior).** M8에서 남은 것은 KM-130·131(블루투스 기기 필요)·135·136이다.
+**다음 작업: KM-136 (30분 스모크 테스트).** M8에서 남은 것은 KM-130·131(블루투스 기기 필요)·135(조건 미충족)·136이다. 즉 실질적으로 KM-136이 M8의 마지막이다.
+
+**KM-135를 보류한 이유:** 조건이 "실기기에서 실제 background kill 문제가 재현될 때만 구현"인데 재현되지 않았다. 깊은 doze + restricted 버킷 + 화면 꺼짐 + 충전 해제로 34분을 두어도 재생이 끊기지 않았다. 배터리 예외를 요구하지 않는다는 인수 조건은 현재 코드가 이미 충족한다. 삼성의 절전 목록은 adb로 강제할 수 없으므로 KM-136과 장기 실사용에서 다시 본다(ADR-065).
 
 **KM-130·131을 건너뛴 이유:** 사용자에게 물었고 실제 블루투스 기기가 없다는 답을 받았다(2026-09-04). AGENTS.md 20이 Bluetooth 조작과 headset disconnect를 에뮬레이터 통과만으로 완료 처리하지 말라고 하므로 기기가 생길 때까지 미룬다. 세션 명령 자체는 Media3가 미디어 버튼을 받아 처리하므로 앱 코드 변경은 거의 없을 수 있고, 실제 확인이 그 작업들의 핵심이다.
 
@@ -1655,6 +1657,15 @@ no permanent download behavior
 KM-135 — OEM battery help
 
 Status: [ ]
+
+보류 (2026-09-04): 조건이 충족되지 않았다. 재현을 시도했고 background kill이 일어나지 않았다.
+
+- 재현 시도(SM-T220 / Android 14): 한 곡 반복으로 재생을 걸고 화면을 끈 뒤 `dumpsys battery unplug`로 충전을 떼고 `dumpsys deviceidle force-idle`로 깊은 doze에 넣고 대기 버킷을 restricted(45)로 내렸다. 약 34분 동안 같은 pid로 재생이 그대로였다.
+- 버티는 이유: 재생을 소유한 것이 mediaPlayback 유형 foreground service이고(isForeground=true types=00000002) 알림이 붙어 있다. BackgroundPlaybackTest가 이미 이 사실을 검사한다.
+- 인수 조건 중 "no aggressive battery exemption prompt at first launch"는 현재 상태로 이미 충족한다. REQUEST_IGNORE_BATTERY_OPTIMIZATIONS를 선언하지 않고 관련 화면·문자열·인텐트가 없으며 기기의 배터리 예외 목록에도 없다.
+- "generic settings help"는 재현되지 않았으므로 만들지 않았다. 필요하지 않은 안내는 쓰이지 않는 화면을 늘리고 예외를 요구하는 앱과 구별되지 않게 한다.
+- 남은 한계: 삼성의 "사용하지 않는 앱 절전" 목록은 adb로 강제할 수 없다. 강제한 것은 AOSP doze와 대기 버킷까지다. KM-136과 장기 실사용에서 다시 본다. 끊김이 나타나면 이 작업을 열어 일반적인 설정 안내를 붙인다.
+- 결정은 ADR-065에 기록했다. 코드 변경 없음.
 
 Condition:
 
