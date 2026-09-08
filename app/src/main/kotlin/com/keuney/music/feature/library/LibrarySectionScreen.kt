@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,7 +36,7 @@ import com.keuney.music.ui.components.TrackRow
  * 판단이다(ADR-059).
  *
  * 최근 재생에는 줄마다 버튼이 없다. 한 곡만 빼는 것은 뜻이 약하고, 전체 지우기는 요약 화면
- * 머리에 있다.
+ * 머리에 있다. 그 대신 머리에 셔플 재생이 있다(KM-139). 여기 있는 목록 전체가 대기열이 된다.
  */
 @Composable
 internal fun LibrarySectionScreen(
@@ -43,6 +44,7 @@ internal fun LibrarySectionScreen(
     section: LibrarySection,
     selectEnabled: Boolean,
     onSelect: (tracks: List<Track>, index: Int) -> Unit,
+    onShuffle: (tracks: List<Track>) -> Unit,
     onBack: () -> Unit,
 ) {
     val recent by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
@@ -59,7 +61,19 @@ internal fun LibrarySectionScreen(
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.player_back))
             }
-            Text(stringResource(section.titleRes), style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = stringResource(section.titleRes),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
+            )
+            // 최근 재생 전체를 무작위 순서로 듣는다(KM-139). 요약 화면의 다섯 곡이 아니라
+            // 여기 있는 목록 전체가 대기열이 된다. 즐겨찾기에는 두지 않는다. 사용자가 요청한
+            // 것은 최근 재생이며, 쓰이지 않을 버튼을 미리 만들지 않는다.
+            if (section == LibrarySection.Recent && tracks.isNotEmpty()) {
+                TextButton(onClick = { onShuffle(tracks) }, enabled = selectEnabled) {
+                    Text(stringResource(R.string.library_recent_shuffle))
+                }
+            }
         }
         if (tracks.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -113,6 +113,8 @@ internal fun KeuneyNavHost(
                     viewModel = libraryViewModel,
                     selectEnabled = connected,
                     onSelect = playerViewModel::playTracks,
+                    // 최근 재생 전체를 무작위 순서로 듣는다(KM-139).
+                    onShuffle = playerViewModel::shuffleTracks,
                     onOpenPlaylist = { navController.navigate(playlistRoute(it)) },
                     onGoSearch = { navController.switchTab(TopLevelDestination.Search) },
                     onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
@@ -133,6 +135,7 @@ internal fun KeuneyNavHost(
                     viewModel = libraryViewModel,
                     selectEnabled = connected,
                     onSelect = playerViewModel::playTracks,
+                    onShuffle = playerViewModel::shuffleTracks,
                     onOpenPlaylist = { navController.navigate(playlistRoute(it)) },
                     onOpenSection = { navController.navigate(librarySectionRoute(it)) },
                     modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -157,6 +160,7 @@ internal fun KeuneyNavHost(
                     section = section ?: LibrarySection.Recent,
                     selectEnabled = connected,
                     onSelect = playerViewModel::playTracks,
+                    onShuffle = playerViewModel::shuffleTracks,
                     onBack = { navController.popBackStack() },
                 )
             }

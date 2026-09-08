@@ -53,12 +53,16 @@ import com.keuney.music.ui.components.Artwork
  *
  * 카드를 누르면 그 줄 전체가 대기열이 되고 누른 곡부터 재생한다. 검색 결과·라이브러리와 같은
  * 방식이다.
+ *
+ * 최근 재생 구획 머리에는 셔플 재생이 있다(KM-139). 무엇을 들을지 고르지 않고 들은 것들을
+ * 무작위 순서로 이어 듣는다. 홈이 하는 일과 가장 잘 맞는 조작이다.
  */
 @Composable
 internal fun HomeScreen(
     viewModel: LibraryViewModel,
     selectEnabled: Boolean,
     onSelect: (tracks: List<Track>, index: Int) -> Unit,
+    onShuffle: (tracks: List<Track>) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onGoSearch: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -88,6 +92,7 @@ internal fun HomeScreen(
             playlists = playlists,
             selectEnabled = selectEnabled,
             onSelect = onSelect,
+            onShuffle = onShuffle,
             onOpenPlaylist = onOpenPlaylist,
             onGoSearch = onGoSearch,
         )
@@ -101,6 +106,7 @@ private fun HomeSections(
     playlists: List<Playlist>,
     selectEnabled: Boolean,
     onSelect: (tracks: List<Track>, index: Int) -> Unit,
+    onShuffle: (tracks: List<Track>) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onGoSearch: () -> Unit,
 ) {
@@ -117,6 +123,13 @@ private fun HomeSections(
             selectEnabled = selectEnabled,
             keyPrefix = "recent",
             onSelect = onSelect,
+            // 홈은 다시 듣는 자리다. 최근 재생 전체를 무작위로 듣는 것이 그 자리에서 가장
+            // 손이 덜 가는 방법이므로 구획 머리에 둔다(KM-139).
+            action = {
+                TextButton(onClick = { onShuffle(recent) }, enabled = selectEnabled) {
+                    Text(stringResource(R.string.library_recent_shuffle))
+                }
+            },
         )
         trackRow(
             titleRes = R.string.library_favorites,
@@ -148,9 +161,10 @@ private fun LazyListScope.trackRow(
     selectEnabled: Boolean,
     keyPrefix: String,
     onSelect: (tracks: List<Track>, index: Int) -> Unit,
+    action: @Composable () -> Unit = {},
 ) {
     if (tracks.isEmpty()) return
-    item(key = "$keyPrefix-header") { SectionTitle(titleRes) }
+    item(key = "$keyPrefix-header") { SectionTitle(titleRes, action) }
     item(key = "$keyPrefix-row") {
         // 가로 줄은 보이는 것만 만든다. 개수를 잘라 낼 이유가 없고, 자르면 누른 자리와 대기열의
         // 자리가 어긋날 위험만 생긴다.
@@ -165,13 +179,20 @@ private fun LazyListScope.trackRow(
     }
 }
 
+/** 구획 머리. 목록 전체에 대한 조작이 있으면 오른쪽에 붙는다. */
 @Composable
-private fun SectionTitle(titleRes: Int) {
-    Text(
-        text = stringResource(titleRes),
-        style = MaterialTheme.typography.titleMedium,
+private fun SectionTitle(titleRes: Int, action: @Composable () -> Unit = {}) {
+    Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(titleRes),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        action()
+    }
 }
 
 /** 홈의 곡 카드. 이미지가 크고 글자는 아래 두 줄까지다. */

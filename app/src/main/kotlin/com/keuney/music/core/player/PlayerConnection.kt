@@ -191,6 +191,21 @@ internal class PlayerConnection @Inject constructor(
         player.play()
     }
 
+    /**
+     * 목록을 무작위 순서로 재생하기 시작한다(KM-139). 최근 재생 목록의 셔플 재생이 쓴다.
+     *
+     * 순서는 [shuffledQueue]가 정하고 대기열에 그 순서대로 들어간다. **셔플 모드는 끈다.**
+     * 켜 두면 이미 섞은 대기열을 세션이 다시 섞고, 그 순서는 컨트롤러가 읽을 수 없어
+     * 대기열 화면이 보여 주는 순서가 실제 순서가 아니게 된다(ADR-053). 무작위는 한 곳에만 둔다.
+     */
+    @MainThread
+    fun shufflePlay(tracks: List<Track>) {
+        checkMainThread()
+        if (tracks.isEmpty()) return
+        setShuffleEnabled(false)
+        playQueue(shuffledQueue(tracks))
+    }
+
     /** 대기열에서 그 자리의 곡으로 넘어간다. 목록에서 항목을 눌렀을 때 쓴다. */
     @MainThread
     fun seekToQueueItem(index: Int) {

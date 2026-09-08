@@ -66,6 +66,14 @@ internal class PlayerViewModel @Inject constructor(
      */
     fun playTracks(tracks: List<Track>, startIndex: Int) = connection.playQueue(tracks, startIndex)
 
+    /**
+     * 목록을 무작위 순서로 재생하기 시작한다(KM-139). 곡을 고르지 않고 목록 전체를 듣는 조작이다.
+     *
+     * 재생 화면의 셔플 토글과 다르다. 토글은 지금 듣고 있는 대기열의 다음 곡 순서를 바꾼다.
+     * 이것은 무엇을 들을지 새로 정한다.
+     */
+    fun shuffleTracks(tracks: List<Track>) = connection.shufflePlay(tracks)
+
     fun seekToQueueItem(index: Int) = connection.seekToQueueItem(index)
     fun removeFromQueue(index: Int) = connection.removeQueueItem(index)
     fun moveInQueue(from: Int, to: Int) = connection.moveQueueItem(from, to)

@@ -44,12 +44,16 @@ import com.keuney.music.ui.components.TrackRow
  *
  * 세 구획이 모두 비면 구획을 나열하지 않는다. 첫 실행에서 "없습니다"가 세 줄인 화면은 무엇을
  * 해야 하는지 알려주지 않는다.
+ *
+ * 최근 재생 구획 머리에는 셔플 재생이 있다(KM-139). 줄마다 붙는 버튼이 아니라 목록 전체에
+ * 대한 조작이라 지우기와 같은 자리다.
  */
 @Composable
 internal fun LibraryScreen(
     viewModel: LibraryViewModel,
     selectEnabled: Boolean,
     onSelect: (tracks: List<Track>, index: Int) -> Unit,
+    onShuffle: (tracks: List<Track>) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onOpenSection: (LibrarySection) -> Unit,
     modifier: Modifier = Modifier,
@@ -71,6 +75,11 @@ internal fun LibraryScreen(
                 emptyRes = R.string.library_recent_empty,
                 action = {
                     if (recent.isNotEmpty()) {
+                        // 목록 전체를 무작위 순서로 듣는다. 곡을 고르는 것과 다른 조작이므로
+                        // 구획 머리에 둔다(KM-139).
+                        TextButton(onClick = { onShuffle(recent) }, enabled = selectEnabled) {
+                            Text(stringResource(R.string.library_recent_shuffle))
+                        }
                         TextButton(onClick = viewModel::clearPlaybackHistory) {
                             Text(stringResource(R.string.library_recent_clear))
                         }

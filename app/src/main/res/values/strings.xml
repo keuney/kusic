@@ -34,6 +34,7 @@
     <string name="library_empty">아직 라이브러리가 비어 있습니다. 검색해서 곡을 들으면 여기에 쌓입니다.</string>
     <string name="library_recent_empty">최근 들은 곡이 없습니다.</string>
     <string name="library_recent_clear">지우기</string>
+    <string name="library_recent_shuffle">셔플 재생</string>
     <string name="library_favorites">즐겨찾기</string>
     <string name="library_favorites_empty">즐겨찾기한 곡이 없습니다.</string>
     <string name="library_playlists">재생목록</string>
