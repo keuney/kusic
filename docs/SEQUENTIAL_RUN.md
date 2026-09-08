@@ -912,3 +912,11 @@
 - **시행착오 2.** 첫 검증에서 lint가 `UnsafeOptInUsageError`로 실패했다. `MeteredNetworkBlockedException`을 `DataSourceException`(UnstableApi) 상속으로 바꿨는데 그것은 클래스 밖의 최상위 선언이라 파일의 `@OptIn`이 덮지 않는다. KM-132에서 같은 것을 겪었다. 계측·단위·계약은 그 실행에서 이미 모두 통과했다.
 - `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue --console=plain`: PASS, 종료 코드 0(5분 56초). 단위 192개·실제 계약 7개·실기기 계측 47개, 실패/오류 0. 린트 오류 0·경고 22.
 - 결정 ADR-072. 신규 의존성 없음.
+
+## 백로그 추가 — KM-139 최근 재생 셔플 (2026-09-08)
+
+- 사용자 요청으로 새 기능을 작업으로 만들었다. M8에 KM-139로 넣었다. KM-137·KM-138을 새로 추가했던 것과 같은 방식이다.
+- 요청: "최근 재생한 목록들을 무작위로 재생하는 셔플 기능".
+- 왜 지금 없는 것인가: PRD 15의 필수 기능에 Shuffle이 있고 KM-095에서 만들었지만 **재생 화면의 토글**이다. 목록을 섞어 들으려면 곡 하나를 눌러 대기열을 만들고 재생 화면으로 들어가 토글을 켜야 하며, 그러고도 이미 시작한 첫 곡은 바뀌지 않는다. 누른 곡부터 재생하는 것("이 곡을 듣겠다")과 목록을 섞어 듣는 것("무엇이든 듣겠다")은 시작하는 방법이 달라야 한다.
+- 인수 조건에 **대기열 화면에 보이는 순서가 실제 재생 순서와 같아야 한다**를 넣었다. Media3의 셔플 모드는 재생 순서를 세션 뒤에서 섞고 그 순서가 컨트롤러에 실려 오지 않는다(ADR-053, KM-097의 안내 문구가 그 때문에 있다). 그러므로 이 기능의 무작위는 대기열 자체에 넣어야 한다.
+- 목록의 곡이 빠지거나 겹치지 않는 것도 인수 조건이다. 섞는 규칙을 떼어 두면 기기 없이 단위 검사로 고정할 수 있다(`UnplayableSkip`·`RepeatCycle`과 같은 방식).
