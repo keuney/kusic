@@ -18,11 +18,11 @@ Codex는 항상 AGENTS.md를 먼저 읽고 한 번에 하나의 Task만 수행�
 
 새 세션은 이 절과 아래 상태 표시를 먼저 본다. 작업별 상세 결과는 각 Task의 완료 기록에, 기술 결정은 docs/DECISIONS.md에, 시행착오까지 포함한 전체 흐름은 docs/SEQUENTIAL_RUN.md에 있다.
 
-**현재: 완료 75 / 미착수 5. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나이며 origin/main과 같다.** 상태 표시를 세어 확인한 값이다. 2026-09-09 사용자 요청으로 KM-139의 커밋 2개를 push했다.
+**현재: 완료 76 / 미착수 4. 보류 1건(KM-135, 조건 미충족). 작업 트리 깨끗하고 브랜치는 main 하나다. 아직 origin에 올리지 않은 커밋이 있다(KM-159).** 상태 표시를 세어 확인한 값이다. 2026-09-09 사용자 요청으로 KM-139의 커밋 2개를 push했다.
 
 **최종 게이트 KM-200을 통과했다(항목 하나 미검증).** Must PASS 15개 중 14개 PASS. Bluetooth Play/Pause만 기기가 없어 검증하지 못했다.
 
-**다음 작업: KM-159 (배포 빌드 버전 올리기).** 사용자 요청으로 추가했다(2026-09-09). 배포용 APK가 KM-158 이후로 계속 `0.1.0` / 코드 `1`이라 기기에 깔린 것과 새로 만든 것을 구분할 수 없다. 나머지 미착수 4개는 코드 작업이 아니다.
+**KM-159(배포 빌드 버전 올리기)를 완료했다.** 지금 버전은 `0.2.0` / 코드 `2`다. **다음에 기기에 넣을 APK를 만들 때 또 올린다**(README "배포 빌드 버전"). 남은 미착수 4개는 모두 코드 작업이 아니다.
 
 - KM-064 Provider B 평가: KM-059 Gate가 PASS라 활성화하지 않는다(영구 비활성).
 - KM-130 Bluetooth controls, KM-131 Headset disconnect: 실제 블루투스 기기·헤드셋이 필요하다.
@@ -2070,7 +2070,16 @@ core smoke test PASS
 
 KM-159 — 배포 빌드 버전 올리기
 
-Status: [ ]
+Status: [x]
+
+완료 (2026-09-09): `versionCode` 1 → 2, `versionName` 0.1.0 → 0.2.0. 갱신 설치와 데이터 보존을 실기기에서 확인했다.
+
+- 인수 조건: versionCode가 이전 배포보다 큼 PASS(1 → 2). versionName 0.2.0 PASS. 이전 버전 위에 덮어 설치되고 로컬 데이터가 남음 PASS. 다음 배포에서 올려야 한다는 것이 문서에 있음 PASS(README "배포 빌드 버전", `defaultConfig` 주석).
+- 실기기 확인(SM-T220 / Android 14): 먼저 **0.1.0을 다시 설치해** 이전 상태를 만들고(versionCode=1) 재생목록 하나와 최근 재생 한 곡을 넣었다. 그 위에 0.2.0을 설치했더니 Success이고 versionCode=2 / versionName=0.2.0이며 **재생목록과 최근 재생이 그대로 있었다.** crash 0건. 서명이 같아야 갱신 설치가 되는 것을 실제로 확인한 셈이다.
+- 산출물 확인: `aapt2 dump badging`이 versionCode='2' versionName='0.2.0'을 보인다. `apksigner verify`로 서명을 확인했다. 배포용 키가 아니라 SDK의 공개 debug 키다(KM-158과 같다).
+- 확인 후 검사용 재생목록과 재생 기록을 지웠다. 기기에는 0.2.0 릴리스 빌드가 설치돼 있다.
+- `gradlew.bat test lint assembleDebug assembleRelease connectedDebugAndroidTest sourceContractTest -PsourceContractUseWindowsTrust=true --continue`: PASS, 종료 코드 0(6분 30초). 단위 199개·실제 계약 7개·실기기 계측 48개, 실패/오류 0. 린트 오류 0·경고 22.
+- 결정은 ADR-074에 기록했다. 검사는 추가하지 않았다. 버전 값은 빌드 설정이며 앱 코드가 그것으로 분기하는 곳이 없다. 확인은 산출물과 설치로 한다.
 
 Background:
 

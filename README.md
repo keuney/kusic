@@ -192,6 +192,19 @@ KM-012 화면 검증을 재실행하려면 디버그 빌드 후 에뮬레이터�
 
 계측 결과는 `app/build/reports/androidTests/connected/debug/index.html`에서 확인한다. 일반 앱 실행 검증에는 위 `verify-km012.ps1`을 재사용한다. Hilt 및 테스트 의존성 선택은 ADR-012에 기록했다.
 
+## 배포 빌드 버전
+
+기기에 넣을 APK를 만들 때마다 `app/build.gradle.kts`의 `versionCode`를 **1 올리고** `versionName`을
+바꾼다. `versionCode`가 같으면 기기는 그것이 새 빌드인지 알 수 없고, `versionName`이 같으면 앱 안에서
+무엇이 깔려 있는지 구분할 수 없다. 지금 값은 `2` / `0.2.0`이다(KM-159).
+
+`versionName`은 semver로 붙인다. 사용자에게 보이는 기능이 늘면 minor를, 고치기만 했으면 patch를
+올린다. 기기에 깔린 것이 무엇인지는 아래로 확인한다.
+
+```powershell
+& "$env:ANDROID_HOME/platform-tools/adb.exe" shell dumpsys package com.keuney.music | Select-String 'versionCode|versionName'
+```
+
 ## 릴리스 서명
 
 서명 정보는 **저장소에 넣지 않는다**(AGENTS.md 13). 빌드는 두 곳에서만 읽는다.

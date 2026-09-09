@@ -106,8 +106,10 @@ android {
         applicationId = "com.keuney.music"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // 배포하는 APK를 만들 때마다 올린다(KM-159). versionCode가 같으면 기기가 새 것인지
+        // 알 수 없고, 이름이 같으면 앱 안에서 무엇이 깔렸는지 구분할 수 없다.
+        versionCode = 2
+        versionName = "0.2.0"
         testInstrumentationRunner = "com.keuney.music.HiltTestRunner"
     }
 
